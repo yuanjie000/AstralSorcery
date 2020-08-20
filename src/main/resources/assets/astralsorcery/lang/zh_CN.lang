@@ -233,7 +233,7 @@ astralsorcery.journal.SKY_RESO.3.text=想要通过简单的观测星空或在不
 
 research.SPEC_RELAY.name=光波增幅器
 astralsorcery.journal.SPEC_RELAY.1.text=法斯刻共振器能找到强星能场，这缓解了对星能的需求。问题在于把基地搬迁到那附近或远距离传输星能是不切实际的。要对古代历史做进一步的深入研究，无疑需要越来越多的星能，解决方法是制作一些能收集星能的装置。
-astralsorcery.journal.SPEC_RELAY.4.text=或许一个专门为附近祭坛收集星能的小型建筑结构能解决这个问题。当然必须要在能直视天空的地方，夜晚时自然会有更强的效果。<NL>将增幅器放置在祭坛附近的高处时，放上玻璃透镜就能聚集附近的星辉。星辉会像小火花一样被引导向最近的祭坛。<NL>如果有大量聚能祭坛距离过近会使星能互相竞争，可能会导致许多§o不可预测的§r结果。
+astralsorcery.journal.SPEC_RELAY.4.text=或许一个专门为附近祭坛收集星能的小型建筑结构能解决这个问题。当然必须要在能直视天空的地方，夜晚时自然会有更强的效果。<NL>将增幅器放置在祭坛附近的高处时，放上玻璃透镜就能聚集附近的星辉。星辉会像小火花一样被引导向最近的祭坛。<NL>如果有大量聚能祭坛距离过近会使聚集的星能互相抵消，这可能会导致许多§o不可预测的§r结果。
 
 research.KNOWLEDGE_SHARE.name=知识共享
 astralsorcery.journal.KNOWLEDGE_SHARE.1.text=获得新知识当然是首要的事，但也可以将其记录下来与他人共享，或者给几千年后的另一个踏上同样道路的文明指引前行的方向并留下你存在的痕迹。<NL>右键或shift右键将知识写入空卷轴或覆写已经有你的部分知识的卷轴。<NL>当然也只有先民才可能在他们的圣陵内留下这样的东西。
@@ -313,7 +313,7 @@ astralsorcery.journal.LINKTOOL.4.text=要选择星能源，只需先右键单击
 
 research.ILLUMINATION_WAND.name=照明星杖
 astralsorcery.journal.ILLUMINATION_WAND.1.text=在不断试图强化与星座之间的共鸣以获得更强大的力量时，显而易见的是，这种能量的内在性质也可以用来照亮世界。<NL>通过聚集环境中游离的星能，并将其注入方块或在空气中凝聚，可以强化它们以抵御几乎任何程度的伤害，或者单纯作为一个光源而存在。
-astralsorcery.journal.ILLUMINATION_WAND.3.text=当充能完成时，按住shift右键一个方块会将其变为发光状态或恢复为正常状态。右键则会生成一个与荧光粉类似的小耀斑。再同一个方块上再次右键会移除耀斑。<NL>可以用染料合成会改变星杖及耀斑的颜色。
+astralsorcery.journal.ILLUMINATION_WAND.3.text=当充能完成时，按住shift右键一个方块会将其变为发光状态或恢复为正常状态。右键则会生成一个与辉光粉类似的小耀斑。再同一个方块上再次右键会移除耀斑。<NL>可以用染料合成会改变星杖及耀斑的颜色。
 
 research.SHIFT_STAR.name=更替之星
 astralsorcery.journal.SHIFT_STAR.1.text=虽然与星座进行共鸣能获得强大的力量。但体内的星能力的总量有着上限，有时人们希望能够改变星能力的属性或改变它们的特化方式。但这也意味着必须破坏与外界的共鸣星能。<NL>这种含有特殊能量的专用催化剂，能使体内的星能力弱化并恢复至混沌状态来重新开始，不过这是一次性用品。
@@ -451,8 +451,8 @@ research.KNOWLEDGE_FRAGMENT.name=流星
 astralsorcery.journal.KNOWLEDGE_FRAGMENT.1.text=偶尔能看见天空中划过的流星。在其撞击后所留下的东西对星象学者而言具有极大的价值。
 
 research.ATT_PERK_GEMS.name=活力宝石
-astralsorcery.journal.ATT_PERK_GEMS.1.text=利用水晶存储星能的唯一问题是它会像光一样逃逸。通过在晶体内掺杂适当的催化剂，可以在某种程度上存储星能。在星能液中投入水晶石与荧光粉，会形成一个在生长过程中不断吸纳能量的水晶簇。<NL>出于存储能量的原因，其内的能量同样难以直接使用。
-astralsorcery.journal.ATT_PERK_GEMS.2.text=被占用的星能仍会影响附近的星能感应频率，而这已确认为获取存储星能的关键。<NL>将宝石嵌入肉体时，用意念与其沟通，并使其加入个人共鸣能量的魔法回路中，以进一步强化共鸣的自然之力。在这个结构中，宝石是与肉体相连的。
+astralsorcery.journal.ATT_PERK_GEMS.1.text=利用水晶存储星能的唯一问题是它会像光一样逃逸。通过在晶体内掺杂适当的催化剂对其进行重塑后，可以在某种程度上存储星能。在星能液中投入水晶石与荧石粉，会形成一个更容易容纳能量的水晶簇。<NL>也正因此，与存储能量方面同样的原因，其内的能量也难以直接使用。
+astralsorcery.journal.ATT_PERK_GEMS.2.text=被占用的星能仍会影响附近的星能感应频率，而这已确认为获取存储星能的关键。<NL>利用嵌入的方式将宝石内蕴含的星能力注入人体，提供了一个更好的交感方式，可以直接从共振的宝石晶体中获得星能，而无需直接抽取其内的能量。<NL>活力宝石可以镶嵌入技能树内专门准备的“插槽”内，可以大大强化你的体质。镶嵌后宝石会被你的身体束缚，但可以十分容易的取出或替换成其他的宝石。
 
 astralsorcery.journal.recipe.starlight=合成时需要星能
 astralsorcery.journal.recipe.nighttime=只能在夜间制作
@@ -474,7 +474,7 @@ item.itemsextant.target.mountain_shrine.name=古代神殿
 item.itemsextant.target.desert_shrine.name=沙漠神殿
 item.itemsextant.target.small_shrine.name=小型神殿
 item.itemsextant.target.village.name=村庄
-item.itemsextant.target.temple.name=圣堂
+item.itemsextant.target.temple.name=圣地
 item.itemsextant.target.oceanmonument.name=海底遗迹
 item.itemsextant.target.fortress.name=地狱要塞
 item.itemsextant.target.endcity.name=末地城
@@ -724,7 +724,7 @@ astralsorcery.constellation.octans.info=海洋
 astralsorcery.constellation.octans.effect=将这个星座的光反射到水上会产生奇怪的气泡，看起来下面有大量的海洋生物。
 astralsorcery.constellation.octans.enchantments=与南极座进行共鸣的头盔能给使用者提供氧气，同理，喝下这种药水会让饮用者临时长出一个用于水下呼吸的鳃。
 astralsorcery.constellation.octans.ritual=受星光影响，此效应吸引了附近水域内的鱼类，使钓鱼更容易了。
-astralsorcery.constellation.octans.capeeffect=这个星座与水的亲和力意味着穿上此种披风即使在海底也如履平地，你将拥有水下呼吸的能力，并且像往常一样在水下使用你的工具。
+astralsorcery.constellation.octans.capeeffect=兵无常势，水无常形。此披风的穿戴者不受击退影响，能够水下呼吸，还能在水下像往常一样使用工具。
 astralsorcery.constellation.bootes=牧夫座
 astralsorcery.constellation.bootes.info=畜牧
 astralsorcery.constellation.bootes.effect=看起来这些微弱的光线使所有的动物感到满足。
