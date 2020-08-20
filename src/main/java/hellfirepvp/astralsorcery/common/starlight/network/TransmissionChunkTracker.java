@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,11 +8,9 @@
 
 package hellfirepvp.astralsorcery.common.starlight.network;
 
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -23,42 +21,41 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  */
 public class TransmissionChunkTracker {
 
-    private static final TransmissionChunkTracker instance = new TransmissionChunkTracker();
+    public static final TransmissionChunkTracker INSTANCE = new TransmissionChunkTracker();
 
     private TransmissionChunkTracker() {}
 
-    public static TransmissionChunkTracker getInstance() {
-        return instance;
+    public void attachListeners(IEventBus eventBus) {
+        eventBus.addListener(this::onChLoad);
+        eventBus.addListener(this::onChUnload);
+        eventBus.addListener(this::onWorldLoad);
+        eventBus.addListener(this::onWorldUnload);
     }
 
-    @SubscribeEvent
-    public void onChLoad(ChunkEvent.Load event) {
+    private void onChLoad(ChunkEvent.Load event) {
         TransmissionWorldHandler handle = StarlightTransmissionHandler.getInstance().getWorldHandler(event.getWorld());
-        if(handle != null) {
-            Chunk ch = event.getChunk();
-            handle.informChunkLoad(new ChunkPos(ch.x, ch.z));
+        if (handle != null) {
+            handle.informChunkLoad(event.getChunk().getPos());
         }
     }
 
-    @SubscribeEvent
-    public void onChUnload(ChunkEvent.Unload event) {
+    private void onChUnload(ChunkEvent.Unload event) {
         TransmissionWorldHandler handle = StarlightTransmissionHandler.getInstance().getWorldHandler(event.getWorld());
-        if(handle != null) {
-            Chunk ch = event.getChunk();
-            handle.informChunkUnload(new ChunkPos(ch.x, ch.z));
+        if (handle != null) {
+            handle.informChunkUnload(event.getChunk().getPos());
         }
     }
 
-    @SubscribeEvent
-    public void onWorldUnload(WorldEvent.Unload event) {
+    private void onWorldLoad(WorldEvent.Load event) {
+        if (event.getWorld().isRemote()) {
+            return;
+        }
+        StarlightUpdateHandler.getInstance().informWorldLoad(event.getWorld());
+    }
+
+    private void onWorldUnload(WorldEvent.Unload event) {
         //StarlightTransmissionHandler.getInstance().informWorldUnload(event.getWorld());
         //StarlightUpdateHandler.getInstance().informWorldUnload(event.getWorld());
-    }
-
-    @SubscribeEvent
-    public void onWorldLoad(WorldEvent.Load event) {
-        if(event.getWorld().isRemote) return;
-        StarlightUpdateHandler.getInstance().informWorldLoad(event.getWorld());
     }
 
 }

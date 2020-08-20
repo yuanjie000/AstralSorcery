@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -11,8 +11,9 @@ package hellfirepvp.astralsorcery.common.data.research;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import hellfirepvp.astralsorcery.AstralSorcery;
+import hellfirepvp.astralsorcery.common.util.ServerLifecycleListener;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.NBTTagCompound;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,10 +29,10 @@ import java.util.UUID;
  * Created by HellFirePvP
  * Date: 15.01.2019 / 17:42
  */
-public class ResearchIOThread extends TimerTask {
+public class ResearchIOThread extends TimerTask implements ServerLifecycleListener {
 
-    private static Timer ioThread;
     private static ResearchIOThread saveTask;
+    private static Timer ioThread;
 
     private Map<UUID, PlayerProgress> playerSaveQueue = Maps.newHashMap();
     private Map<UUID, PlayerProgress> awaitingSaveQueue = Maps.newHashMap();
@@ -39,14 +40,37 @@ public class ResearchIOThread extends TimerTask {
 
     private ResearchIOThread() {}
 
-    public static void startIOThread() {
-        if (ioThread != null && saveTask != null) {
+    public static ResearchIOThread startup() {
+        if (saveTask == null) {
+            saveTask = new ResearchIOThread();
+        }
+        return getTask();
+    }
+
+    public static ResearchIOThread getTask() {
+        return saveTask;
+    }
+
+    @Override
+    public void onServerStart() {
+        if (ioThread != null) {
             return;
         }
-
-        saveTask = new ResearchIOThread();
+        if (saveTask == null) {
+            saveTask = new ResearchIOThread();
+        }
         ioThread = new Timer("ResearchIOThread", true);
         ioThread.scheduleAtFixedRate(saveTask, 30_000, 30_000);
+    }
+
+    @Override
+    public void onServerStop() {
+        this.flushAndSaveAll();
+
+        saveTask.cancel();
+        saveTask = null;
+        ioThread.cancel();
+        ioThread = null;
     }
 
     @Override
@@ -58,9 +82,6 @@ public class ResearchIOThread extends TimerTask {
         inSave = true;
         for (Map.Entry<UUID, PlayerProgress> entry : playerSaveQueue.entrySet()) {
             saveNow(entry.getKey(), entry.getValue());
-            if (skipTick) {
-                return;
-            }
         }
         playerSaveQueue.clear();
         inSave = false;
@@ -106,22 +127,16 @@ public class ResearchIOThread extends TimerTask {
         }
     }
 
-    static void saveAllPending() {
-        if (saveTask != null) {
-            saveTask.flushAndSaveAll();
-        }
-    }
-
     static void saveNow(UUID playerUUID, PlayerProgress progress) {
-        File playerFile = ResearchManager.getPlayerFile(playerUUID);
+        File playerFile = ResearchHelper.getPlayerFile(playerUUID);
         try {
-            Files.copy(playerFile, ResearchManager.getPlayerBackupFile(playerUUID));
+            Files.copy(playerFile, ResearchHelper.getPlayerBackupFile(playerUUID));
         } catch (IOException exc) {
             AstralSorcery.log.warn("Failed copying progress file contents to backup file!");
             exc.printStackTrace();
         }
         try {
-            NBTTagCompound cmp = new NBTTagCompound();
+            CompoundNBT cmp = new CompoundNBT();
             progress.store(cmp);
             CompressedStreamTools.write(cmp, playerFile);
         } catch (IOException ignored) {}

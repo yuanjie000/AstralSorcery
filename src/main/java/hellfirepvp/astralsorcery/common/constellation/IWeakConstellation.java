@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,10 +8,11 @@
 
 package hellfirepvp.astralsorcery.common.constellation;
 
-import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffect;
-import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
-import hellfirepvp.astralsorcery.common.data.research.ProgressionTier;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
+import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProvider;
+import hellfirepvp.astralsorcery.common.constellation.mantle.MantleEffect;
+import hellfirepvp.astralsorcery.common.lib.RegistriesAS;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 import javax.annotation.Nullable;
 
@@ -25,6 +26,24 @@ import javax.annotation.Nullable;
 public interface IWeakConstellation extends IConstellation {
 
     @Nullable
-    public ConstellationEffect getRitualEffect(ILocatable origin);
+    default public ConstellationEffectProvider getConstellationEffect() {
+        return RegistriesAS.REGISTRY_CONSTELLATION_EFFECT.getValue(this.getRegistryName());
+    }
 
+    @Nullable
+    default public MantleEffect getMantleEffect() {
+        return RegistriesAS.REGISTRY_MANTLE_EFFECT.getValue(this.getRegistryName());
+    }
+
+    default public ITextComponent getInfoRitualEffect() {
+        return new TranslationTextComponent(this.getTranslationKey() + ".ritual");
+    }
+
+    default public ITextComponent getInfoCorruptedRitualEffect() {
+        return new TranslationTextComponent(this.getTranslationKey() + ".corruption");
+    }
+
+    default public ITextComponent getInfoMantleEffect() {
+        return new TranslationTextComponent(this.getTranslationKey() + ".mantle");
+    }
 }

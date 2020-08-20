@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,32 +8,36 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
+import hellfirepvp.astralsorcery.common.auxiliary.CropHelper;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.effect.CEffectPositionListGen;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.CEffectAbstractList;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
+import hellfirepvp.astralsorcery.common.lib.EffectsAS;
 import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktParticleEvent;
-import hellfirepvp.astralsorcery.common.registry.RegistryPotions;
+import hellfirepvp.astralsorcery.common.network.play.server.PktPlayEffect;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
-import hellfirepvp.astralsorcery.common.util.CropHelper;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.init.MobEffects;
-import net.minecraft.potion.PotionEffect;
-import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ForgeConfigSpec;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.List;
@@ -43,84 +47,81 @@ import java.util.List;
  * The complete source code for this mod can be found on github.
  * Class: CEffectAevitas
  * Created by HellFirePvP
- * Date: 29.11.2016 / 01:38
+ * Date: 27.07.2019 / 21:54
  */
-public class CEffectAevitas extends CEffectPositionListGen<CropHelper.GrowablePlant> {
+public class CEffectAevitas extends CEffectAbstractList<CropHelper.GrowablePlant> {
 
-    public static boolean enabled = true;
-    public static double potencyMultiplier = 1;
+    public static AevitasConfig CONFIG = new AevitasConfig();
 
-    public static int searchRange = 16;
-    public static int maxCropCount = 200;
-    public static int potionAmplifier = 1;
-
-    public CEffectAevitas(@Nullable ILocatable origin) {
-        super(origin, Constellations.aevitas, "aevitas", maxCropCount, (world, pos) -> CropHelper.wrapPlant(world, pos) != null, CropHelper.GrowableWrapper::new);
+    public CEffectAevitas(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.aevitas, CONFIG.maxAmount.get(), (world, pos, state) -> CropHelper.wrapPlant(world, pos) != null);
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float percEffectVisibility, boolean extendedEffects) {
-        if(rand.nextBoolean()) {
-            EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                    pos.getX() + rand.nextFloat() * 5 * (rand.nextBoolean() ? 1 : -1) + 0.5,
-                    pos.getY() + rand.nextFloat() * 2 + 0.5,
-                    pos.getZ() + rand.nextFloat() * 5 * (rand.nextBoolean() ? 1 : -1) + 0.5);
-            p.motion(0, 0, 0).gravity(0.05);
-            p.scale(0.45F).setColor(new Color(63, 255, 63)).setMaxAge(35);
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        if (rand.nextBoolean()) {
+            ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
+
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(new Vector3(
+                            pos.getX() + rand.nextFloat() * (prop.getSize() / 2F) * (rand.nextBoolean() ? 1 : -1) + 0.5,
+                            pos.getY() + rand.nextFloat() * (prop.getSize() / 4F) + 0.5,
+                            pos.getZ() + rand.nextFloat() * (prop.getSize() / 2F) * (rand.nextBoolean() ? 1 : -1) + 0.5))
+                    .setGravityStrength(-0.005F)
+                    .setScaleMultiplier(0.45F)
+                    .color(VFXColorFunction.constant(ColorsAS.RITUAL_CONSTELLATION_AEVITAS))
+                    .setMaxAge(35);
         }
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(!enabled) return false;
-        percStrength *= potencyMultiplier;
-        if(percStrength < 1) {
-            if(world.rand.nextFloat() > percStrength) return false;
-        }
-
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
         boolean changed = false;
-        CropHelper.GrowablePlant plant = getRandomElementByChance(rand);
-        if(plant != null) {
-            if(MiscUtils.isChunkLoaded(world, new ChunkPos(plant.getPos()))) {
-                if(modified.isCorrupted()) {
-                    if(world instanceof WorldServer) {
-                        if (MiscUtils.breakBlockWithoutPlayer(((WorldServer) world), plant.getPos())) {
-                            changed = true;
+        CropHelper.GrowablePlant plant = getRandomElementChanced();
+        if (plant != null) {
+            changed = MiscUtils.executeWithChunk(world, plant.getPos(), changed, (changedFlag) -> {
+                if (properties.isCorrupted()) {
+                    if (world instanceof ServerWorld) {
+                        if (BlockUtils.breakBlockWithoutPlayer(((ServerWorld) world), plant.getPos())) {
+                            changedFlag = true;
                         }
                     } else {
-                        if (world.setBlockToAir(plant.getPos())) {
-                            changed = true;
+                        if (world.removeBlock(plant.getPos(), false)) {
+                            changedFlag = true;
                         }
                     }
                 } else {
-                    if(!plant.isValid(world, true)) {
-                        removeElement(plant);
-                        changed = true;
+                    if (!plant.isValid(world)) {
+                        removeElement(plant.getPos());
+                        changedFlag = true;
                     } else {
-                        if(plant.tryGrow(world, rand)) {
-                            PktParticleEvent ev = new PktParticleEvent(PktParticleEvent.ParticleEventType.CE_CROP_INTERACT, plant.getPos());
-                            PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, plant.getPos(), 8));
-                            changed = true;
+                        if (plant.tryGrow(world, rand)) {
+                            PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.CROP_GROWTH)
+                                    .addData(buf -> ByteBufUtils.writeVector(buf, new Vector3(plant.getPos())));
+                            PacketChannel.CHANNEL.sendToAllAround(pkt, PacketChannel.pointFromPos(world, plant.getPos(), 16));
+                            changedFlag = true;
                         }
                     }
                 }
-            }
+                return changedFlag;
+            }, false);
         }
 
-        if(findNewPosition(world, pos, modified)) changed = true;
-        if(findNewPosition(world, pos, modified)) changed = true;
+        if (this.findNewPosition(world, pos, properties) != null) changed = true;
+        if (this.findNewPosition(world, pos, properties) != null) changed = true;
 
-        List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(0, 0, 0, 1, 1, 1).offset(pos).grow(modified.getSize()));
-        for (EntityLivingBase entity : entities) {
-            if(!entity.isDead) {
-                if(modified.isCorrupted()) {
-                    entity.addPotionEffect(new PotionEffect(RegistryPotions.potionBleed, 200, potionAmplifier * 2));
-                    entity.addPotionEffect(new PotionEffect(MobEffects.WEAKNESS, 200, potionAmplifier * 3));
-                    entity.addPotionEffect(new PotionEffect(MobEffects.HUNGER, 200, potionAmplifier * 4));
-                    entity.addPotionEffect(new PotionEffect(MobEffects.MINING_FATIGUE, 200, potionAmplifier * 2));
+        int amplifier = CONFIG.potionAmplifier.get();
+        List<LivingEntity> entities = world.getEntitiesWithinAABB(LivingEntity.class, BOX.offset(pos).grow(properties.getSize()));
+        for (LivingEntity entity : entities) {
+            if (entity.isAlive()) {
+                if (properties.isCorrupted()) {
+                    entity.addPotionEffect(new EffectInstance(EffectsAS.EFFECT_BLEED, 200, amplifier * 2));
+                    entity.addPotionEffect(new EffectInstance(Effects.WEAKNESS, 200, amplifier * 3));
+                    entity.addPotionEffect(new EffectInstance(Effects.HUNGER, 200, amplifier * 4));
+                    entity.addPotionEffect(new EffectInstance(Effects.MINING_FATIGUE, 200, amplifier * 2));
                 } else {
-                    entity.addPotionEffect(new PotionEffect(MobEffects.REGENERATION, 200, potionAmplifier));
+                    entity.addPotionEffect(new EffectInstance(Effects.REGENERATION, 200, amplifier));
                 }
             }
         }
@@ -128,36 +129,53 @@ public class CEffectAevitas extends CEffectPositionListGen<CropHelper.GrowablePl
         return changed;
     }
 
+    @Nullable
     @Override
-    public CropHelper.GrowablePlant newElement(World world, BlockPos at) {
-        return CropHelper.wrapPlant(world, at);
+    public CropHelper.GrowablePlant recreateElement(CompoundNBT tag, BlockPos pos) {
+        return CropHelper.fromNBT(tag, pos);
+    }
+
+    @Nullable
+    @Override
+    public CropHelper.GrowablePlant createElement(World world, BlockPos pos) {
+        return CropHelper.wrapPlant(world, pos);
     }
 
     @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(CEffectAevitas.searchRange);
+    public Config getConfig() {
+        return CONFIG;
     }
 
-    @SideOnly(Side.CLIENT)
-    public static void playParticles(PktParticleEvent event) {
-        Vector3 at = event.getVec();
+    @OnlyIn(Dist.CLIENT)
+    public static void playParticles(PktPlayEffect event) {
+        Vector3 at = ByteBufUtils.readVector(event.getExtraData());
         for (int i = 0; i < 8; i++) {
-            EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                    at.getX() + rand.nextFloat(),
-                    at.getY() + 0.2,
-                    at.getZ() + rand.nextFloat());
-            p.motion(0, 0.005 + rand.nextFloat() * 0.01, 0);
-            p.scale(0.2F).setColor(Color.GREEN);
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(at.clone().add(rand.nextFloat(), 0.2, rand.nextFloat()))
+                    .setMotion(new Vector3(0, 0.005 + rand.nextFloat() * 0.01, 0))
+                    .setScaleMultiplier(0.1F + rand.nextFloat() * 0.1F)
+                    .color(VFXColorFunction.constant(Color.GREEN));
         }
     }
 
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        searchRange = cfg.getInt(getKey() + "Range", getConfigurationSection(), 16, 1, 32, "Defines the radius (in blocks) in which the ritual will search for valid crops.");
-        maxCropCount = cfg.getInt(getKey() + "Count", getConfigurationSection(), 200, 1, 4000, "Defines the amount of crops the ritual can cache at max. count");
-        enabled = cfg.getBoolean(getKey() + "Enabled", getConfigurationSection(), true, "Set to false to disable this ConstellationEffect.");
-        potionAmplifier = cfg.getInt(getKey() + "RegenerationAmplifier", getConfigurationSection(), 1, 0, Short.MAX_VALUE, "Set the amplifier for the regeneration potion effect.");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), 1.0F, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
-    }
+    private static class AevitasConfig extends CountConfig {
 
+        private final int defaultPotionAmplifier = 1;
+
+        public ForgeConfigSpec.IntValue potionAmplifier;
+
+        public AevitasConfig() {
+            super("aevitas", 10D, 4D, 200);
+        }
+
+        @Override
+        public void createEntries(ForgeConfigSpec.Builder cfgBuilder) {
+            super.createEntries(cfgBuilder);
+
+            this.potionAmplifier = cfgBuilder
+                    .comment("Set the amplifier for the potion effects this ritual provides.")
+                    .translation(translationKey("potionAmplifier"))
+                    .defineInRange("potionAmplifier", this.defaultPotionAmplifier, 0, 10);
+        }
+    }
 }

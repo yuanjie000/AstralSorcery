@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,43 +8,56 @@
 
 package hellfirepvp.astralsorcery.client.util;
 
-import net.minecraft.client.renderer.GlStateManager;
-import org.lwjgl.opengl.GL11;
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import hellfirepvp.astralsorcery.AstralSorcery;
+import net.minecraft.client.renderer.RenderState;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: Blending
  * Created by HellFirePvP
- * Date: 01.10.2016 / 14:06
+ * Date: 08.07.2019 / 20:49
  */
 public enum Blending {
 
-    DEFAULT(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA),
-    ALPHA(GL11.GL_ONE, GL11.GL_SRC_ALPHA),
-    PREALPHA(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA),
-    MULTIPLY(GL11.GL_DST_COLOR, GL11.GL_ONE_MINUS_SRC_ALPHA),
-    ADDITIVE(GL11.GL_ONE, GL11.GL_ONE),
-    ADDITIVEDARK(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_COLOR),
-    OVERLAYDARK(GL11.GL_SRC_COLOR, GL11.GL_ONE),
-    ADDITIVE_ALPHA(GL11.GL_SRC_ALPHA, GL11.GL_ONE),
-    CONSTANT_ALPHA(GL11.GL_ONE, GL11.GL_ONE_MINUS_CONSTANT_ALPHA),
-    INVERTEDADD(GL11.GL_ONE_MINUS_DST_COLOR, GL11.GL_ONE_MINUS_SRC_COLOR);
+    DEFAULT(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA),
+    ALPHA(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.SRC_ALPHA),
+    PREALPHA(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA),
+    MULTIPLY(GlStateManager.SourceFactor.DST_COLOR, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA),
+    ADDITIVE(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE),
+    ADDITIVEDARK(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE_MINUS_SRC_COLOR),
+    OVERLAYDARK(GlStateManager.SourceFactor.SRC_COLOR, GlStateManager.DestFactor.ONE),
+    ADDITIVE_ALPHA(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE),
+    CONSTANT_ALPHA(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE_MINUS_CONSTANT_ALPHA),
+    INVERTEDADD(GlStateManager.SourceFactor.ONE_MINUS_DST_COLOR, GlStateManager.DestFactor.ONE_MINUS_SRC_COLOR);
 
-    public final int sfactor;
-    public final int dfactor;
+    private final GlStateManager.SourceFactor colorSrcFactor, alphaSrcFactor;
+    private final GlStateManager.DestFactor colorDstFactor, alphaDstFactor;
 
-    private Blending(int s, int d) {
-        sfactor = s;
-        dfactor = d;
+    Blending(GlStateManager.SourceFactor src, GlStateManager.DestFactor dst) {
+        this(src, dst, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+    }
+
+    Blending(GlStateManager.SourceFactor src, GlStateManager.DestFactor dst, GlStateManager.SourceFactor srcAlpha, GlStateManager.DestFactor dstAlpha) {
+        this.colorSrcFactor = src;
+        this.colorDstFactor = dst;
+        this.alphaSrcFactor = srcAlpha;
+        this.alphaDstFactor = dstAlpha;
     }
 
     public void apply() {
-        GL11.glBlendFunc(sfactor, dfactor);
+        RenderSystem.blendFuncSeparate(this.colorSrcFactor, this.colorDstFactor, this.alphaSrcFactor, this.alphaDstFactor);
     }
 
-    public void applyStateManager() {
-        GlStateManager.blendFunc(sfactor, dfactor);
+    public RenderState.TransparencyState asState() {
+        return new RenderState.TransparencyState(AstralSorcery.key("blending_" + this.name().toLowerCase()).toString(), () -> {
+            RenderSystem.enableBlend();
+            this.apply();
+        }, () -> {
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.disableBlend();
+        });
     }
-
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,30 +8,30 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffect;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectStatus;
-import hellfirepvp.astralsorcery.common.event.listener.EventHandlerEntity;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
+import hellfirepvp.astralsorcery.common.event.helper.EventHelperTemporaryFlight;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.MobEffects;
-import net.minecraft.potion.PotionEffect;
-import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.awt.*;
 import java.util.List;
 
 /**
@@ -39,65 +39,74 @@ import java.util.List;
  * The complete source code for this mod can be found on github.
  * Class: CEffectVicio
  * Created by HellFirePvP
- * Date: 10.01.2017 / 21:52
+ * Date: 11.06.2019 / 20:46
  */
 public class CEffectVicio extends ConstellationEffect implements ConstellationEffectStatus {
 
-    public static boolean enabled = true;
-    public static float effectRange = 24;
-    public static int effectRangePerLens = 16;
+    public static VicioConfig CONFIG = new VicioConfig();
 
-    public CEffectVicio(@Nullable ILocatable origin) {
-        super(origin, Constellations.vicio, "vicio");
+    public CEffectVicio(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.vicio);
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float percEffectVisibility, boolean extendedEffects) {
-        if(rand.nextInt(3) == 0) {
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        if (rand.nextInt(3) == 0) {
             Vector3 r = new Vector3(
-                pos.getX() + rand.nextFloat() * 3 * (rand.nextBoolean() ? 1 : -1) + 0.5,
-                pos.getY() + rand.nextFloat() * 2 + 0.5,
-                pos.getZ() + rand.nextFloat() * 3 * (rand.nextBoolean() ? 1 : -1) + 0.5);
-            EntityFXFacingParticle p = EffectHelper.genericFlareParticle(r);
-            p.motion((rand.nextFloat() * 0.07F) * (rand.nextBoolean() ? 1 : -1),
-                    (rand.nextFloat() * 0.07F) * (rand.nextBoolean() ? 1 : -1),
-                    (rand.nextFloat() * 0.07F) * (rand.nextBoolean() ? 1 : -1));
-            p.scale(0.45F).setColor(new Color(200, 200, 255)).gravity(0.008).setMaxAge(25);
-            p = EffectHelper.genericFlareParticle(r);
-            p.motion(0, rand.nextFloat() * 0.07F, 0);
-            p.scale(0.45F).setColor(new Color(200, 200, 255)).gravity(0.008).setMaxAge(25);
+                    pos.getX() + rand.nextFloat() * 4 * (rand.nextBoolean() ? 1 : -1) + 0.5,
+                    pos.getY() + rand.nextFloat() * 2 + 0.5,
+                    pos.getZ() + rand.nextFloat() * 4 * (rand.nextBoolean() ? 1 : -1) + 0.5);
+
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(r)
+                    .setMotion(Vector3.random().setY(0).multiply(0.03F))
+                    .setScaleMultiplier(0.45F)
+                    .color(VFXColorFunction.constant(ColorsAS.RITUAL_CONSTELLATION_VICIO))
+                    .setGravityStrength(-0.002F)
+                    .setMaxAge(40);
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(r)
+                    .setMotion(new Vector3(0, rand.nextFloat() * 0.03F, 0))
+                    .setScaleMultiplier(0.45F)
+                    .color(VFXColorFunction.constant(ColorsAS.RITUAL_CONSTELLATION_VICIO))
+                    .setGravityStrength(-0.002F)
+                    .setMaxAge(40);
         }
     }
 
     @Override
-    public boolean runEffect(World world, BlockPos pos, int mirrorAmount, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(!enabled) return false;
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        return false;
+    }
+
+    @Override
+    public boolean runStatusEffect(World world, BlockPos pos, int mirrorAmount, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
         boolean foundPlayer = false;
         double range = modified.getSize();
-        if(modified.isCorrupted()) {
-            List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(0, 0, 0, 1, 1, 1).offset(pos).grow(range));
-            for (EntityLivingBase entity : entities) {
-                if(entity instanceof EntityPlayerMP) {
-                    EntityPlayerMP pl = (EntityPlayerMP) entity;
-                    if(pl.interactionManager.getGameType().isSurvivalOrAdventure()) {
-                        boolean prev = pl.capabilities.allowFlying;
-                        pl.capabilities.allowFlying = false;
+        if (modified.isCorrupted()) {
+            List<LivingEntity> entities = world.getEntitiesWithinAABB(LivingEntity.class, BOX.offset(pos).grow(range));
+            for (LivingEntity entity : entities) {
+                if (entity instanceof ServerPlayerEntity) {
+                    ServerPlayerEntity pl = (ServerPlayerEntity) entity;
+                    if (pl.interactionManager.getGameType().isSurvivalOrAdventure()) {
+                        boolean prev = pl.abilities.allowFlying;
+                        pl.abilities.allowFlying = false;
                         if (prev) {
                             pl.sendPlayerAbilities();
                         }
                     }
                 }
                 foundPlayer = true;
-                entity.addPotionEffect(new PotionEffect(MobEffects.SLOWNESS, 200, 9));
-                entity.addPotionEffect(new PotionEffect(MobEffects.MINING_FATIGUE, 200, 9));
+                entity.addPotionEffect(new EffectInstance(Effects.SLOWNESS, 200, 9));
+                entity.addPotionEffect(new EffectInstance(Effects.MINING_FATIGUE, 200, 9));
             }
         } else {
-            List<EntityPlayerMP> entities = world.getEntitiesWithinAABB(EntityPlayerMP.class, new AxisAlignedBB(0, 0, 0, 1, 1, 1).offset(pos).grow(range));
-            for (EntityPlayerMP pl : entities) {
-                if (EventHandlerEntity.ritualFlight.setOrAddTimeout(40, pl)) {
-                    boolean prev = pl.capabilities.allowFlying;
-                    pl.capabilities.allowFlying = true;
+            List<ServerPlayerEntity> entities = world.getEntitiesWithinAABB(ServerPlayerEntity.class, BOX.offset(pos).grow(range));
+            for (ServerPlayerEntity pl : entities) {
+                if (EventHelperTemporaryFlight.allowFlight(pl)) {
+                    boolean prev = pl.abilities.allowFlying;
+                    pl.abilities.allowFlying = true;
                     foundPlayer = true;
                     if (!prev) {
                         pl.sendPlayerAbilities();
@@ -109,21 +118,14 @@ public class CEffectVicio extends ConstellationEffect implements ConstellationEf
     }
 
     @Override
-    @Deprecated
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        return false;
+    public Config getConfig() {
+        return CONFIG;
     }
 
-    @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(CEffectVicio.effectRange + mirrorCount * CEffectVicio.effectRangePerLens);
-    }
+    private static class VicioConfig extends Config {
 
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        effectRange = cfg.getFloat(getKey() + "Range", getConfigurationSection(), effectRange, 1, 512, "Defines the radius (in blocks) in which the ritual will allow the players to fly in.");
-        effectRangePerLens = cfg.getInt(getKey() + "RangeIncreasePerLens", getConfigurationSection(), effectRangePerLens, 1, 128, "Defines the increase in radius the ritual will get per active lens enhancing the ritual.");
-        enabled = cfg.getBoolean(getKey() + "Enabled", getConfigurationSection(), true, "Set to false to disable this ConstellationEffect.");
+        private VicioConfig() {
+            super("vicio", 24D, 16D);
+        }
     }
-
 }

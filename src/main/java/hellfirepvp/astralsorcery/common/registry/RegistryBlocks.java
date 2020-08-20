@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,31 +8,33 @@
 
 package hellfirepvp.astralsorcery.common.registry;
 
+import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.common.CommonProxy;
-import hellfirepvp.astralsorcery.common.base.Mods;
-import hellfirepvp.astralsorcery.common.block.*;
-import hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight;
-import hellfirepvp.astralsorcery.common.block.fluid.FluidLiquidStarlight;
-import hellfirepvp.astralsorcery.common.block.network.*;
-import hellfirepvp.astralsorcery.common.integrations.ModIntegrationGeolosys;
-import hellfirepvp.astralsorcery.common.migration.MappingMigrationHandler;
-import hellfirepvp.astralsorcery.common.tile.*;
-import hellfirepvp.astralsorcery.common.tile.network.TileCollectorCrystal;
-import hellfirepvp.astralsorcery.common.tile.network.TileCrystalLens;
-import hellfirepvp.astralsorcery.common.tile.network.TileCrystalPrismLens;
+import hellfirepvp.astralsorcery.common.block.base.BlockDynamicColor;
+import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
+import hellfirepvp.astralsorcery.common.block.base.template.BlockSlabTemplate;
+import hellfirepvp.astralsorcery.common.block.base.template.BlockStairsTemplate;
+import hellfirepvp.astralsorcery.common.block.blackmarble.*;
+import hellfirepvp.astralsorcery.common.block.foliage.BlockGlowFlower;
+import hellfirepvp.astralsorcery.common.block.infusedwood.*;
+import hellfirepvp.astralsorcery.common.block.marble.*;
+import hellfirepvp.astralsorcery.common.block.ore.BlockAquamarineSandOre;
+import hellfirepvp.astralsorcery.common.block.ore.BlockRockCrystalOre;
+import hellfirepvp.astralsorcery.common.block.ore.BlockStarmetalOre;
+import hellfirepvp.astralsorcery.common.block.tile.*;
+import hellfirepvp.astralsorcery.common.block.tile.altar.BlockAltarAttunement;
+import hellfirepvp.astralsorcery.common.block.tile.altar.BlockAltarConstellation;
+import hellfirepvp.astralsorcery.common.block.tile.altar.BlockAltarDiscovery;
+import hellfirepvp.astralsorcery.common.block.tile.altar.BlockAltarRadiance;
+import hellfirepvp.astralsorcery.common.block.tile.crystal.BlockCelestialCollectorCrystal;
+import hellfirepvp.astralsorcery.common.block.tile.crystal.BlockRockCollectorCrystal;
+import hellfirepvp.astralsorcery.common.util.NameUtil;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.ItemMeshDefinition;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.client.renderer.block.statemap.StateMapperBase;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.block.BlockState;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.ColorHandlerEvent;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -44,234 +46,113 @@ import static hellfirepvp.astralsorcery.common.lib.BlocksAS.*;
  * The complete source code for this mod can be found on github.
  * Class: RegistryBlocks
  * Created by HellFirePvP
- * Date: 07.05.2016 / 18:16
+ * Date: 31.05.2019 / 21:44
  */
 public class RegistryBlocks {
 
-    public static List<Block> defaultItemBlocksToRegister = new LinkedList<>();
-    public static List<Block> customNameItemBlocksToRegister = new LinkedList<>();
-    public static List<BlockDynamicColor> pendingIBlockColorBlocks = new LinkedList<>();
+    private static List<BlockDynamicColor> colorBlocks = Lists.newArrayList();
+    static final List<CustomItemBlock> ITEM_BLOCKS = new LinkedList<>();
 
-    public static void init() {
-        registerFluids();
+    private RegistryBlocks() {}
 
-        registerBlocks();
+    public static void registerBlocks() {
+        MARBLE_ARCH           = registerBlock(new BlockMarbleArch());
+        MARBLE_BRICKS         = registerBlock(new BlockMarbleBricks());
+        MARBLE_CHISELED       = registerBlock(new BlockMarbleChiseled());
+        MARBLE_ENGRAVED       = registerBlock(new BlockMarbleEngraved());
+        MARBLE_PILLAR         = registerBlock(new BlockMarblePillar());
+        MARBLE_RAW            = registerBlock(new BlockMarbleRaw());
+        MARBLE_RUNED          = registerBlock(new BlockMarbleRuned());
+        MARBLE_STAIRS         = makeStairs(MARBLE_BRICKS.getDefaultState(), "marble_stairs");
+        MARBLE_SLAB           = makeSlab(MARBLE_BRICKS.getDefaultState(), "marble_slab");
+        BLACK_MARBLE_ARCH     = registerBlock(new BlockBlackMarbleArch());
+        BLACK_MARBLE_BRICKS   = registerBlock(new BlockBlackMarbleBricks());
+        BLACK_MARBLE_CHISELED = registerBlock(new BlockBlackMarbleChiseled());
+        BLACK_MARBLE_ENGRAVED = registerBlock(new BlockBlackMarbleEngraved());
+        BLACK_MARBLE_PILLAR   = registerBlock(new BlockBlackMarblePillar());
+        BLACK_MARBLE_RAW      = registerBlock(new BlockBlackMarbleRaw());
+        BLACK_MARBLE_RUNED    = registerBlock(new BlockBlackMarbleRuned());
+        BLACK_MARBLE_STAIRS   = makeStairs(BLACK_MARBLE_BRICKS.getDefaultState(), "black_marble_stairs");
+        BLACK_MARBLE_SLAB     = makeSlab(BLACK_MARBLE_BRICKS.getDefaultState(), "black_marble_slab");
+        INFUSED_WOOD          = registerBlock(new BlockInfusedWood());
+        INFUSED_WOOD_ARCH     = registerBlock(new BlockInfusedWoodArch());
+        INFUSED_WOOD_COLUMN   = registerBlock(new BlockInfusedWoodColumn());
+        INFUSED_WOOD_ENGRAVED = registerBlock(new BlockInfusedWoodEngraved());
+        INFUSED_WOOD_ENRICHED = registerBlock(new BlockInfusedWoodEnriched());
+        INFUSED_WOOD_INFUSED  = registerBlock(new BlockInfusedWoodInfused());
+        INFUSED_WOOD_PLANKS   = registerBlock(new BlockInfusedWoodPlanks());
+        INFUSED_WOOD_STAIRS   = makeStairs(INFUSED_WOOD_PLANKS.getDefaultState(), "infused_wood_stairs");
+        INFUSED_WOOD_SLAB     = makeSlab(INFUSED_WOOD_PLANKS.getDefaultState(), "infused_wood_slab");
 
-        registerTileEntities();
+        AQUAMARINE_SAND_ORE   = registerBlock(new BlockAquamarineSandOre());
+        ROCK_CRYSTAL_ORE      = registerBlock(new BlockRockCrystalOre());
+        STARMETAL_ORE         = registerBlock(new BlockStarmetalOre());
+        GLOW_FLOWER           = registerBlock(new BlockGlowFlower());
 
-        if(Mods.GEOLOSYS.isPresent() && Mods.ORESTAGES.isPresent()) {
-            ModIntegrationGeolosys.registerGeolosysSampleBlock();
+        SPECTRAL_RELAY              = registerBlock(new BlockSpectralRelay());
+        ALTAR_DISCOVERY             = registerBlock(new BlockAltarDiscovery());
+        ALTAR_ATTUNEMENT            = registerBlock(new BlockAltarAttunement());
+        ALTAR_CONSTELLATION         = registerBlock(new BlockAltarConstellation());
+        ALTAR_RADIANCE              = registerBlock(new BlockAltarRadiance());
+        ATTUNEMENT_ALTAR            = registerBlock(new BlockAttunementAltar());
+        CELESTIAL_CRYSTAL_CLUSTER   = registerBlock(new BlockCelestialCrystalCluster());
+        GEM_CRYSTAL_CLUSTER         = registerBlock(new BlockGemCrystalCluster());
+        ROCK_COLLECTOR_CRYSTAL      = registerBlock(new BlockRockCollectorCrystal());
+        CELESTIAL_COLLECTOR_CRYSTAL = registerBlock(new BlockCelestialCollectorCrystal());
+        LENS                        = registerBlock(new BlockLens());
+        PRISM                       = registerBlock(new BlockPrism());
+        RITUAL_LINK                 = registerBlock(new BlockRitualLink());
+        RITUAL_PEDESTAL             = registerBlock(new BlockRitualPedestal());
+        INFUSER                     = registerBlock(new BlockInfuser());
+        CHALICE                     = registerBlock(new BlockChalice());
+        WELL                        = registerBlock(new BlockWell());
+        ILLUMINATOR                 = registerBlock(new BlockIlluminator());
+        TELESCOPE                   = registerBlock(new BlockTelescope());
+        OBSERVATORY                 = registerBlock(new BlockObservatory());
+        REFRACTION_TABLE            = registerBlock(new BlockRefractionTable());
+
+        FLARE_LIGHT         = registerBlock(new BlockFlareLight());
+        TRANSLUCENT_BLOCK   = registerBlock(new BlockTranslucentBlock());
+        VANISHING           = registerBlock(new BlockVanishing());
+        STRUCTURAL          = registerBlock(new BlockStructural());
+    }
+
+    public static void registerFluidBlocks() {
+        RegistryFluids.FLUID_BLOCKS.forEach(RegistryBlocks::registerBlock);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static void registerColors(ColorHandlerEvent.Block blockColorEvent) {
+        colorBlocks.forEach(block -> blockColorEvent.getBlockColors().register(block::getColor, (Block) block));
+    }
+
+    private static BlockSlabTemplate makeSlab(BlockState base, String name) {
+        BlockSlabTemplate slabs = new BlockSlabTemplate(base, Block.Properties.from(base.getBlock()));
+        ResourceLocation slabsName = base.getBlock().getRegistryName();
+        slabsName = new ResourceLocation(slabsName.getNamespace(), name);
+        return registerBlock(slabs, slabsName);
+    }
+
+    private static BlockStairsTemplate makeStairs(BlockState base, String name) {
+        BlockStairsTemplate stairs = new BlockStairsTemplate(base, Block.Properties.from(base.getBlock()));
+        ResourceLocation stairsName = base.getBlock().getRegistryName();
+        stairsName = new ResourceLocation(stairsName.getNamespace(), name);
+        return registerBlock(stairs, stairsName);
+    }
+
+    private static <T extends Block> T registerBlock(T block) {
+        return registerBlock(block, NameUtil.fromClass(block, "Block"));
+    }
+
+    private static <T extends Block> T registerBlock(T block, ResourceLocation name) {
+        block.setRegistryName(name);
+        AstralSorcery.getProxy().getRegistryPrimer().register(block);
+        if (block instanceof CustomItemBlock) {
+            ITEM_BLOCKS.add((CustomItemBlock) block);
         }
-    }
-
-    private static void registerFluids() {
-        FluidLiquidStarlight f = new FluidLiquidStarlight();
-        FluidRegistry.registerFluid(f);
-        fluidLiquidStarlight = FluidRegistry.getFluid(f.getName());
-        blockLiquidStarlight = new FluidBlockLiquidStarlight();
-        CommonProxy.registryPrimer.register(blockLiquidStarlight
-                .setUnlocalizedName(blockLiquidStarlight.getClass().getSimpleName().toLowerCase())
-                .setRegistryName(blockLiquidStarlight.getClass().getSimpleName().toLowerCase()));
-        fluidLiquidStarlight.setBlock(blockLiquidStarlight);
-
-        FluidRegistry.addBucketForFluid(fluidLiquidStarlight);
-    }
-
-    //Blocks
-    private static void registerBlocks() {
-        //WorldGen&Related
-        customOre = registerBlock(new BlockCustomOre());
-        queueCustomNameItemBlock(customOre);
-        customSandOre = registerBlock(new BlockCustomSandOre());
-        queueCustomNameItemBlock(customSandOre);
-        customFlower = registerBlock(new BlockCustomFlower());
-        queueCustomNameItemBlock(customFlower);
-        blockMarble = registerBlock(new BlockMarble());
-        queueCustomNameItemBlock(blockMarble);
-        blockMarbleStairs = registerBlock(new BlockMarbleStairs());
-        queueDefaultItemBlock(blockMarbleStairs);
-        blockMarbleSlab = registerBlock(new BlockMarbleSlab());
-        blockMarbleDoubleSlab = registerBlock(new BlockMarbleDoubleSlab());
-        blockBlackMarble = registerBlock(new BlockBlackMarble());
-        queueCustomNameItemBlock(blockBlackMarble);
-        blockInfusedWood = registerBlock(new BlockInfusedWood());
-        queueCustomNameItemBlock(blockInfusedWood);
-        blockVolatileLight = registerBlock(new BlockFlareLight());
-        queueDefaultItemBlock(blockVolatileLight);
-        blockVanishing = registerBlock(new BlockVanishing());
-        queueDefaultItemBlock(blockVanishing);
-        blockChalice = registerBlock(new BlockChalice());
-        queueDefaultItemBlock(blockChalice);
-        blockBore = registerBlock(new BlockBore());
-        queueDefaultItemBlock(blockBore);
-        blockBoreHead = registerBlock(new BlockBoreHead());
-        queueCustomNameItemBlock(blockBoreHead);
-
-        //Mechanics
-        blockAltar = registerBlock(new BlockAltar());
-        attunementAltar = registerBlock(new BlockAttunementAltar());
-        queueDefaultItemBlock(attunementAltar);
-        attunementRelay = registerBlock(new BlockAttunementRelay());
-        queueDefaultItemBlock(attunementRelay);
-        ritualPedestal = registerBlock(new BlockRitualPedestal());
-        blockWell = registerBlock(new BlockWell());
-        queueDefaultItemBlock(blockWell);
-        blockIlluminator = registerBlock(new BlockWorldIlluminator());
-        queueDefaultItemBlock(blockIlluminator);
-        blockMachine = registerBlock(new BlockMachine());
-        queueCustomNameItemBlock(blockMachine);
-        blockFakeTree = registerBlock(new BlockFakeTree());
-        queueDefaultItemBlock(blockFakeTree);
-        starlightInfuser = registerBlock(new BlockStarlightInfuser());
-        queueDefaultItemBlock(starlightInfuser);
-        ritualLink = registerBlock(new BlockRitualLink());
-        queueDefaultItemBlock(ritualLink);
-        blockPortalNode = registerBlock(new BlockPortalNode());
-        queueDefaultItemBlock(blockPortalNode);
-
-        treeBeacon = registerBlock(new BlockTreeBeacon());
-        queueDefaultItemBlock(treeBeacon);
-        translucentBlock = registerBlock(new BlockTranslucentBlock());
-        queueDefaultItemBlock(translucentBlock);
-        drawingTable = registerBlock(new BlockMapDrawingTable());
-        queueDefaultItemBlock(drawingTable);
-        celestialGateway = registerBlock(new BlockCelestialGateway());
-        queueDefaultItemBlock(celestialGateway);
-        blockObservatory = registerBlock(new BlockObservatory());
-        queueDefaultItemBlock(blockObservatory);
-
-        lens = registerBlock(new BlockLens());
-        lensPrism = registerBlock(new BlockPrism());
-        queueDefaultItemBlock(lens);
-        queueDefaultItemBlock(lensPrism);
-
-        celestialCrystals = registerBlock(new BlockCelestialCrystals());
-        queueCustomNameItemBlock(celestialCrystals);
-        gemCrystals = registerBlock(new BlockGemCrystals());
-        queueCustomNameItemBlock(gemCrystals);
-
-        //Machines&Related
-        //stoneMachine = registerBlock(new BlockStoneMachine());
-        collectorCrystal = registerBlock(new BlockCollectorCrystal());
-        celestialCollectorCrystal = registerBlock(new BlockCelestialCollectorCrystal());
-
-        blockStructural = registerBlock(new BlockStructural());
-        queueCustomNameItemBlock(blockStructural);
-    }
-
-    //Called after items are registered.
-    //Necessary for blocks that require different models/renders for different metadata values
-    public static void initRenderRegistry() {
-        registerBlockRender(blockMarble);
-        registerBlockRender(blockBlackMarble);
-        registerBlockRender(blockInfusedWood);
-        registerBlockRender(blockAltar);
-        registerBlockRender(blockBoreHead);
-        registerBlockRender(customOre);
-        registerBlockRender(customSandOre);
-        registerBlockRender(customFlower);
-        registerBlockRender(blockStructural);
-        registerBlockRender(blockMachine);
-        registerBlockRender(treeBeacon);
-
-        registerBlockRender(celestialCrystals);
-        registerBlockRender(gemCrystals);
-    }
-
-    //Tiles
-    private static void registerTileEntities() {
-        registerTile(TileAltar.class);
-        registerTile(TileRitualPedestal.class);
-        registerTile(TileCollectorCrystal.class);
-        registerTile(TileCelestialCrystals.class);
-        registerTile(TileGemCrystals.class);
-        registerTile(TileWell.class);
-        registerTile(TileIlluminator.class);
-        registerTile(TileTelescope.class);
-        registerTile(TileGrindstone.class);
-        registerTile(TileStructuralConnector.class);
-        registerTile(TileFakeTree.class);
-        registerTile(TileAttunementAltar.class);
-        registerTile(TileStarlightInfuser.class);
-        registerTile(TileTreeBeacon.class);
-        registerTile(TileRitualLink.class);
-        registerTile(TileTranslucent.class);
-        registerTile(TileAttunementRelay.class);
-        registerTile(TileMapDrawingTable.class);
-        registerTile(TileCelestialGateway.class);
-        registerTile(TileOreGenerator.class);
-        registerTile(TileVanishing.class);
-        registerTile(TileChalice.class);
-        registerTile(TileBore.class);
-        registerTile(TileStructController.class);
-        registerTile(TileObservatory.class);
-
-        registerTile(TileCrystalLens.class);
-        registerTile(TileCrystalPrismLens.class);
-    }
-
-    public static void queueCustomNameItemBlock(Block block) {
-        customNameItemBlocksToRegister.add(block);
-    }
-
-    public static void queueDefaultItemBlock(Block block) {
-        defaultItemBlocksToRegister.add(block);
-    }
-
-    private static <T extends Block> T registerBlock(T block, String name) {
-        CommonProxy.registryPrimer.register(block.setUnlocalizedName(name).setRegistryName(name));
-        if(block instanceof BlockDynamicColor) {
-            pendingIBlockColorBlocks.add((BlockDynamicColor) block);
+        if (block instanceof BlockDynamicColor) {
+            colorBlocks.add((BlockDynamicColor) block);
         }
         return block;
     }
-
-    public static <T extends Block> T registerBlock(T block) {
-        return registerBlock(block, block.getClass().getSimpleName().toLowerCase());
-    }
-
-    private static void registerBlockRender(Block block) {
-        if(block instanceof BlockVariants) {
-            for (IBlockState state : ((BlockVariants) block).getValidStates()) {
-                String unlocName = ((BlockVariants) block).getBlockName(state);
-                String name = unlocName + "_" + ((BlockVariants) block).getStateName(state);
-                AstralSorcery.proxy.registerVariantName(Item.getItemFromBlock(block), name);
-                AstralSorcery.proxy.registerBlockRender(block, block.getMetaFromState(state), name);
-            }
-        } else {
-            AstralSorcery.proxy.registerVariantName(Item.getItemFromBlock(block), block.getUnlocalizedName());
-            AstralSorcery.proxy.registerBlockRender(block, 0, block.getUnlocalizedName());
-        }
-    }
-
-    private static void registerTile(Class<? extends TileEntity> tile, String name) {
-        GameRegistry.registerTileEntity(tile, new ResourceLocation(AstralSorcery.MODID, name));
-
-        MappingMigrationHandler.listenTileMigration(name);
-    }
-
-    public static void registerTile(Class<? extends TileEntity> tile) {
-        registerTile(tile, tile.getSimpleName().toLowerCase());
-    }
-
-    public static class FluidCustomModelMapper extends StateMapperBase implements ItemMeshDefinition {
-
-        private final ModelResourceLocation res;
-
-        public FluidCustomModelMapper(Fluid f) {
-            this.res = new ModelResourceLocation(AstralSorcery.MODID.toLowerCase() + ":blockfluids", f.getName());
-        }
-
-        @Override
-        public ModelResourceLocation getModelLocation(ItemStack stack) {
-            return res;
-        }
-
-        @Override
-        public ModelResourceLocation getModelResourceLocation(IBlockState state) {
-            return res;
-        }
-
-    }
-
 }

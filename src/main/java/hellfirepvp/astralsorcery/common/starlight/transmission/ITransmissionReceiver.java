@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -38,6 +38,6 @@ public interface ITransmissionReceiver extends IPrismTransmissionNode {
         return false;
     }
 
-    public void onStarlightReceive(World world, boolean isChunkLoaded, IWeakConstellation type, double amount);
+    public void onStarlightReceive(World world, IWeakConstellation type, double amount);
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,19 +8,15 @@
 
 package hellfirepvp.astralsorcery.common.enchantment.amulet;
 
-import hellfirepvp.astralsorcery.common.auxiliary.tick.ITickHandler;
-import hellfirepvp.astralsorcery.common.enchantment.EnchantmentPlayerWornTick;
+import hellfirepvp.astralsorcery.common.enchantment.dynamic.DynamicEnchantmentHelper;
 import hellfirepvp.astralsorcery.common.event.DynamicEnchantmentEvent;
-import hellfirepvp.astralsorcery.common.item.wearable.ItemEnchantmentAmulet;
-import hellfirepvp.astralsorcery.common.registry.RegistryEnchantments;
-import hellfirepvp.astralsorcery.common.util.data.Tuple;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.EntityEquipmentSlot;
+import hellfirepvp.astralsorcery.common.item.ItemEnchantmentAmulet;
+import hellfirepvp.observerlib.common.util.tick.ITickHandler;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraft.util.Tuple;
+import net.minecraftforge.event.TickEvent;
 
 import java.util.EnumSet;
 
@@ -29,7 +25,7 @@ import java.util.EnumSet;
  * The complete source code for this mod can be found on github.
  * Class: PlayerAmuletHandler
  * Created by HellFirePvP
- * Date: 14.04.2018 / 17:49
+ * Date: 11.08.2019 / 20:24
  */
 public class PlayerAmuletHandler implements ITickHandler {
 
@@ -37,48 +33,36 @@ public class PlayerAmuletHandler implements ITickHandler {
 
     private PlayerAmuletHandler() {}
 
-    @SubscribeEvent
-    public void attachAmuletItemCapability(AttachCapabilitiesEvent<ItemStack> itemCapEvent) {
-        if(!EnchantmentUpgradeHelper.isItemBlacklisted(itemCapEvent.getObject())) {
-            itemCapEvent.addCapability(AmuletHolderCapability.CAP_AMULETHOLDER_NAME, new AmuletHolderCapability.Provider());
+    public static void onEnchantmentAdd(DynamicEnchantmentEvent.Add event) {
+        if (!DynamicEnchantmentHelper.canHaveDynamicEnchantment(event.getEnchantedItemStack())) {
+            return;
         }
-    }
 
-    @SubscribeEvent
-    public void onAmuletEnchantApply(DynamicEnchantmentEvent.Add event) {
-        if(EnchantmentUpgradeHelper.isItemBlacklisted(event.getEnchantedItemStack())) return;
-        Tuple<ItemStack, EntityPlayer> linkedAmulet = EnchantmentUpgradeHelper.getWornAmulet(event.getEnchantedItemStack());
-        if(linkedAmulet == null || linkedAmulet.key.isEmpty() || linkedAmulet.value == null) return;
+        Tuple<ItemStack, PlayerEntity> linkedAmulet = AmuletEnchantmentHelper.getWornAmulet(event.getEnchantedItemStack());
+        if (linkedAmulet == null ||
+                linkedAmulet.getA().isEmpty() ||
+                linkedAmulet.getB() == null) {
+            return;
+        }
 
-        event.getEnchantmentsToApply().addAll(ItemEnchantmentAmulet.getAmuletEnchantments(linkedAmulet.key));
+        event.getEnchantmentsToApply().addAll(ItemEnchantmentAmulet.getAmuletEnchantments(linkedAmulet.getA()));
     }
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        EntityPlayer player = (EntityPlayer) context[0];
+        PlayerEntity player = (PlayerEntity) context[0];
         applyAmuletTags(player);
         clearAmuletTags(player);
+    }
 
-        boolean client = player.getEntityWorld().isRemote;
-        for (EnchantmentPlayerWornTick e : RegistryEnchantments.wearableTickEnchantments) {
-            int max = EnchantmentHelper.getMaxEnchantmentLevel(e, player);
-            if(max > 0) {
-                e.onWornTick(client, player, max);
-            }
+    private void applyAmuletTags(PlayerEntity player) {
+        for (EquipmentSlotType slot : EquipmentSlotType.values()) {
+            AmuletEnchantmentHelper.applyAmuletOwner(player.getItemStackFromSlot(slot), player);
         }
     }
 
-    private void applyAmuletTags(EntityPlayer player) {
-        for (EntityEquipmentSlot slot : EntityEquipmentSlot.values()) {
-            ItemStack stack = player.getItemStackFromSlot(slot);
-            if (!stack.isEmpty() && !EnchantmentUpgradeHelper.isItemBlacklisted(stack)) {
-                EnchantmentUpgradeHelper.applyAmuletOwner(player.getItemStackFromSlot(slot), player);
-            }
-        }
-    }
-
-    private void clearAmuletTags(EntityPlayer player) {
-        EnchantmentUpgradeHelper.removeAmuletTagsAndCleanup(player, true);
+    private void clearAmuletTags(PlayerEntity player) {
+        AmuletEnchantmentHelper.removeAmuletTagsAndCleanup(player, true);
     }
 
     @Override
@@ -95,5 +79,4 @@ public class PlayerAmuletHandler implements ITickHandler {
     public String getName() {
         return "PlayerAmuletHandler";
     }
-
 }

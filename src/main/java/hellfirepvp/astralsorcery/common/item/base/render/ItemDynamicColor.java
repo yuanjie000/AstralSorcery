@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -9,16 +9,19 @@
 package hellfirepvp.astralsorcery.common.item.base.render;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: ItemDynamicColor
  * Created by HellFirePvP
- * Date: 06.12.2016 / 14:26
+ * Date: 01.06.2019 / 15:14
  */
 public interface ItemDynamicColor {
 
-    public int getColorForItemStack(ItemStack stack, int tintIndex);
+    @OnlyIn(Dist.CLIENT)
+    public int getColor(ItemStack stack, int tintIndex);
 
 }

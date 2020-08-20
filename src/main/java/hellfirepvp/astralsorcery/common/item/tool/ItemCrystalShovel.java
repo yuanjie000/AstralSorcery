@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,65 +8,88 @@
 
 package hellfirepvp.astralsorcery.common.item.tool;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import hellfirepvp.astralsorcery.common.item.crystal.CrystalProperties;
-import hellfirepvp.astralsorcery.common.item.crystal.ToolCrystalProperties;
-import hellfirepvp.astralsorcery.common.registry.RegistryItems;
+import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemSpade;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.material.Material;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentType;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemTool;
-import net.minecraft.util.NonNullList;
+import net.minecraft.item.ItemUseContext;
+import net.minecraft.util.*;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraftforge.common.ToolType;
+import net.minecraftforge.common.util.Constants;
 
-import java.util.Set;
+import java.util.Map;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: ItemCrystalShovel
  * Created by HellFirePvP
- * Date: 18.09.2016 / 20:34
+ * Date: 17.08.2019 / 18:26
  */
-public class ItemCrystalShovel extends ItemCrystalToolBase {
+public class ItemCrystalShovel extends ItemCrystalTierItem {
 
-    private static final Set<Block> EFFECTIVE_SET = Sets.newHashSet(Blocks.CLAY, Blocks.DIRT, Blocks.FARMLAND, Blocks.GRASS, Blocks.GRAVEL, Blocks.MYCELIUM, Blocks.SAND, Blocks.SNOW, Blocks.SNOW_LAYER, Blocks.SOUL_SAND, Blocks.GRASS_PATH, Blocks.CONCRETE_POWDER);
+    private static final Map<Block, BlockState> BLOCK_PAVE_MAP = new ImmutableMap.Builder<Block, BlockState>()
+            .put(Blocks.GRASS_BLOCK, Blocks.GRASS_PATH.getDefaultState())
+            .build();
 
     public ItemCrystalShovel() {
-        super(1, EFFECTIVE_SET);
-        setDamageVsEntity(3F);
-        setAttackSpeed(-1.5F);
-        setHarvestLevel("shovel", 3);
-        setCreativeTab(RegistryItems.creativeTabAstralSorcery);
+        super(ToolType.SHOVEL, new Properties(), Sets.newHashSet(Material.SNOW, Material.SNOW_BLOCK));
     }
 
     @Override
-    public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> subItems) {
-        if (this.isInCreativeTab(tab)) {
-            CrystalProperties maxCelestial = CrystalProperties.getMaxCelestialProperties();
+    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> stacks) {
+        if (this.isInGroup(group)) {
             ItemStack stack = new ItemStack(this);
-            setToolProperties(stack, ToolCrystalProperties.merge(maxCelestial));
-            subItems.add(stack);
+            CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
+            stacks.add(stack);
         }
     }
 
     @Override
-    public boolean canHarvestBlock(IBlockState blockIn) {
-        Block block = blockIn.getBlock();
-
-        if (block == Blocks.SNOW_LAYER) {
-            return true;
-        } else {
-            return block == Blocks.SNOW;
-        }
+    public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
+        EnchantmentType type = enchantment.type;
+        return type == EnchantmentType.ALL || type == EnchantmentType.DIGGER || type == EnchantmentType.BREAKABLE;
     }
 
     @Override
-    public Set<String> getToolClasses(ItemStack stack) {
-        return Sets.newHashSet("shovel");
+    double getAttackDamage() {
+        return 3;
+    }
+
+    @Override
+    double getAttackSpeed() {
+        return -1.5;
+    }
+
+    @Override
+    public ActionResultType onItemUse(ItemUseContext ctx) {
+        World world = ctx.getWorld();
+        BlockPos blockpos = ctx.getPos();
+        if (ctx.getFace() != Direction.DOWN && world.getBlockState(blockpos.up()).isAir(world, blockpos.up())) {
+            BlockState blockstate = BLOCK_PAVE_MAP.get(world.getBlockState(blockpos).getBlock());
+            if (blockstate != null) {
+                PlayerEntity playerentity = ctx.getPlayer();
+                world.playSound(playerentity, blockpos, SoundEvents.ITEM_SHOVEL_FLATTEN, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                if (!world.isRemote()) {
+                    if (world.setBlockState(blockpos, blockstate, Constants.BlockFlags.DEFAULT_AND_RERENDER) &&
+                            playerentity != null) {
+                        ctx.getItem().damageItem(1, playerentity,
+                                (e) -> e.sendBreakAnimation(ctx.getHand()));
+                    }
+                }
+                return ActionResultType.SUCCESS;
+            }
+        }
+        return ActionResultType.PASS;
     }
 }

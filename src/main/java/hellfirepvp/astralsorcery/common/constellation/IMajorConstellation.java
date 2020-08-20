@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -7,6 +7,11 @@
  ******************************************************************************/
 
 package hellfirepvp.astralsorcery.common.constellation;
+
+import hellfirepvp.astralsorcery.common.perk.PerkTree;
+import hellfirepvp.astralsorcery.common.perk.node.RootPerk;
+
+import javax.annotation.Nullable;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -16,5 +21,10 @@ package hellfirepvp.astralsorcery.common.constellation;
  * Date: 16.11.2016 / 23:08
  */
 public interface IMajorConstellation extends IWeakConstellation {
+
+    @Nullable
+    default public RootPerk getRootPerk() {
+        return PerkTree.PERK_TREE.getRootPerk(this);
+    }
 
 }

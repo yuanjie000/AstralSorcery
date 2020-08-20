@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -17,10 +17,14 @@ package hellfirepvp.astralsorcery.common.util;
  */
 public class Counter {
 
-    public int value;
+    private int value;
 
     public Counter(int value) {
         this.value = value;
+    }
+
+    public int getValue() {
+        return value;
     }
 
     public void decrement() {

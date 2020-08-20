@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,18 +8,13 @@
 
 package hellfirepvp.astralsorcery.common.util;
 
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemBlock;
+import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Stack;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -30,45 +25,34 @@ import java.util.Map;
  */
 public class BlockDropCaptureAssist {
 
-    public static BlockDropCaptureAssist instance = new BlockDropCaptureAssist();
+    public static BlockDropCaptureAssist INSTANCE = new BlockDropCaptureAssist();
 
-    private static Map<Integer, NonNullList<ItemStack>> capturedStacks = new HashMap<>();
-    private static int stack = -1;
+    private static Stack<NonNullList<ItemStack>> capturing = new Stack<>();
 
     private BlockDropCaptureAssist() {}
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onDrop(EntityJoinWorldEvent event) {
-        if (event.getWorld() instanceof WorldServer && event.getEntity() instanceof EntityItem) {
-            ItemStack itemStack = ((EntityItem) event.getEntity()).getItem();
-            if (stack > -1) {
+        if (event.getWorld() instanceof ServerWorld && event.getEntity() instanceof ItemEntity) {
+            ItemStack itemStack = ((ItemEntity) event.getEntity()).getItem();
+            if (!capturing.isEmpty()) {
                 event.setCanceled(true);
-                if(!itemStack.isEmpty()) {
-                    if(itemStack.getItem() instanceof ItemBlock &&
-                            ((ItemBlock) itemStack.getItem()).getBlock().equals(Blocks.STONE)) {
-                        event.getEntity().setDead();
-                        return;
-                    }
+                if (!itemStack.isEmpty()) {
                     //Apparently concurrency sometimes gets us here...
-                    if (stack > -1) {
-                        capturedStacks.computeIfAbsent(stack, st -> NonNullList.create()).add(itemStack);
+                    if (!capturing.isEmpty()) {
+                        capturing.peek().add(itemStack);
                     }
                 }
-                event.getEntity().setDead();
+                event.getEntity().remove();
             }
         }
     }
 
     public static void startCapturing() {
-        stack++;
-        capturedStacks.put(stack, NonNullList.create());
+        capturing.push(NonNullList.create());
     }
 
     public static NonNullList<ItemStack> getCapturedStacksAndStop() {
-        NonNullList<ItemStack> pop = capturedStacks.get(stack);
-        capturedStacks.remove(stack);
-        stack = Math.max(-1, stack - 1);
-        return pop == null ? NonNullList.create() : pop;
+        return capturing.pop();
     }
 
 }

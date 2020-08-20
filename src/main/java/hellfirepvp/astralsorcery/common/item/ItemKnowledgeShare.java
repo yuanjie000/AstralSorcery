@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,34 +8,35 @@
 
 package hellfirepvp.astralsorcery.common.item;
 
+import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ProgressionTier;
+import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.data.research.ResearchManager;
-import hellfirepvp.astralsorcery.common.item.base.render.INBTModel;
 import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktProgressionUpdate;
-import hellfirepvp.astralsorcery.common.registry.RegistryItems;
+import hellfirepvp.astralsorcery.common.network.play.server.PktProgressionUpdate;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.item.ItemUseContext;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.*;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nullable;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,18 +45,22 @@ import java.util.UUID;
  * The complete source code for this mod can be found on github.
  * Class: ItemKnowledgeShare
  * Created by HellFirePvP
- * Date: 05.07.2017 / 11:39
+ * Date: 16.08.2019 / 20:10
  */
-public class ItemKnowledgeShare extends Item implements INBTModel {
+public class ItemKnowledgeShare extends Item {
 
     public ItemKnowledgeShare() {
-        setMaxStackSize(1);
-        setCreativeTab(RegistryItems.creativeTabAstralSorcery);
+        super(new Properties()
+                .maxStackSize(1)
+                .group(CommonProxy.ITEM_GROUP_AS));
+
+        this.addPropertyOverride(new ResourceLocation("written"),
+                (stack, world, entity) -> isCreative(stack) || getKnowledge(stack) != null ? 1 : 0);
     }
 
     @Override
-    public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> items) {
-        if (isInCreativeTab(tab)) {
+    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
+        if (this.isInGroup(group)) {
             items.add(new ItemStack(this));
 
             ItemStack creative = new ItemStack(this);
@@ -65,70 +70,53 @@ public class ItemKnowledgeShare extends Item implements INBTModel {
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
+    @OnlyIn(Dist.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World world, List<ITextComponent> tooltip, ITooltipFlag flag) {
         if (isCreative(stack)) {
-            tooltip.add(TextFormatting.LIGHT_PURPLE + I18n.format("misc.knowledge.inscribed.creative"));
+            tooltip.add(new TranslationTextComponent("astralsorcery.misc.knowledge.inscribed.creative").setStyle(new Style().setColor(TextFormatting.LIGHT_PURPLE)));
             return;
         }
         if (getKnowledge(stack) == null) {
-            tooltip.add(I18n.format("misc.knowledge.missing"));
+            tooltip.add(new TranslationTextComponent("astralsorcery.misc.knowledge.missing").setStyle(new Style().setColor(TextFormatting.GRAY)));
         } else {
             String name = getKnowledgeOwnerName(stack);
-            if(name != null) {
-                tooltip.add(I18n.format("misc.knowledge.inscribed", (TextFormatting.BLUE + name)));
+            if (name != null) {
+                tooltip.add(new TranslationTextComponent("astralsorcery.misc.knowledge.inscribed", name).setStyle(new Style().setColor(TextFormatting.BLUE)));
             }
         }
     }
 
     @Override
-    public ModelResourceLocation getModelLocation(ItemStack stack, ModelResourceLocation suggestedDefaultLocation) {
-        if (isCreative(stack) || getKnowledgeOwnerName(stack) != null) {
-            return new ModelResourceLocation(new ResourceLocation(suggestedDefaultLocation.getResourceDomain(),
-                    suggestedDefaultLocation.getResourcePath() + "_written"),
-                    suggestedDefaultLocation.getVariant());
+    public ActionResult<ItemStack> onItemRightClick(World world, PlayerEntity player, Hand hand) {
+        ItemStack held = player.getHeldItem(hand);
+        if (held.isEmpty() || world.isRemote() || !(held.getItem() instanceof ItemKnowledgeShare)) {
+            return ActionResult.resultSuccess(held);
         }
-        return suggestedDefaultLocation;
-    }
-
-    @Override
-    public List<ResourceLocation> getAllPossibleLocations(ModelResourceLocation defaultLocation) {
-        List<ResourceLocation> out = new LinkedList<>();
-        out.add(defaultLocation);
-        out.add(new ResourceLocation(defaultLocation.getResourceDomain(), defaultLocation.getResourcePath() + "_written"));
-        return out;
-    }
-
-    @Override
-    public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer playerIn, EnumHand handIn) {
-        ItemStack stack = playerIn.getHeldItem(handIn);
-        if (stack.isEmpty() || worldIn.isRemote) {
-            return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
-        }
-        if (!isCreative(stack) && (playerIn.isSneaking() || getKnowledge(stack) == null)) {
-            tryInscribeKnowledge(stack, playerIn);
+        if (!isCreative(held) && (player.isSneaking() || getKnowledge(held) == null)) {
+            tryInscribeKnowledge(held, player);
         } else {
-            tryGiveKnowledge(stack, playerIn);
+            tryGiveKnowledge(held, player);
         }
-        return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
+        return ActionResult.resultSuccess(held);
     }
 
     @Override
-    public EnumActionResult onItemUse(EntityPlayer player, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        ItemStack stack = player.getHeldItem(hand);
-        if (stack.isEmpty() || worldIn.isRemote) {
-            return EnumActionResult.SUCCESS;
+    public ActionResultType onItemUse(ItemUseContext context) {
+        ItemStack stack = context.getItem();
+        PlayerEntity player = context.getPlayer();
+        if (stack.isEmpty() || player == null || context.getWorld().isRemote() || !(stack.getItem() instanceof ItemKnowledgeShare)) {
+            return ActionResultType.SUCCESS;
         }
         if (!isCreative(stack) && (player.isSneaking() || getKnowledge(stack) == null)) {
             tryInscribeKnowledge(stack, player);
         } else {
             tryGiveKnowledge(stack, player);
         }
-        return EnumActionResult.SUCCESS;
+        return ActionResultType.SUCCESS;
     }
 
-    private void tryGiveKnowledge(ItemStack stack, EntityPlayer player) {
-        if (player instanceof EntityPlayerMP && MiscUtils.isPlayerFakeMP((EntityPlayerMP) player)) {
+    private void tryGiveKnowledge(ItemStack stack, PlayerEntity player) {
+        if (player instanceof ServerPlayerEntity && MiscUtils.isPlayerFakeMP((ServerPlayerEntity) player)) {
             return;
         }
 
@@ -140,22 +128,23 @@ public class ItemKnowledgeShare extends Item implements INBTModel {
         PlayerProgress progress = getKnowledge(stack);
         if (progress == null) return;
         ProgressionTier prev = progress.getTierReached();
-        if (ResearchManager.mergeApplyPlayerprogress(progress, player) && progress.getTierReached().isThisLater(prev)) {
+        if (ResearchHelper.mergeApplyPlayerprogress(progress, player) && progress.getTierReached().isThisLater(prev)) {
             PktProgressionUpdate pkt = new PktProgressionUpdate(progress.getTierReached());
-            PacketChannel.CHANNEL.sendTo(pkt, (EntityPlayerMP) player);
+            PacketChannel.CHANNEL.sendToPlayer(player, pkt);
         }
     }
 
-    private void tryInscribeKnowledge(ItemStack stack, EntityPlayer player) {
+    private void tryInscribeKnowledge(ItemStack stack, PlayerEntity player) {
         if (canInscribeKnowledge(stack, player)) {
-            setKnowledge(stack, player, ResearchManager.getProgress(player, Side.SERVER));
+            setKnowledge(stack, player, ResearchHelper.getProgress(player, LogicalSide.SERVER));
         }
     }
 
     @Nullable
-    public EntityPlayer getKnowledgeOwner(ItemStack stack, MinecraftServer server) {
+    public PlayerEntity getKnowledgeOwner(ItemStack stack, MinecraftServer server) {
         if (isCreative(stack)) return null;
-        NBTTagCompound compound = NBTHelper.getPersistentData(stack);
+
+        CompoundNBT compound = NBTHelper.getPersistentData(stack);
         if (!compound.hasUniqueId("knowledgeOwnerUUID")) {
             return null;
         }
@@ -166,8 +155,9 @@ public class ItemKnowledgeShare extends Item implements INBTModel {
     @Nullable
     public String getKnowledgeOwnerName(ItemStack stack) {
         if (isCreative(stack)) return null;
-        NBTTagCompound compound = NBTHelper.getPersistentData(stack);
-        if (!compound.hasKey("knowledgeOwnerName")) {
+
+        CompoundNBT compound = NBTHelper.getPersistentData(stack);
+        if (!compound.contains("knowledgeOwnerName")) {
             return null;
         }
         return compound.getString("knowledgeOwnerName");
@@ -176,11 +166,12 @@ public class ItemKnowledgeShare extends Item implements INBTModel {
     @Nullable
     public PlayerProgress getKnowledge(ItemStack stack) {
         if (isCreative(stack)) return null;
-        NBTTagCompound compound = NBTHelper.getPersistentData(stack);
-        if (!compound.hasKey("knowledgeTag")) {
+
+        CompoundNBT compound = NBTHelper.getPersistentData(stack);
+        if (!compound.contains("knowledgeTag")) {
             return null;
         }
-        NBTTagCompound tag = compound.getCompoundTag("knowledgeTag");
+        CompoundNBT tag = compound.getCompound("knowledgeTag");
         try {
             PlayerProgress progress = new PlayerProgress();
             progress.loadKnowledge(tag);
@@ -190,9 +181,10 @@ public class ItemKnowledgeShare extends Item implements INBTModel {
         }
     }
 
-    public boolean canInscribeKnowledge(ItemStack stack, EntityPlayer player) {
+    public boolean canInscribeKnowledge(ItemStack stack, PlayerEntity player) {
         if (isCreative(stack)) return false;
-        NBTTagCompound compound = NBTHelper.getPersistentData(stack);
+
+        CompoundNBT compound = NBTHelper.getPersistentData(stack);
         if (!compound.hasUniqueId("knowledgeOwnerUUID")) {
             return true;
         }
@@ -200,27 +192,26 @@ public class ItemKnowledgeShare extends Item implements INBTModel {
         return player.getUniqueID().equals(owner);
     }
 
-    public void setKnowledge(ItemStack stack, EntityPlayer player, PlayerProgress progress) {
+    public void setKnowledge(ItemStack stack, PlayerEntity player, PlayerProgress progress) {
         if (isCreative(stack) || !progress.isValid()) return;
 
-        NBTTagCompound knowledge = new NBTTagCompound();
+        CompoundNBT knowledge = new CompoundNBT();
         progress.storeKnowledge(knowledge);
-        NBTTagCompound compound = NBTHelper.getPersistentData(stack);
-        compound.setString("knowledgeOwnerName", player.getName());
-        compound.setUniqueId("knowledgeOwnerUUID", player.getUniqueID());
-        compound.setTag("knowledgeTag", knowledge);
+        CompoundNBT compound = NBTHelper.getPersistentData(stack);
+        compound.putString("knowledgeOwnerName", player.getDisplayName().getFormattedText());
+        compound.putUniqueId("knowledgeOwnerUUID", player.getUniqueID());
+        compound.put("knowledgeTag", knowledge);
     }
 
     public boolean isCreative(ItemStack stack) {
-        NBTTagCompound cmp = NBTHelper.getPersistentData(stack);
-        if (!cmp.hasKey("creativeKnowledge")) {
+        CompoundNBT cmp = NBTHelper.getPersistentData(stack);
+        if (!cmp.contains("creativeKnowledge")) {
             return false;
         }
         return cmp.getBoolean("creativeKnowledge");
     }
 
     private void setCreative(ItemStack stack) {
-        NBTHelper.getPersistentData(stack).setBoolean("creativeKnowledge", true);
+        NBTHelper.getPersistentData(stack).putBoolean("creativeKnowledge", true);
     }
-
 }

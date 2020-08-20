@@ -1,48 +1,54 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
- * All rights reserved.
- * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
- * For further details, see the License file there.
+ *  All rights reserved.
+ *  The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ *  For further details, see the License file there.
  ******************************************************************************/
 
 package hellfirepvp.astralsorcery.common.item.wand;
 
-import hellfirepvp.astralsorcery.common.block.BlockFlareLight;
-import hellfirepvp.astralsorcery.common.block.BlockTranslucentBlock;
-import hellfirepvp.astralsorcery.common.constellation.charge.PlayerChargeHandler;
-import hellfirepvp.astralsorcery.common.data.config.Config;
-import hellfirepvp.astralsorcery.common.item.base.render.ItemAlignmentChargeConsumer;
+import hellfirepvp.astralsorcery.common.CommonProxy;
+import hellfirepvp.astralsorcery.common.auxiliary.charge.AlignmentChargeHandler;
+import hellfirepvp.astralsorcery.common.block.tile.BlockFlareLight;
+import hellfirepvp.astralsorcery.common.block.tile.BlockTranslucentBlock;
+import hellfirepvp.astralsorcery.common.item.base.AlignmentChargeConsumer;
 import hellfirepvp.astralsorcery.common.item.base.render.ItemDynamicColor;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
-import hellfirepvp.astralsorcery.common.registry.RegistryItems;
+import hellfirepvp.astralsorcery.common.lib.SoundsAS;
 import hellfirepvp.astralsorcery.common.tile.TileIlluminator;
-import hellfirepvp.astralsorcery.common.tile.TileTranslucent;
+import hellfirepvp.astralsorcery.common.tile.TileTranslucentBlock;
+import hellfirepvp.astralsorcery.common.util.ColorUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.resources.I18n;
+import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.EnumDyeColor;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.DyeColor;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.item.ItemUseContext;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.shapes.ISelectionContext;
+import net.minecraft.util.math.shapes.VoxelShapes;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fml.LogicalSide;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.awt.*;
 import java.util.List;
 
 /**
@@ -50,124 +56,143 @@ import java.util.List;
  * The complete source code for this mod can be found on github.
  * Class: ItemIlluminationWand
  * Created by HellFirePvP
- * Date: 17.01.2017 / 15:09
+ * Date: 28.11.2019 / 20:57
  */
-public class ItemIlluminationWand extends Item implements ItemAlignmentChargeConsumer, ItemDynamicColor {
+public class ItemIlluminationWand extends Item implements ItemDynamicColor, AlignmentChargeConsumer {
+
+    private static final float COST_PER_ILLUMINATION = 650F;
+    private static final float COST_PER_FLARE = 300F;
 
     public ItemIlluminationWand() {
-        setMaxDamage(0);
-        setMaxStackSize(1);
-        setCreativeTab(RegistryItems.creativeTabAstralSorcery);
+        super(new Properties()
+                .maxStackSize(1)
+                .group(CommonProxy.ITEM_GROUP_AS));
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-        EnumDyeColor color = getConfiguredColor(stack);
-        if(color != null) {
-            tooltip.add(MiscUtils.textFormattingForDye(color) + MiscUtils.capitalizeFirst(I18n.format(color.getUnlocalizedName())));
+    @OnlyIn(Dist.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
+        super.addInformation(stack, worldIn, tooltip, flagIn);
+
+        DyeColor color = getConfiguredColor(stack);
+        tooltip.add(ColorUtils.getTranslation(color).setStyle(new Style().setColor(ColorUtils.textFormattingForDye(color))));
+    }
+
+    @Override
+    public float getAlignmentChargeCost(PlayerEntity player, ItemStack stack) {
+        if (player.isSneaking()) {
+            return COST_PER_ILLUMINATION;
+        } else {
+            return COST_PER_FLARE;
         }
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public boolean shouldReveal(ChargeType ct, ItemStack stack) {
-        return ct == ChargeType.TEMP;
-    }
+    public ActionResultType onItemUse(ItemUseContext context) {
+        World world = context.getWorld();
+        Direction dir = context.getFace();
+        BlockPos pos = context.getPos();
+        PlayerEntity player = context.getPlayer();
+        ItemStack stack = context.getItem();
 
-    @Override
-    public int getColorForItemStack(ItemStack stack, int tintIndex) {
-        if(tintIndex != 1) return 0xFFFFFF;
-        EnumDyeColor color = getConfiguredColor(stack);
-        if(color == null) color = EnumDyeColor.YELLOW;
-        Color c = MiscUtils.flareColorFromDye(color);
-        return 0xFF000000 | c.getRGB();
-    }
-
-    public static void setConfiguredColor(ItemStack stack, EnumDyeColor color) {
-        NBTHelper.getPersistentData(stack).setInteger("color", color.getDyeDamage());
-    }
-
-    @Nullable
-    public static EnumDyeColor getConfiguredColor(ItemStack stack) {
-        NBTTagCompound tag = NBTHelper.getPersistentData(stack);
-        if(tag != null && tag.hasKey("color")) {
-            return EnumDyeColor.byDyeDamage(NBTHelper.getPersistentData(stack).getInteger("color"));
+        if (world.isRemote() || player == null || stack.isEmpty() || !(stack.getItem() instanceof ItemIlluminationWand)) {
+            return ActionResultType.SUCCESS;
         }
-        return null;
-    }
 
-    public static IBlockState getPlacingState(ItemStack wand) {
-        EnumDyeColor config = getConfiguredColor(wand);
-        if(config != null) {
-            return BlocksAS.blockVolatileLight.getDefaultState().withProperty(BlockFlareLight.COLOR, config);
-        }
-        return BlocksAS.blockVolatileLight.getDefaultState();
-    }
+        BlockState state = world.getBlockState(pos);
 
-    @Override
-    public EnumActionResult onItemUse(EntityPlayer playerIn, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        ItemStack stack = playerIn.getHeldItem(hand);
-        if (stack.isEmpty() || !(stack.getItem() instanceof ItemIlluminationWand)) {
-            return EnumActionResult.SUCCESS;
-        }
-        if (!worldIn.isRemote) {
-            IBlockState at = worldIn.getBlockState(pos);
-            if(!playerIn.isSneaking()) {
-                TileIlluminator illum = MiscUtils.getTileAt(worldIn, pos, TileIlluminator.class, false);
-                if (illum != null) {
-                    EnumDyeColor thisColor = getConfiguredColor(stack);
-                    if (thisColor == null) {
-                        thisColor = EnumDyeColor.YELLOW;
-                    }
-                    illum.onWandUsed(thisColor);
-                    drainTempCharge(playerIn, PlayerChargeHandler.INSTANCE.getCharge(playerIn), false);
-                } else {
-                    IBlockState iblockstate = worldIn.getBlockState(pos);
-                    Block block = iblockstate.getBlock();
-                    if (!block.isReplaceable(worldIn, pos)) {
-                        pos = pos.offset(facing);
-                    }
-                    if(playerIn.canPlayerEdit(pos, facing, stack)) {
-                        if (worldIn.getBlockState(pos).equals(getPlacingState(stack))) {
-                            SoundType soundtype = worldIn.getBlockState(pos).getBlock().getSoundType(worldIn.getBlockState(pos), worldIn, pos, playerIn);
-                            if (worldIn.setBlockState(pos, Blocks.AIR.getDefaultState(), 3)) {
-                                worldIn.playSound(playerIn, pos, soundtype.getPlaceSound(), SoundCategory.BLOCKS, (soundtype.getVolume() + 1.0F) / 2.0F, soundtype.getPitch() * 0.8F);
-                            }
-                        }
-                        else if (worldIn.mayPlace(BlocksAS.blockVolatileLight, pos, true, facing, null) &&
-                                drainTempCharge(playerIn, Config.illuminationWandUseCost, true)) {
-                            if (worldIn.setBlockState(pos, getPlacingState(stack), 3)) {
-                                SoundType soundtype = worldIn.getBlockState(pos).getBlock().getSoundType(worldIn.getBlockState(pos), worldIn, pos, playerIn);
-                                worldIn.playSound(playerIn, pos, soundtype.getPlaceSound(), SoundCategory.BLOCKS, (soundtype.getVolume() + 1.0F) / 2.0F, soundtype.getPitch() * 0.8F);
-                                drainTempCharge(playerIn, Config.illuminationWandUseCost, false);
+        if (player.isSneaking()) {
+            if (state.getBlock() instanceof BlockTranslucentBlock) {
+                TileTranslucentBlock tb = MiscUtils.getTileAt(world, pos, TileTranslucentBlock.class, true);
+                if (tb != null && (tb.getPlayerUUID() == null || tb.getPlayerUUID().equals(player.getUniqueID()))) {
+                    SoundHelper.playSoundAround(SoundsAS.ILLUMINATION_WAND_UNHIGHLIGHT, SoundCategory.BLOCKS, world, pos, 1F, 0.9F + random.nextFloat() * 0.2F);
+                    world.setBlockState(pos, tb.getFakedState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
+                }
+            } else {
+                TileEntity tile = MiscUtils.getTileAt(world, pos, TileEntity.class, true);
+                if (tile == null &&
+                        !state.hasTileEntity() &&
+                        player.canPlayerEdit(pos, dir, stack) &&
+                        VoxelShapes.fullCube().equals(world.getBlockState(pos).getShape(world, pos))) {
+                    if (AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_ILLUMINATION, false)) {
+                        if (world.setBlockState(pos, BlocksAS.TRANSLUCENT_BLOCK.getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER)) {
+                            SoundHelper.playSoundAround(SoundsAS.ILLUMINATION_WAND_HIGHLIGHT, SoundCategory.BLOCKS, world, pos, 1F, 0.9F + random.nextFloat() * 0.2F);
+                            TileTranslucentBlock tb = MiscUtils.getTileAt(world, pos, TileTranslucentBlock.class, true);
+                            if (tb != null) {
+                                tb.setFakedState(state);
+                                tb.setOverlayColor(getConfiguredColor(stack));
+                                tb.setPlayerUUID(player.getUniqueID());
+                            } else {
+                                //Abort, we didn't get a tileentity... for some reason.
+                                world.setBlockState(pos, state, Constants.BlockFlags.DEFAULT_AND_RERENDER);
                             }
                         }
                     }
                 }
-            } else {
-                if(at.isNormalCube()) {
-                    TileEntity te = worldIn.getTileEntity(pos);
-                    if(te == null && !at.getBlock().hasTileEntity(at) && drainTempCharge(playerIn, Config.illuminationWandUseCost, true)) {
-                        if (worldIn.setBlockState(pos, BlocksAS.translucentBlock.getDefaultState(), 3)) {
-                            TileTranslucent tt = MiscUtils.getTileAt(worldIn, pos, TileTranslucent.class, true);
-                            if(tt == null) {
-                                worldIn.setBlockState(pos, at, 3);
-                            } else {
-                                tt.setFakedState(at);
-                                drainTempCharge(playerIn, Config.illuminationWandUseCost, false);
-                            }
-                        }
-                    }
-                } else if(at.getBlock() instanceof BlockTranslucentBlock) {
-                    TileTranslucent tt = MiscUtils.getTileAt(worldIn, pos, TileTranslucent.class, true);
-                    if(tt != null && tt.getFakedState() != null) {
-                        worldIn.setBlockState(pos, tt.getFakedState(), 3);
+            }
+            return ActionResultType.SUCCESS;
+        }
+
+        TileIlluminator illum = MiscUtils.getTileAt(world, pos, TileIlluminator.class, true);
+        if (illum != null) {
+            illum.onWandUsed(stack);
+            SoundHelper.playSoundAround(SoundsAS.ILLUMINATION_WAND_LIGHT, SoundCategory.BLOCKS, world, pos, 1F, 1F);
+            return ActionResultType.SUCCESS;
+        }
+
+        ISelectionContext selContext = ISelectionContext.forEntity(player);
+        BlockPos placePos = pos;
+        BlockState placeState = getPlacingState(stack);
+        if (!BlockUtils.isReplaceable(world, pos)) {
+            placePos = placePos.offset(dir);
+        }
+
+        if (!BlockUtils.isReplaceable(world, placePos)) {
+            return ActionResultType.SUCCESS;
+        }
+
+        if (player.canPlayerEdit(placePos, dir, stack)) {
+            if (state.equals(placeState)) {
+                if (world.setBlockState(placePos, Blocks.AIR.getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER)) {
+                    SoundHelper.playSoundAround(SoundsAS.ILLUMINATION_WAND_LIGHT, SoundCategory.BLOCKS, world, pos, 1F, 1F);
+                }
+            } else if (placeState.isValidPosition(world, placePos) &&
+                    world.func_226663_a_(placeState, placePos, selContext)) {
+                if (AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_FLARE, false)) {
+                    if (world.setBlockState(placePos, placeState, Constants.BlockFlags.DEFAULT_AND_RERENDER)) {
+                        SoundHelper.playSoundAround(SoundsAS.ILLUMINATION_WAND_LIGHT, SoundCategory.BLOCKS, world, pos, 1F, 1F);
                     }
                 }
             }
         }
-        return EnumActionResult.SUCCESS;
+
+        return ActionResultType.SUCCESS;
     }
 
+    @Override
+    public int getColor(ItemStack stack, int tintIndex) {
+        if (tintIndex != 1) {
+            return 0xFFFFFFFF;
+        }
+        DyeColor color = getConfiguredColor(stack);
+        return ColorUtils.flareColorFromDye(color).getRGB() | 0xFF000000;
+    }
+
+    public static void setConfiguredColor(ItemStack stack, DyeColor color) {
+        NBTHelper.getPersistentData(stack).putInt("color", color != null ? color.getId() : DyeColor.YELLOW.getId());
+    }
+
+    @Nonnull
+    public static DyeColor getConfiguredColor(ItemStack stack) {
+        CompoundNBT tag = NBTHelper.getPersistentData(stack);
+        if (tag.contains("color")) {
+            return DyeColor.byId(tag.getInt("color"));
+        }
+        return DyeColor.YELLOW;
+    }
+
+    @Nonnull
+    public static BlockState getPlacingState(ItemStack wand) {
+        return BlocksAS.FLARE_LIGHT.getDefaultState().with(BlockFlareLight.COLOR, getConfiguredColor(wand));
+    }
 }

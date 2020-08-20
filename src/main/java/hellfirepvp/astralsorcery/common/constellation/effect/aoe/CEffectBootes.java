@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,24 +8,35 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
+import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.CommonProxy;
-import hellfirepvp.astralsorcery.common.base.HerdableAnimal;
+import hellfirepvp.astralsorcery.common.auxiliary.AnimalHelper;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.effect.CEffectEntityCollect;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
-import hellfirepvp.astralsorcery.common.registry.RegistryPotions;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.ConstellationEffectEntityCollect;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
+import hellfirepvp.astralsorcery.common.lib.EffectsAS;
+import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
-import hellfirepvp.astralsorcery.common.util.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.entity.EntityLivingBase;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
+import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.potion.EffectInstance;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ForgeConfigSpec;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
@@ -34,64 +45,113 @@ import java.util.List;
  * The complete source code for this mod can be found on github.
  * Class: CEffectBootes
  * Created by HellFirePvP
- * Date: 10.01.2017 / 18:34
+ * Date: 23.11.2019 / 21:06
  */
-public class CEffectBootes extends CEffectEntityCollect<EntityLivingBase> {
+public class CEffectBootes extends ConstellationEffectEntityCollect<LivingEntity> {
 
-    public static double herdChance = 0.02;
-    public static double potencyMultiplier = 1.0;
-    public static float herdingLuck = -5F;
-    public static float dropChance = 0.01F;
+    public static BootesConfig CONFIG = new BootesConfig();
 
-    public CEffectBootes(@Nullable ILocatable origin) {
-        super(origin, Constellations.bootes, "bootes", 12D, EntityLivingBase.class, (e) -> HerdableAnimal.getHerdable(e) != null);
+    public CEffectBootes(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.bootes, LivingEntity.class, entity -> AnimalHelper.getHandler(entity) != null);
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        percStrength *= potencyMultiplier;
-        if(percStrength < 1) {
-            if(world.rand.nextFloat() > percStrength) return false;
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        if (rand.nextInt(3) == 0) {
+            ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
+
+            Vector3 playAt = new Vector3(pos).add(0.5, 0.5, 0.5).add(
+                    rand.nextFloat() * (prop.getSize() / 2F) * (rand.nextBoolean() ? 1 : -1),
+                    rand.nextFloat() * (prop.getSize() / 4F),
+                    rand.nextFloat() * (prop.getSize() / 2F) * (rand.nextBoolean() ? 1 : -1));
+            Vector3 motion = Vector3.random().multiply(0.015);
+
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(playAt)
+                    .setMotion(motion)
+                    .color(VFXColorFunction.constant(ColorsAS.CONSTELLATION_BOOTES))
+                    .alpha(VFXAlphaFunction.FADE_OUT)
+                    .setScaleMultiplier(0.5F)
+                    .setMaxAge(30 + rand.nextInt(20));
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(playAt)
+                    .setMotion(motion.clone().negate())
+                    .color(VFXColorFunction.constant(ColorsAS.CONSTELLATION_BOOTES))
+                    .alpha(VFXAlphaFunction.FADE_OUT)
+                    .setScaleMultiplier(0.5F)
+                    .setMaxAge(30 + rand.nextInt(20));
         }
-        boolean did = false;
-        List<EntityLivingBase> entities = collectEntities(world, pos, modified);
-        if(!entities.isEmpty()) {
-            for (EntityLivingBase e : entities) {
-                HerdableAnimal herd = HerdableAnimal.getHerdable(e);
-                if(herd == null) continue;
-                if(modified.isCorrupted()) {
-                    did = true;
-                    e.hurtResistantTime = 0;
-                    e.addPotionEffect(new PotionEffect(RegistryPotions.potionDropModifier, 4000, 5));
-                    DamageUtil.attackEntityFrom(e, CommonProxy.dmgSourceStellar, 5000.0F);
-                    continue;
+    }
+
+    @Override
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        boolean didEffect = false;
+
+        List<LivingEntity> entities = this.collectEntities(world, pos, properties);
+        for (LivingEntity entity : entities) {
+            AnimalHelper.HerdableAnimal animal = AnimalHelper.getHandler(entity);
+            if (animal == null) {
+                continue;
+            }
+
+            if (properties.isCorrupted()) {
+                entity.hurtResistantTime = 0;
+                entity.addPotionEffect(new EffectInstance(EffectsAS.EFFECT_DROP_MODIFIER, 1000, 5));
+                if (DamageUtil.attackEntityFrom(entity, CommonProxy.DAMAGE_SOURCE_STELLAR, 5_000)) {
+                    didEffect = true;
                 }
-                if(rand.nextFloat() < herdChance && MiscUtils.canEntityTickAt(world, e.getPosition())) {
-                    List<ItemStack> drops = herd.getHerdingDropsTick(e, world, rand, herdingLuck);
-                    for (ItemStack stack : drops) {
-                        if(rand.nextFloat() < dropChance) {
-                            ItemUtils.dropItemNaturally(world, e.posX, e.posY, e.posZ, stack);
-                            did = true;
+                continue;
+            }
+
+            if (rand.nextFloat() < CONFIG.herdingChance.get()) {
+                didEffect = MiscUtils.executeWithChunk(world, entity.getPosition(), didEffect, (didEffectFlag) -> {
+
+                    List<ItemStack> drops = EntityUtils.generateLoot(entity, rand, CommonProxy.DAMAGE_SOURCE_STELLAR, null);
+                    for (ItemStack drop : drops) {
+                        if (rand.nextFloat() < CONFIG.herdingLootChance.get() &&
+                                ItemUtils.dropItemNaturally(world, entity.getPosX(), entity.getPosY(), entity.getPosZ(), drop) != null) {
+
+                            didEffectFlag = true;
                         }
                     }
-                }
+                    return didEffectFlag;
+                }, false);
             }
         }
-        return did;
+
+        return didEffect;
     }
 
     @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(this.range);
+    public Config getConfig() {
+        return CONFIG;
     }
 
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        super.loadFromConfig(cfg);
+    private static class BootesConfig extends Config {
 
-        herdingLuck = cfg.getFloat(getKey() + "HerdLuck", getConfigurationSection(), -5F, -200.0F, 200.0F, "Set the 'luck' when herding an animal for drops or related");
-        herdChance = cfg.getFloat(getKey() + "HerdChance", getConfigurationSection(), 0.05F, 0.0F, 1.0F, "Set the chance that an registered animal will be 'herded' if it is close to the ritual.");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), 1.0F, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
-        dropChance = cfg.getFloat(getKey() + "OverallDropChance", getConfigurationSection(), 0.01F, 0.0F, 1.0F, "Set the chance that a drop that has been found from the entity's loot table is actually dropped.");
+        private final double defaultHerdingChance = 0.05;
+        private final double defaultHerdingLootChance = 0.01;
+
+        public ForgeConfigSpec.DoubleValue herdingChance;
+        public ForgeConfigSpec.DoubleValue herdingLootChance;
+
+        public BootesConfig() {
+            super("bootes", 12D, 4D);
+        }
+
+        @Override
+        public void createEntries(ForgeConfigSpec.Builder cfgBuilder) {
+            super.createEntries(cfgBuilder);
+
+            this.herdingChance = cfgBuilder
+                    .comment("Set the chance that an registered animal will be considered for generating loot if it is close to the ritual.")
+                    .translation(translationKey("herdingChance"))
+                    .defineInRange("herdingChance", this.defaultHerdingChance, 0, 1.0);
+            this.herdingLootChance = cfgBuilder
+                    .comment("Set the chance that a drop that has been found on the entity's loot table is actually dropped.")
+                    .translation(translationKey("herdingLootChance"))
+                    .defineInRange("herdingLootChance", this.defaultHerdingLootChance, 0, 1.0);
+        }
     }
 }

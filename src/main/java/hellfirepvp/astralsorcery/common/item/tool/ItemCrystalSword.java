@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,149 +8,130 @@
 
 package hellfirepvp.astralsorcery.common.item.tool;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import hellfirepvp.astralsorcery.common.entities.EntityCrystalTool;
-import hellfirepvp.astralsorcery.common.item.crystal.CrystalProperties;
-import hellfirepvp.astralsorcery.common.item.crystal.CrystalPropertyItem;
-import hellfirepvp.astralsorcery.common.item.crystal.ToolCrystalProperties;
-import hellfirepvp.astralsorcery.common.registry.RegistryItems;
-import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
+import hellfirepvp.astralsorcery.common.CommonProxy;
+import hellfirepvp.astralsorcery.common.crystal.CalculationContext;
+import hellfirepvp.astralsorcery.common.crystal.CrystalAttributeItem;
+import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
+import hellfirepvp.astralsorcery.common.crystal.CrystalCalculations;
+import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.WebBlock;
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.Entity;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentType;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemSword;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.item.SwordItem;
 import net.minecraft.util.NonNullList;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Random;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: ItemCrystalSword
  * Created by HellFirePvP
- * Date: 19.09.2016 / 15:52
+ * Date: 17.08.2019 / 18:34
  */
-public class ItemCrystalSword extends ItemSword implements CrystalPropertyItem {
-
-    private static final Random rand = new Random();
+public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem {
 
     public ItemCrystalSword() {
-        super(RegistryItems.crystalToolMaterial);
-        setMaxDamage(0);
-        setCreativeTab(RegistryItems.creativeTabAstralSorcery);
+        super(CrystalToolTier.getInstance(),
+                0,
+                0F,
+                new Properties()
+                        .setNoRepair()
+                        .maxDamage(CrystalToolTier.getInstance().getMaxUses())
+                        .group(CommonProxy.ITEM_GROUP_AS));
     }
 
     @Override
-    public void getSubItems(CreativeTabs tab, NonNullList<ItemStack> items) {
-        if(this.isInCreativeTab(tab)) {
-            CrystalProperties maxCelestial = CrystalProperties.getMaxCelestialProperties();
+    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> stacks) {
+        if (this.isInGroup(group)) {
             ItemStack stack = new ItemStack(this);
-            setToolProperties(stack, ToolCrystalProperties.merge(maxCelestial, maxCelestial));
-            items.add(stack);
+            CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
+            stacks.add(stack);
         }
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-        ToolCrystalProperties prop = getToolProperties(stack);
-        CrystalProperties.addPropertyTooltip(prop, tooltip, getMaxSize(stack));
-        super.addInformation(stack, worldIn, tooltip, flagIn);
-    }
-
-    @Override
-    public int getMaxSize(ItemStack stack) {
-        return CrystalProperties.MAX_SIZE_CELESTIAL * 2;
-    }
-
-    @Nullable
-    @Override
-    public CrystalProperties provideCurrentPropertiesOrNull(ItemStack stack) {
-        return getToolProperties(stack);
+    @OnlyIn(Dist.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World world, List<ITextComponent> tooltip, ITooltipFlag flag) {
+        CrystalAttributes attr = getAttributes(stack);
+        if (attr != null) {
+            attr.addTooltip(tooltip, CalculationContext.Builder.newBuilder()
+                    .addUsage(CrystalPropertiesAS.Usages.USE_TOOL_DURABILITY)
+                    .addUsage(CrystalPropertiesAS.Usages.USE_TOOL_EFFECTIVENESS)
+                    .build());
+        }
+        super.addInformation(stack, world, tooltip, flag);
     }
 
     @Override
     public int getMaxDamage(ItemStack stack) {
-        return 10;
-    }
-
-    public static ToolCrystalProperties getToolProperties(ItemStack stack) {
-        NBTTagCompound nbt = NBTHelper.getPersistentData(stack);
-        return ToolCrystalProperties.readFromNBT(nbt);
-    }
-
-    public static void setToolProperties(ItemStack stack, ToolCrystalProperties properties) {
-        NBTTagCompound nbt = NBTHelper.getPersistentData(stack);
-        properties.writeToNBT(nbt);
+        CrystalAttributes attr = getAttributes(stack);
+        if (attr != null) {
+            return CrystalCalculations.getToolDurability(super.getMaxDamage(stack), stack);
+        }
+        return super.getMaxDamage(stack);
     }
 
     @Override
-    public boolean hasCustomEntity(ItemStack stack) {
-        return true;
+    public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
+        EnchantmentType type = enchantment.type;
+        return type == EnchantmentType.ALL || type == EnchantmentType.WEAPON || type == EnchantmentType.BREAKABLE;
+    }
+
+    @Override
+    public boolean canHarvestBlock(ItemStack stack, BlockState state) {
+        return state.getBlock() instanceof WebBlock;
+    }
+
+    @Override
+    public float getAttackDamage() {
+        return CrystalToolTier.getInstance().getAttackDamage();
+    }
+
+    public float getAttackDamage(ItemStack stack) {
+        CrystalAttributes attr = getAttributes(stack);
+        if (attr != null) {
+            return CrystalCalculations.getToolEfficiency(this.getAttackDamage(), stack);
+        } else {
+            return this.getAttackDamage();
+        }
+    }
+
+    private double getAttackSpeed() {
+        return -2.4;
     }
 
     @Nullable
     @Override
-    public Entity createEntity(World world, Entity ei, ItemStack itemstack) {
-        EntityCrystalTool newItem = new EntityCrystalTool(ei.world, ei.posX, ei.posY, ei.posZ, itemstack);
-        newItem.motionX = ei.motionX;
-        newItem.motionY = ei.motionY;
-        newItem.motionZ = ei.motionZ;
-        newItem.setDefaultPickupDelay();
-        if (ei instanceof EntityItem) {
-            newItem.setThrower(((EntityItem) ei).getThrower());
-            newItem.setOwner(((EntityItem) ei).getOwner());
-        }
-        return newItem;
+    public CrystalAttributes getAttributes(ItemStack stack) {
+        return CrystalAttributes.getCrystalAttributes(stack);
     }
 
     @Override
-    public boolean isEnchantable(ItemStack stack) {
-        return true;
+    public void setAttributes(ItemStack stack, @Nullable CrystalAttributes attributes) {
+        if (attributes != null) {
+            attributes.store(stack);
+        } else {
+            CrystalAttributes.storeNull(stack);
+        }
     }
 
     @Override
-    public void setDamage(ItemStack stack, int damage) {
-        super.setDamage(stack, 0);
-        damageProperties(stack, damage);
-    }
-
-    private void damageProperties(ItemStack stack, int damage) {
-        ToolCrystalProperties prop = getToolProperties(stack);
-        if(prop == null) {
-            stack.setItemDamage(stack.getMaxDamage());
-            return;
-        }
-        if(prop.getSize() <= 0) {
-            super.setDamage(stack, 11);
-            return;
-        }
-        if(damage < 0) {
-            return;
-        }
-        for (int i = 0; i < damage; i++) {
-            double chance = Math.pow(((double) prop.getCollectiveCapability()) / 100D, 2);
-            if(chance >= rand.nextFloat()) {
-                if(rand.nextInt(3) == 0) prop = prop.copyDamagedCutting();
-                double purity = ((double) prop.getPurity()) / 100D;
-                if(purity <= rand.nextFloat()) {
-                    if(rand.nextInt(3) == 0) prop = prop.copyDamagedCutting();
-                }
-            }
-        }
-        setToolProperties(stack, prop);
+    public boolean isRepairable(ItemStack stack) {
+        return false;
     }
 
     @Override
@@ -159,23 +140,17 @@ public class ItemCrystalSword extends ItemSword implements CrystalPropertyItem {
     }
 
     @Override
-    public boolean isRepairable() {
-        return false;
+    public int getItemEnchantability(ItemStack stack) {
+        return CrystalToolTier.getInstance().getEnchantability();
     }
 
     @Override
-    public Multimap<String, AttributeModifier> getAttributeModifiers(EntityEquipmentSlot slot, ItemStack stack) {
-        Multimap<String, AttributeModifier> modifiers = HashMultimap.create();
-        if(slot == EntityEquipmentSlot.MAINHAND) {
-            ToolCrystalProperties prop = getToolProperties(stack);
-            if(prop != null) {
-                modifiers.put(SharedMonsterAttributes.ATTACK_DAMAGE.getName(),
-                        new AttributeModifier(ATTACK_DAMAGE_MODIFIER, "Weapon modifier", 1F + (12F * prop.getEfficiencyMultiplier()), 0));
-                modifiers.put(SharedMonsterAttributes.ATTACK_SPEED.getName(),
-                        new AttributeModifier(ATTACK_SPEED_MODIFIER, "Weapon modifier", -1D, 0));
-            }
+    public Multimap<String, AttributeModifier> getAttributeModifiers(EquipmentSlotType slot, ItemStack stack) {
+        Multimap<String, AttributeModifier> multimap = super.getAttributeModifiers(slot, stack);
+        if (slot == EquipmentSlotType.MAINHAND) {
+            multimap.put(SharedMonsterAttributes.ATTACK_DAMAGE.getName(), new AttributeModifier(ATTACK_DAMAGE_MODIFIER, "Tool modifier", this.getAttackDamage(stack), AttributeModifier.Operation.ADDITION));
+            multimap.put(SharedMonsterAttributes.ATTACK_SPEED.getName(), new AttributeModifier(ATTACK_SPEED_MODIFIER, "Tool modifier", this.getAttackSpeed(), AttributeModifier.Operation.ADDITION));
         }
-        return modifiers;
+        return multimap;
     }
-
 }

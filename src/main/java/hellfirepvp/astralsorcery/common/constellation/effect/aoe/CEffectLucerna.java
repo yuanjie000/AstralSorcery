@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,28 +8,29 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHandler;
-import hellfirepvp.astralsorcery.client.effect.controller.orbital.OrbitalEffectController;
-import hellfirepvp.astralsorcery.client.effect.controller.orbital.OrbitalEffectLucerna;
+import hellfirepvp.astralsorcery.client.ClientScheduler;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.effect.source.orbital.FXOrbitalLucerna;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.distribution.ConstellationSkyHandler;
+import hellfirepvp.astralsorcery.common.constellation.SkyHandler;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffect;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectStatus;
-import hellfirepvp.astralsorcery.common.event.listener.EventHandlerEntity;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
+import hellfirepvp.astralsorcery.common.constellation.world.DayTimeHelper;
+import hellfirepvp.astralsorcery.common.event.helper.EventHelperSpawnDeny;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
-import hellfirepvp.astralsorcery.common.util.data.TickTokenizedMap;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import hellfirepvp.astralsorcery.common.util.block.WorldBlockPos;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import hellfirepvp.astralsorcery.common.util.data.WorldBlockPos;
-import net.minecraft.nbt.NBTTagCompound;
+import hellfirepvp.astralsorcery.common.util.tick.TickTokenMap;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -37,47 +38,40 @@ import javax.annotation.Nullable;
  * The complete source code for this mod can be found on github.
  * Class: CEffectLucerna
  * Created by HellFirePvP
- * Date: 07.01.2017 / 19:24
+ * Date: 01.02.2020 / 10:11
  */
 public class CEffectLucerna extends ConstellationEffect implements ConstellationEffectStatus {
 
-    public static boolean enabled = true;
-    public static double potencyMultiplier = 1;
-    public static double range = 64, rangeIncrease = 64;
+    public static LucernaConfig CONFIG = new LucernaConfig();
 
     private int rememberedTimeout = 0;
 
-    public CEffectLucerna(@Nullable ILocatable origin) {
-        super(origin, Constellations.lucerna, "lucerna");
+    public CEffectLucerna(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.lucerna);
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float percEffectVisibility, boolean extendedEffects) {
-        if(pedestal.getTicksExisted() % 20 == 0) {
-            OrbitalEffectLucerna luc = new OrbitalEffectLucerna();
-            OrbitalEffectController ctrl = EffectHandler.getInstance().orbital(luc, luc, luc);
-            ctrl.setOffset(new Vector3(pos).add(0.5, 0.5, 0.5));
-            ctrl.setOrbitRadius(0.8 + rand.nextFloat() * 0.7);
-            ctrl.setOrbitAxis(Vector3.RotAxis.Y_AXIS);
-            ctrl.setTicksPerRotation(20 + rand.nextInt(20));
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        if (ClientScheduler.getClientTick() % 20 == 0) {
+            EffectHelper.spawnSource(new FXOrbitalLucerna(new Vector3(pos).add(0.5, 0.5, 0.5))
+                    .setOrbitAxis(Vector3.RotAxis.Y_AXIS)
+                    .setOrbitRadius(0.8 + rand.nextFloat() * 0.7)
+                    .setTicksPerRotation(20 + rand.nextInt(20)));
         }
     }
 
     @Override
-    public boolean runEffect(World world, BlockPos pos, int mirrorAmount, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(!enabled) return false;
-
-        if(modified.isCorrupted()) {
-            if(ConstellationSkyHandler.getInstance().isNight(world)) {
-                if(rand.nextBoolean()) {
-                    ConstellationSkyHandler.getInstance().revertWorldTimeTick(world);
-                }
+    public boolean runStatusEffect(World world, BlockPos pos, int mirrorAmount, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
+        if (modified.isCorrupted()) {
+            if (DayTimeHelper.isNight(world) && rand.nextBoolean()) {
+                SkyHandler.getInstance().revertWorldTimeTick(world);
             }
             return true;
         }
-        WorldBlockPos at = new WorldBlockPos(world, pos);
-        TickTokenizedMap.SimpleTickToken<Double> token = EventHandlerEntity.spawnDenyRegions.get(at);
+
+        WorldBlockPos at = WorldBlockPos.wrapServer(world, pos);
+        TickTokenMap.SimpleTickToken<Double> token = EventHelperSpawnDeny.spawnDenyRegions.get(at);
         if(token != null && Math.abs(token.getValue() - modified.getSize()) < 1E-3) {
             int next = token.getRemainingTimeout() + 80;
             if(next > 400) next = 400;
@@ -88,41 +82,39 @@ public class CEffectLucerna extends ConstellationEffect implements Constellation
                 token.setTimeout(0);
             }
             rememberedTimeout = Math.min(400, rememberedTimeout + 80);
-            EventHandlerEntity.spawnDenyRegions.put(at, new TickTokenizedMap.SimpleTickToken<>(modified.getSize(), rememberedTimeout));
+            EventHelperSpawnDeny.spawnDenyRegions.put(at, new TickTokenMap.SimpleTickToken<>(modified.getSize(), rememberedTimeout));
         }
         return true;
     }
 
     @Override
-    @Deprecated
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
+    public Config getConfig() {
+        return CONFIG;
+    }
+
+    @Override
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
         return false;
     }
 
     @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(CEffectLucerna.range + mirrorCount * CEffectLucerna.rangeIncrease);
-    }
-
-    @Override
-    public void readFromNBT(NBTTagCompound cmp) {
+    public void readFromNBT(CompoundNBT cmp) {
         super.readFromNBT(cmp);
 
-        this.rememberedTimeout = cmp.getInteger("rememberedTimeout");
+        this.rememberedTimeout = cmp.getInt("rememberedTimeout");
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound cmp) {
+    public void writeToNBT(CompoundNBT cmp) {
         super.writeToNBT(cmp);
 
-        cmp.setInteger("rememberedTimeout", rememberedTimeout);
+        cmp.putInt("rememberedTimeout", this.rememberedTimeout);
     }
 
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        enabled = cfg.getBoolean(getKey() + "Enabled", getConfigurationSection(), true, "Set to false to disable this ConstellationEffect.");
-        range = cfg.getFloat(getKey() + "DenyRange", getConfigurationSection(), (float) range, 2, 2048, "Defines the range in which the ritual will prevent mobspawning.");
-        rangeIncrease = cfg.getFloat(getKey() + "DenyRangeIncrease", getConfigurationSection(), (float) rangeIncrease, 2, 2048, "Defines the range-increase that the ritual will get per additional lens focusing light back onto the pedestal");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), 1.0F, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
+    private static class LucernaConfig extends Config {
+
+        public LucernaConfig() {
+            super("lucerna", 32D, 64D);
+        }
     }
 }

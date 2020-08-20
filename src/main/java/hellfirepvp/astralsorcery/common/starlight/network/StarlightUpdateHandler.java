@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,10 +8,12 @@
 
 package hellfirepvp.astralsorcery.common.starlight.network;
 
-import hellfirepvp.astralsorcery.common.auxiliary.tick.ITickHandler;
 import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
+import hellfirepvp.observerlib.common.util.tick.ITickHandler;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraft.world.dimension.DimensionType;
+import net.minecraftforge.event.TickEvent;
 
 import java.util.*;
 
@@ -25,7 +27,7 @@ import java.util.*;
 public class StarlightUpdateHandler implements ITickHandler {
 
     private static final StarlightUpdateHandler instance = new StarlightUpdateHandler();
-    private static Map<Integer, List<IPrismTransmissionNode>> updateRequired = new HashMap<>();
+    private static Map<DimensionType, List<IPrismTransmissionNode>> updateRequired = new HashMap<>();
     private static final Object accessLock = new Object();
 
     private StarlightUpdateHandler() {}
@@ -37,7 +39,9 @@ public class StarlightUpdateHandler implements ITickHandler {
     @Override
     public void tick(TickEvent.Type type, Object... context) {
         World world = (World) context[0];
-        if(world.isRemote) return;
+        if (world.isRemote()) {
+            return;
+        }
 
         List<IPrismTransmissionNode> nodes = getNodes(world);
         synchronized (accessLock) {
@@ -47,31 +51,32 @@ public class StarlightUpdateHandler implements ITickHandler {
         }
     }
 
-    private List<IPrismTransmissionNode> getNodes(World world) {
-        int dimId = world.provider.getDimension();
-        List<IPrismTransmissionNode> nodes = updateRequired.get(dimId);
-        if(nodes == null) {
-            nodes = new LinkedList<>();
-            updateRequired.put(dimId, nodes);
-        }
-        return nodes;
+    private List<IPrismTransmissionNode> getNodes(IWorld world) {
+        DimensionType dimType = world.getDimension().getType();
+        return updateRequired.computeIfAbsent(dimType, k -> new LinkedList<>());
     }
 
-    public void removeNode(World world, IPrismTransmissionNode node) {
+    public void removeNode(IWorld world, IPrismTransmissionNode node) {
         synchronized (accessLock) {
             getNodes(world).remove(node);
         }
     }
 
-    public void addNode(World world, IPrismTransmissionNode node) {
+    public void addNode(IWorld world, IPrismTransmissionNode node) {
         synchronized (accessLock) {
             getNodes(world).add(node);
         }
     }
 
-    public void informWorldLoad(World world) {
+    public void informWorldLoad(IWorld world) {
         synchronized (accessLock) {
-            updateRequired.remove(world.provider.getDimension());
+            updateRequired.remove(world.getDimension().getType());
+        }
+    }
+
+    public void clearServer() {
+        synchronized (accessLock) {
+            updateRequired.clear();
         }
     }
 

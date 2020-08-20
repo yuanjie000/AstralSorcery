@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,11 +8,9 @@
 
 package hellfirepvp.astralsorcery.client.util.obj;
 
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.VertexFormat;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import com.mojang.blaze3d.vertex.IVertexBuilder;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.ArrayList;
 
@@ -23,35 +21,20 @@ import java.util.ArrayList;
  * GroupObject
  */
 public class GroupObject {
+
     public String name;
-    public ArrayList<Face> faces = new ArrayList<Face>();
-    public int glDrawingMode;
+    public ArrayList<Face> faces = new ArrayList<>();
 
     public GroupObject() {
         this("");
     }
 
     public GroupObject(String name) {
-        this(name, -1);
-    }
-
-    public GroupObject(String name, int glDrawingMode) {
         this.name = name;
-        this.glDrawingMode = glDrawingMode;
     }
 
-    @SideOnly(Side.CLIENT)
-    public void render(VertexFormat vf) {
-        if (faces.size() > 0) {
-            BufferBuilder vb = Tessellator.getInstance().getBuffer();
-            vb.begin(glDrawingMode, vf);
-            render(vb);
-            Tessellator.getInstance().draw();
-        }
-    }
-
-    @SideOnly(Side.CLIENT)
-    public void render(BufferBuilder vb) {
+    @OnlyIn(Dist.CLIENT)
+    public void render(IVertexBuilder vb) {
         if (faces.size() > 0) {
             for (Face face : faces) {
                 face.addFaceForRender(vb);

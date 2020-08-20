@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,17 +8,20 @@
 
 package hellfirepvp.astralsorcery.common.data.research;
 
-import hellfirepvp.astralsorcery.client.gui.journal.page.IJournalPage;
-import hellfirepvp.astralsorcery.client.util.resource.SpriteQuery;
-import hellfirepvp.astralsorcery.client.util.resource.TextureQuery;
+import hellfirepvp.astralsorcery.client.resource.AssetLoader;
+import hellfirepvp.astralsorcery.client.resource.query.SpriteQuery;
+import hellfirepvp.astralsorcery.client.resource.query.TextureQuery;
+import hellfirepvp.astralsorcery.common.auxiliary.book.BookLookupRegistry;
+import hellfirepvp.astralsorcery.common.data.journal.JournalPage;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.IItemProvider;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 import javax.annotation.Nullable;
 import java.awt.*;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.*;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -32,53 +35,54 @@ public class ResearchNode {
     private static int counter = 0;
 
     private final int id;
-    private final RenderType renderType;
-    public final int renderPosX, renderPosZ;
+    private final NodeRenderType nodeRenderType;
+    public final float renderPosX, renderPosZ;
     private String unlocName;
-    //private boolean special = false;
 
     private ItemStack[] renderItemStacks;
-    private TextureQuery renderTextureQuery;
     private SpriteQuery renderSpriteQuery;
+    private TextureQuery backgroundTextureQuery = new TextureQuery(AssetLoader.TextureLocation.GUI, "research_frame_wood");
 
     private Color textureColorHint = new Color(0xFFFFFFFF, true);
 
-    private List<ResearchNode> connectionsTo = new LinkedList<>();
-    private List<IJournalPage> pages = new LinkedList<>();
+    private List<ResearchNode> connectionsTo = new ArrayList<>();
+    private List<JournalPage> pages = new LinkedList<>();
 
-    private ResearchNode(RenderType type, String unlocName, int rPosX, int rPosZ) {
+    private ResearchNode(NodeRenderType type, String unlocName, float rPosX, float rPosZ) {
         this.id = counter;
         counter++;
-        this.renderType = type;
+        this.nodeRenderType = type;
         this.renderPosX = rPosX;
         this.renderPosZ = rPosZ;
         this.unlocName = unlocName;
     }
 
-    public ResearchNode(ItemStack itemStack, String unlocName, int renderPosX, int renderPosZ) {
-        this(RenderType.ITEMSTACK, unlocName, renderPosX, renderPosZ);
+    public ResearchNode(IItemProvider item, String unlocName, float renderPosX, float renderPosZ) {
+        this(new ItemStack(item), unlocName, renderPosX, renderPosZ);
+    }
+
+    public ResearchNode(ItemStack itemStack, String unlocName, float renderPosX, float renderPosZ) {
+        this(NodeRenderType.ITEMSTACK, unlocName, renderPosX, renderPosZ);
         this.renderItemStacks = new ItemStack[] { itemStack };
     }
 
-    public ResearchNode(ItemStack[] stacks, String unlocName, int renderPosX, int renderPosZ) {
-        this(RenderType.ITEMSTACK, unlocName, renderPosX, renderPosZ);
+    public ResearchNode(IItemProvider[] items, String unlocName, float renderPosX, float renderPosZ) {
+        this(NodeRenderType.ITEMSTACK, unlocName, renderPosX, renderPosZ);
+        this.renderItemStacks = new ItemStack[items.length];
+        for (int i = 0; i < items.length; i++) {
+            this.renderItemStacks[i] = new ItemStack(items[i]);
+        }
+    }
+
+    public ResearchNode(ItemStack[] stacks, String unlocName, float renderPosX, float renderPosZ) {
+        this(NodeRenderType.ITEMSTACK, unlocName, renderPosX, renderPosZ);
         this.renderItemStacks = stacks;
     }
 
-    public ResearchNode(TextureQuery query, String unlocName, int renderPosX, int renderPosZ) {
-        this(RenderType.TEXTURE, unlocName, renderPosX, renderPosZ);
-        this.renderTextureQuery = query;
-    }
-
-    public ResearchNode(SpriteQuery query, String unlocName, int renderPosX, int renderPosZ) {
-        this(RenderType.TEXTURE_SPRITE, unlocName, renderPosX, renderPosZ);
+    public ResearchNode(SpriteQuery query, String unlocName, float renderPosX, float renderPosZ) {
+        this(NodeRenderType.TEXTURE_SPRITE, unlocName, renderPosX, renderPosZ);
         this.renderSpriteQuery = query;
     }
-
-    /*public ResearchNode(BindableResource textureResource, String unlocName, int renderPosX, int renderPosZ) {
-        this(RenderType.TEXTURE, unlocName, renderPosX, renderPosZ);
-        this.texture = textureResource;
-    }*/
 
     public ResearchNode addSourceConnectionFrom(ResearchNode node) {
         this.connectionsTo.add(node);
@@ -98,7 +102,7 @@ public class ResearchNode {
         return connectionsTo;
     }
 
-    public ResearchNode addPage(IJournalPage page) {
+    public ResearchNode addPage(JournalPage page) {
         pages.add(page);
         return this;
     }
@@ -107,17 +111,23 @@ public class ResearchNode {
         return true;
     }
 
-    /*public ResearchNode setSpecial() {
-        this.special = true;
+    public ResearchNode setTextureColorHintWithAlpha(Color textureColorHint) {
+        this.textureColorHint = textureColorHint;
         return this;
     }
 
-    public boolean isSpecial() {
-        return special;
-    }*/
+    public ResearchNode register(ResearchProgression progression) {
+        progression.getRegistrar().accept(this);
+        return this;
+    }
 
-    public ResearchNode setTextureColorHintWithAlpha(Color textureColorHint) {
-        this.textureColorHint = textureColorHint;
+    public ResearchNode addTomeLookup(IItemProvider item, int nodePage, ResearchProgression progression) {
+        BookLookupRegistry.registerItemLookup(item, this, nodePage, progression);
+        return this;
+    }
+
+    public ResearchNode addTomeLookup(ItemStack item, int nodePage, ResearchProgression progression) {
+        BookLookupRegistry.registerItemLookup(item, this, nodePage, progression);
         return this;
     }
 
@@ -125,8 +135,8 @@ public class ResearchNode {
         return textureColorHint;
     }
 
-    public RenderType getRenderType() {
-        return renderType;
+    public NodeRenderType getNodeRenderType() {
+        return nodeRenderType;
     }
 
     public ItemStack getRenderItemStack() {
@@ -137,23 +147,23 @@ public class ResearchNode {
         return renderItemStacks[((int) ((tick / 40) % renderItemStacks.length))];
     }
 
-    public TextureQuery getTexture() {
-        return renderTextureQuery;
+    public TextureQuery getBackgroundTexture() {
+        return backgroundTextureQuery;
     }
 
     public SpriteQuery getSpriteTexture() {
         return renderSpriteQuery;
     }
 
-    public List<IJournalPage> getPages() {
+    public List<JournalPage> getPages() {
         return pages;
     }
 
-    public String getUnLocalizedName() {
-        return String.format("research.%s.name", unlocName);
+    public ITextComponent getName() {
+        return new TranslationTextComponent(String.format("astralsorcery.journal.node.%s.name", this.getKey()));
     }
 
-    public String getSimpleName() {
+    public String getKey() {
         return this.unlocName;
     }
 
@@ -171,9 +181,9 @@ public class ResearchNode {
         return id;
     }
 
-    public static enum RenderType {
+    public static enum NodeRenderType {
 
-        ITEMSTACK, TEXTURE, TEXTURE_SPRITE
+        ITEMSTACK, TEXTURE_SPRITE
 
     }
 

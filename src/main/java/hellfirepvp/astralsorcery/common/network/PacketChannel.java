@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -9,108 +9,115 @@
 package hellfirepvp.astralsorcery.common.network;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.client.ClientProxy;
-import hellfirepvp.astralsorcery.common.network.packet.ClientReplyPacket;
-import hellfirepvp.astralsorcery.common.network.packet.client.*;
-import hellfirepvp.astralsorcery.common.network.packet.server.*;
+import hellfirepvp.astralsorcery.common.network.base.ASLoginPacket;
+import hellfirepvp.astralsorcery.common.network.base.ASPacket;
+import hellfirepvp.astralsorcery.common.network.channel.BufferedReplyChannel;
+import hellfirepvp.astralsorcery.common.network.channel.SimpleSendChannel;
+import hellfirepvp.astralsorcery.common.network.login.client.PktLoginAcknowledge;
+import hellfirepvp.astralsorcery.common.network.login.server.PktLoginSyncDataHolder;
+import hellfirepvp.astralsorcery.common.network.login.server.PktLoginSyncGateway;
+import hellfirepvp.astralsorcery.common.network.play.client.*;
+import hellfirepvp.astralsorcery.common.network.play.server.*;
 import net.minecraft.util.math.Vec3i;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.world.IWorld;
+import net.minecraftforge.fml.network.FMLHandshakeHandler;
+import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.fml.network.NetworkRegistry;
+import net.minecraftforge.fml.network.PacketDistributor;
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.Collections;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: PacketChannel
  * Created by HellFirePvP
- * Date: 07.05.2016 / 01:11
+ * Date: 21.04.2019 / 19:34
  */
 public class PacketChannel {
 
-    public static final SimpleNetworkWrapper CHANNEL = new SimpleNetworkWrapper(AstralSorcery.NAME) {
+    private static int packetIndex = 0;
+    private static final String NET_COMM_VERSION = "0"; //AS network version
 
-        @Override
-        public void sendToServer(IMessage message) {
-            if(message instanceof ClientReplyPacket && !PacketChannel.canBeSent()) {
-                return;
-            }
-            super.sendToServer(message);
-        }
-    };
+    public static final SimpleSendChannel CHANNEL = new BufferedReplyChannel(NetworkRegistry.newSimpleChannel(
+            AstralSorcery.key("net_channel"),
+            () -> NET_COMM_VERSION,
+            NET_COMM_VERSION::equals,
+            NET_COMM_VERSION::equals));
 
-    @SideOnly(Side.CLIENT)
-    private static boolean canBeSent() {
-        return ClientProxy.connected;
+    public static void registerPackets() {
+        // LOGIN DEDICATED_SERVER -> CLIENT
+        registerLoginMessage(PktLoginSyncDataHolder::new, PktLoginSyncDataHolder::makeLogin);
+        registerLoginMessage(PktLoginSyncGateway::new, PktLoginSyncGateway::makeLogin);
+
+        // LOGIN CLIENT -> DEDICATED_SERVER
+        registerLoginMessage(PktLoginAcknowledge::new, PktLoginAcknowledge::new);
+
+        // PLAY DEDICATED_SERVER -> CLIENT
+        registerMessage(PktOreScan::new);
+        registerMessage(PktPlayEffect::new);
+        registerMessage(PktPlayLiquidInteraction::new);
+        registerMessage(PktProgressionUpdate::new);
+        registerMessage(PktShootEntity::new);
+        registerMessage(PktSyncCharge::new);
+        registerMessage(PktSyncData::new);
+        registerMessage(PktSyncKnowledge::new);
+        registerMessage(PktSyncModifierSource::new);
+        registerMessage(PktSyncPerkActivity::new);
+        registerMessage(PktSyncStepAssist::new);
+        registerMessage(PktUpdateGateways::new);
+        registerMessage(PktOpenGui::new);
+
+        // PLAY CLIENT -> DEDICATED_SERVER
+        registerMessage(PktAttunePlayerConstellation::new);
+        registerMessage(PktClearBlockStorageStack::new);
+        registerMessage(PktDiscoverConstellation::new);
+        registerMessage(PktElytraCapeState::new);
+        registerMessage(PktEngraveGlass::new);
+        registerMessage(PktPerkGemModification::new);
+        registerMessage(PktRequestPerkSealAction::new);
+        registerMessage(PktRequestSeed::new);
+        registerMessage(PktRequestTeleport::new);
+        registerMessage(PktRotateTelescope::new);
+        registerMessage(PktUnlockPerk::new);
+        registerMessage(PktToggleClientOption::new);
     }
 
-    public static void init() {
-        int id = 0;
+    private static <T extends ASLoginPacket<T>> void registerLoginMessage(Supplier<T> pktSupplier, Supplier<T> makeLoginPacket) {
+        T packet = pktSupplier.get();
+        int index = packetIndex++;
+        CHANNEL.messageBuilder((Class<T>) packet.getClass(), index)
+                .loginIndex(ASLoginPacket::getLoginIndex, ASLoginPacket::setLoginIndex)
+                .encoder(packet.encoder())
+                .decoder(packet.decoder())
+                .consumer((t, contextSupplier) -> {
+                    BiConsumer<T, Supplier<NetworkEvent.Context>> handler;
+                    if (contextSupplier.get().getDirection().getReceptionSide().isServer()) {
+                        handler = FMLHandshakeHandler.indexFirst((handshakeHandler, pkt, ctxSupplier) -> packet.handler().accept(pkt, ctxSupplier));
+                    } else {
+                        handler = packet.handler();
+                    }
 
-        //(server -> client)
-        CHANNEL.registerMessage(PktSyncKnowledge.class, PktSyncKnowledge.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktSyncData.class, PktSyncData.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktParticleEvent.class, PktParticleEvent.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktCraftingTableFix.class, PktCraftingTableFix.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktProgressionUpdate.class, PktProgressionUpdate.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktPlayEffect.class, PktPlayEffect.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktRequestSeed.class, PktRequestSeed.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktUnlockPerk.class, PktUnlockPerk.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktAttunementAltarState.class, PktAttunementAltarState.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktRotateTelescope.class, PktRotateTelescope.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktLightningEffect.class, PktLightningEffect.class, id++, Side.CLIENT);
-        //CHANNEL.registerMessage(PktSyncMinetweakerChanges.class, PktSyncMinetweakerChanges.class, id++, Side.CLIENT);
-        //CHANNEL.registerMessage(PktSyncMinetweakerChanges.Compound.class, PktSyncMinetweakerChanges.Compound.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktDualParticleEvent.class, PktDualParticleEvent.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktOreScan.class, PktOreScan.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktSyncCharge.class, PktSyncCharge.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktSyncStepAssist.class, PktSyncStepAssist.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktUpdateGateways.class, PktUpdateGateways.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktBurnParchment.class, PktBurnParchment.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktParticleDataEvent.class, PktParticleDataEvent.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktShootEntity.class, PktShootEntity.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktLiquidInteractionBurst.class, PktLiquidInteractionBurst.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktPlayLiquidSpring.class, PktPlayLiquidSpring.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktFinalizeLogin.class, PktFinalizeLogin.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktRequestSextantTarget.class, PktRequestSextantTarget.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktSyncPerkActivity.class, PktSyncPerkActivity.class, id++, Side.CLIENT);
-        CHANNEL.registerMessage(PktRequestPerkSealAction.class, PktRequestPerkSealAction.class, id++, Side.CLIENT);
-
-        //(client -> server)
-        CHANNEL.registerMessage(PktDiscoverConstellation.class, PktDiscoverConstellation.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktRequestSeed.class, PktRequestSeed.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktUnlockPerk.class, PktUnlockPerk.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktAttunementAltarState.class, PktAttunementAltarState.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktAttuneConstellation.class, PktAttuneConstellation.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktRotateTelescope.class, PktRotateTelescope.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktRequestTeleport.class, PktRequestTeleport.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktBurnParchment.class, PktBurnParchment.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktEngraveGlass.class, PktEngraveGlass.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktElytraCapeState.class, PktElytraCapeState.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktClearBlockStorageStack.class, PktClearBlockStorageStack.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktSetSextantTarget.class, PktSetSextantTarget.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktRequestSextantTarget.class, PktRequestSextantTarget.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktRequestPerkSealAction.class, PktRequestPerkSealAction.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktRemoveKnowledgeFragment.class, PktRemoveKnowledgeFragment.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktPerkGemModification.class, PktPerkGemModification.class, id++, Side.SERVER);
-        CHANNEL.registerMessage(PktPlayerStatus.class, PktPlayerStatus.class, id++, Side.SERVER);
-
-        /*Method registerPacket = ReflectionHelper.findMethod(
-                EnumConnectionState.class,
-                EnumConnectionState.PLAY,
-                new String[] { "registerPacket", "func_179245_a", "a" },
-                EnumPacketDirection.class, Class.class);
-        registerPacket.setAccessible(true);
-
-        try {
-            registerPacket.invoke(EnumConnectionState.HANDSHAKING, EnumPacketDirection.CLIENTBOUND, PktWorldHandlerSyncEarly.class);
-        } catch (Exception e) {}*/
+                    handler.accept(t, contextSupplier);
+                })
+                .buildLoginPacketList((local) -> Collections.singletonList(Pair.of(packet.getClass().getName(), makeLoginPacket.get())))
+                .add();
     }
 
-    public static NetworkRegistry.TargetPoint pointFromPos(World world, Vec3i pos, double range) {
-        return new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), range);
+    private static <T extends ASPacket<T>> void registerMessage(Supplier<T> pktSupplier) {
+        T packet = pktSupplier.get();
+        CHANNEL.messageBuilder((Class<T>) packet.getClass(), packetIndex++)
+                .encoder(packet.encoder())
+                .decoder(packet.decoder())
+                .consumer(packet.handler())
+                .add();
+    }
+
+    public static PacketDistributor.TargetPoint pointFromPos(IWorld world, Vec3i pos, double range) {
+        return new PacketDistributor.TargetPoint(pos.getX(), pos.getY(), pos.getZ(), range, world.getDimension().getType());
     }
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,11 +8,19 @@
 
 package hellfirepvp.astralsorcery.common.tile.base;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTTagCompound;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
+import net.minecraft.block.BlockState;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.network.play.server.SPacketUpdateTileEntity;
+import net.minecraft.network.play.server.SUpdateTileEntityPacket;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.Random;
 
@@ -23,72 +31,90 @@ import java.util.Random;
  * Created by HellFirePvP
  * Date: 11.05.2016 / 18:17
  */
-public abstract class TileEntitySynchronized extends TileEntity {
+public abstract class TileEntitySynchronized extends TileEntity implements ILocatable {
 
     protected static final Random rand = new Random();
+    protected static final AxisAlignedBB BOX = new AxisAlignedBB(0, 0, 0, 1, 1, 1);
 
-    public final void readFromNBT(NBTTagCompound compound) {
-        super.readFromNBT(compound);
+    protected TileEntitySynchronized(TileEntityType<?> tileEntityTypeIn) {
+        super(tileEntityTypeIn);
+    }
+
+    @Override
+    public BlockPos getLocationPos() {
+        return this.getPos();
+    }
+
+    @Override
+    public final void read(CompoundNBT compound) {
+        super.read(compound);
         readCustomNBT(compound);
         readSaveNBT(compound);
     }
 
     //Both Network & Chunk-saving
-    public void readCustomNBT(NBTTagCompound compound) {}
+    public void readCustomNBT(CompoundNBT compound) {}
 
     //Only Network-read
-    public void readNetNBT(NBTTagCompound compound) {}
+    public void readNetNBT(CompoundNBT compound) {}
 
     //Only Chunk-read
-    public void readSaveNBT(NBTTagCompound compound) {}
+    public void readSaveNBT(CompoundNBT compound) {}
 
-    public final NBTTagCompound writeToNBT(NBTTagCompound compound) {
-        compound = super.writeToNBT(compound);
+    @Override
+    public final CompoundNBT write(CompoundNBT compound) {
+        compound = super.write(compound);
         writeCustomNBT(compound);
         writeSaveNBT(compound);
         return compound;
     }
 
     //Both Network & Chunk-saving
-    public void writeCustomNBT(NBTTagCompound compound) {}
+    public void writeCustomNBT(CompoundNBT compound) {}
 
     //Only Network-write
-    public void writeNetNBT(NBTTagCompound compound) {}
+    public void writeNetNBT(CompoundNBT compound) {}
 
     //Only Chunk-write
-    public void writeSaveNBT(NBTTagCompound compound) {}
+    public void writeSaveNBT(CompoundNBT compound) {}
 
     @Override
-    public final SPacketUpdateTileEntity getUpdatePacket() {
-        NBTTagCompound compound = new NBTTagCompound();
-        super.writeToNBT(compound);
+    public final SUpdateTileEntityPacket getUpdatePacket() {
+        CompoundNBT compound = new CompoundNBT();
+        super.write(compound);
         writeCustomNBT(compound);
         writeNetNBT(compound);
-        return new SPacketUpdateTileEntity(getPos(), 255, compound);
+        return new SUpdateTileEntityPacket(getPos(), 255, compound);
     }
 
     @Override
-    public NBTTagCompound getUpdateTag() {
-        NBTTagCompound compound = new NBTTagCompound();
-        super.writeToNBT(compound);
+    public CompoundNBT getUpdateTag() {
+        CompoundNBT compound = new CompoundNBT();
+        super.write(compound);
         writeCustomNBT(compound);
         return compound;
     }
 
-    public IBlockState getBlockState() {
-        return this.world.getBlockState(this.pos);
-    }
-
-    public final void onDataPacket(NetworkManager manager, SPacketUpdateTileEntity packet) {
+    public final void onDataPacket(NetworkManager manager, SUpdateTileEntityPacket packet) {
         super.onDataPacket(manager, packet);
         readCustomNBT(packet.getNbtCompound());
         readNetNBT(packet.getNbtCompound());
+        this.onDataReceived();
     }
 
+    @OnlyIn(Dist.CLIENT)
+    protected void onDataReceived() {}
+
     public void markForUpdate() {
-        IBlockState thisState = world.getBlockState(pos);
-        world.notifyBlockUpdate(pos, thisState, thisState, 3);
+        if (getWorld() != null) {
+            BlockState thisState = this.getBlockState();
+            getWorld().notifyBlockUpdate(getPos(), thisState, thisState, 3);
+        }
         markDirty();
+    }
+
+    public void dropItemOnTop(ItemStack stack) {
+        ItemUtils.dropItem(getWorld(), getPos().getX() + 0.5, getPos().getY() + 1.5, getPos().getZ() + 0.5, stack);
     }
 
 }

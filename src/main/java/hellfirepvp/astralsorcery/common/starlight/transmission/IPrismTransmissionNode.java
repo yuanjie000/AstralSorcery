@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,17 +8,19 @@
 
 package hellfirepvp.astralsorcery.common.starlight.transmission;
 
-import hellfirepvp.astralsorcery.common.data.world.WorldCacheManager;
-import hellfirepvp.astralsorcery.common.item.crystal.CrystalProperties;
+import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
+import hellfirepvp.astralsorcery.common.lib.DataAS;
 import hellfirepvp.astralsorcery.common.starlight.WorldNetworkHandler;
-import hellfirepvp.astralsorcery.common.starlight.transmission.registry.TransmissionClassRegistry;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
-import net.minecraft.nbt.NBTTagCompound;
+import hellfirepvp.astralsorcery.common.starlight.transmission.registry.TransmissionProvider;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Random;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -29,14 +31,22 @@ import java.util.List;
  */
 public interface IPrismTransmissionNode extends ILocatable {
 
+    public static final CrystalAttributes EMPTY = CrystalAttributes.Builder.newBuilder(false).build();
+    public static final Random rand = new Random();
+
     //Get the exact position of this Node
     public BlockPos getLocationPos();
 
     //Get his node's transmission properties to calculate transmission loss and so on
     //Arbitrarily this returns a max. sized Property by default...
-    @Nullable
-    default public CrystalProperties getTransmissionProperties() {
-        return CrystalProperties.getMaxCelestialProperties();
+    default public CrystalAttributes getTransmissionProperties() {
+        return EMPTY;
+    }
+
+    //Used to push update from the tileentity owning this node (potentially)
+    //to this network node. Return true to indicate a successful data transfer
+    default public <T extends TileEntity> boolean updateFromTileEntity(T tile) {
+        return true;
     }
 
     //Get this node's additional transmission loss multiplier.
@@ -96,22 +106,22 @@ public interface IPrismTransmissionNode extends ILocatable {
 
     //Called once after reading the node from NBT
     //Use this for post-load/place logic.
-    default public void postLoad(World world) {}
+    default public void postLoad(IWorld world) {}
 
     //Flags the world's LightNetworkBuffer as dirty,
     //which causes it to be recalculated and saved
     //whenever the world saves the next time.
     default public void markDirty(World world) {
-        WorldCacheManager.getOrLoadData(world, WorldCacheManager.SaveKey.LIGHT_NETWORK).markDirty();
+        DataAS.DOMAIN_AS.getData(world, DataAS.KEY_STARLIGHT_NETWORK).markDirty(this.getLocationPos());
     }
 
     //Get the provider of the node. Used to recreate the class at NBT read.
-    public TransmissionClassRegistry.TransmissionProvider getProvider();
+    public TransmissionProvider getProvider();
 
     //Should recreate the exact state from when it was written.
-    public void readFromNBT(NBTTagCompound compound);
+    public void readFromNBT(CompoundNBT compound);
 
     //Should save all data that's needed to recreate the state accordingly.
-    public void writeToNBT(NBTTagCompound compound);
+    public void writeToNBT(CompoundNBT compound);
 
 }

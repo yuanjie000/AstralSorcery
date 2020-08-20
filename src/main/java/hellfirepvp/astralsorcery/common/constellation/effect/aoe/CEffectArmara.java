@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,39 +8,38 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHandler;
-import hellfirepvp.astralsorcery.client.effect.controller.orbital.OrbitalEffectController;
-import hellfirepvp.astralsorcery.client.effect.controller.orbital.OrbitalPropertiesRitualArmara;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.effect.source.orbital.FXOrbitalArmara;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.effect.CEffectEntityCollect;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
-import hellfirepvp.astralsorcery.common.entities.EntityTechnicalAmbient;
-import hellfirepvp.astralsorcery.common.event.listener.EventHandlerEntity;
-import hellfirepvp.astralsorcery.common.item.crystal.base.ItemTunedCrystalBase;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
-import hellfirepvp.astralsorcery.common.registry.RegistryPotions;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.ConstellationEffectEntityCollect;
+import hellfirepvp.astralsorcery.common.data.config.registry.TechnicalEntityRegistry;
+import hellfirepvp.astralsorcery.common.event.helper.EventHelperSpawnDeny;
+import hellfirepvp.astralsorcery.common.item.crystal.ItemAttunedCrystalBase;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
+import hellfirepvp.astralsorcery.common.lib.EffectsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
-import hellfirepvp.astralsorcery.common.util.data.TickTokenizedMap;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import hellfirepvp.astralsorcery.common.util.block.WorldBlockPos;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import hellfirepvp.astralsorcery.common.util.data.WorldBlockPos;
+import hellfirepvp.astralsorcery.common.util.tick.TickTokenMap;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.IProjectile;
-import net.minecraft.entity.monster.EntityMob;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.MobEffects;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.potion.PotionEffect;
-import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ForgeConfigSpec;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
@@ -49,54 +48,54 @@ import java.util.List;
  * The complete source code for this mod can be found on github.
  * Class: CEffectArmara
  * Created by HellFirePvP
- * Date: 03.01.2017 / 14:49
+ * Date: 28.07.2019 / 09:07
  */
-public class CEffectArmara extends CEffectEntityCollect<EntityMob> {
+public class CEffectArmara extends ConstellationEffectEntityCollect<LivingEntity> {
 
-    public static boolean enabled = true;
-    public static double potencyMultiplier = 1;
-    public static int protectionRange = 32;
+    public static ArmaraConfig CONFIG = new ArmaraConfig();
 
     private int rememberedTimeout = 0;
-    public static int potionAmplifier = 0;
 
-    public CEffectArmara(@Nullable ILocatable origin) {
-        super(origin, Constellations.armara, "armara", protectionRange, EntityMob.class, (entity) -> !entity.isDead && !(entity instanceof EntityTechnicalAmbient));
+    public CEffectArmara(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.armara, LivingEntity.class, (e) -> e.isAlive() && TechnicalEntityRegistry.INSTANCE.canAffect(e));
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float percEffectVisibility, boolean extendedEffects) {
-        if(pedestal.getTicksExisted() % 20 == 0) {
-            OrbitalPropertiesRitualArmara luc = new OrbitalPropertiesRitualArmara();
-            OrbitalEffectController ctrl = EffectHandler.getInstance().orbital(luc, luc, luc);
-            ctrl.setOffset(new Vector3(pos).add(0.5, 0.5, 0.5));
-            ctrl.setOrbitRadius(0.8 + rand.nextFloat() * 0.7);
-            ctrl.setOrbitAxis(Vector3.RotAxis.Y_AXIS);
-            ctrl.setTicksPerRotation(20 + rand.nextInt(20));
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        if (pedestal.getTicksExisted() % 20 == 0) {
+            EffectHelper.spawnSource(new FXOrbitalArmara(new Vector3(pos).add(0.5, 0.5, 0.5))
+                    .setOrbitRadius(0.8 + rand.nextFloat() * 0.7)
+                    .setOrbitAxis(Vector3.RotAxis.Y_AXIS)
+                    .setTicksPerRotation(20 + rand.nextInt(20)));
         }
-        ItemStack socket = pedestal.getCatalystCache();
-        if(!socket.isEmpty() && socket.getItem() instanceof ItemTunedCrystalBase) {
-            IMinorConstellation trait = ItemTunedCrystalBase.getTrait(socket);
-            ConstellationEffectProperties prop = provideProperties(0);
+
+        ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
+
+        ItemStack socket = pedestal.getCurrentCrystal();
+        if (!socket.isEmpty() && socket.getItem() instanceof ItemAttunedCrystalBase) {
+            IMinorConstellation trait = ((ItemAttunedCrystalBase) socket.getItem()).getTraitConstellation(socket);
             prop.modify(trait);
-            if(prop.isCorrupted()) {
+            if (prop.isCorrupted()) {
                 return;
             }
         }
-        List<Entity> projectiles = world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(0, 0, 0, 1, 1, 1).offset(pos).grow(protectionRange));
-        if(!projectiles.isEmpty()) {
+
+        PlayerEntity owner = pedestal.getOwner();
+        List<Entity> projectiles = world.getEntitiesWithinAABB(Entity.class, BOX.offset(pos).grow(prop.getSize()));
+        if (!projectiles.isEmpty()) {
             for (Entity e : projectiles) {
-                if(!e.isDead && !(e instanceof EntityTechnicalAmbient)) {
-                    if(e instanceof IProjectile) {
-                        double xRatio = (pos.getX() + 0.5) - e.posX;
-                        double zRatio = (pos.getZ() + 0.5) - e.posZ;
+                if (e.isAlive() && TechnicalEntityRegistry.INSTANCE.canAffect(e)) {
+                    if (e instanceof IProjectile) {
+                        double xRatio = (pos.getX() + 0.5) - e.getPosX();
+                        double zRatio = (pos.getZ() + 0.5) - e.getPosZ();
                         float f = MathHelper.sqrt(xRatio * xRatio + zRatio * zRatio);
-                        e.motionX /= 2.0D;
-                        e.motionZ /= 2.0D;
-                        e.motionX -= xRatio / f * 0.4;
-                        e.motionZ -= zRatio / f * 0.4;
-                        ((IProjectile) e).shoot(e.motionX, e.motionY, e.motionZ, 1F, 0F);
+                        Vector3 motion = new Vector3(e.getMotion());
+                        motion.multiply(new Vector3(0.5, 1, 0.5));
+                        motion.subtract(xRatio / f * 0.4, 0, zRatio / f * 0.4);
+                        ((IProjectile) e).shoot(motion.getX(), motion.getY(), motion.getZ(), 1.5F, 0F);
+                    } else if (e instanceof MobEntity) {
+                        ((LivingEntity) e).knockBack(owner == null ? e : owner, 0.4F, (pos.getX() + 0.5) - e.getPosX(), (pos.getZ() + 0.5) - e.getPosZ());
                     }
                 }
             }
@@ -104,102 +103,108 @@ public class CEffectArmara extends CEffectEntityCollect<EntityMob> {
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(!enabled) return false;
-        percStrength *= potencyMultiplier;
-        if(percStrength < 1) {
-            if(world.rand.nextFloat() > percStrength) return false;
-        }
-
-        int toAdd = 1 + rand.nextInt(3);
-        WorldBlockPos at = new WorldBlockPos(world, pos);
-        TickTokenizedMap.SimpleTickToken<Double> token = EventHandlerEntity.spawnDenyRegions.get(at);
-        if(token != null) {
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        int toAdd = 2 + rand.nextInt(5);
+        WorldBlockPos at = WorldBlockPos.wrapServer(world, pos);
+        TickTokenMap.SimpleTickToken<Double> token = EventHelperSpawnDeny.spawnDenyRegions.get(at);
+        if (token != null) {
             int next = token.getRemainingTimeout() + toAdd;
-            if(next > 400) next = 400;
+            if (next > 400) next = 400;
             token.setTimeout(next);
             rememberedTimeout = next;
         } else {
             rememberedTimeout = Math.min(400, rememberedTimeout + toAdd);
-            EventHandlerEntity.spawnDenyRegions.put(at, new TickTokenizedMap.SimpleTickToken<>(modified.getSize(), rememberedTimeout));
+            EventHelperSpawnDeny.spawnDenyRegions.put(at, new TickTokenMap.SimpleTickToken<>(properties.getSize(), rememberedTimeout));
         }
 
-        EntityPlayer owner = getOwningPlayerInWorld(world, pos);
+        PlayerEntity owner = this.getOwningPlayerInWorld(world, pos);
 
-        boolean foundEntity = false;
-        if(!modified.isCorrupted()) {
-            List<Entity> projectiles = world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(0, 0, 0, 1, 1, 1).offset(pos).grow(modified.getSize()));
-            if(!projectiles.isEmpty()) {
+        if (!properties.isCorrupted()) {
+            List<Entity> projectiles = world.getEntitiesWithinAABB(Entity.class, BOX.offset(pos).grow(properties.getSize()));
+            if (!projectiles.isEmpty()) {
                 for (Entity e : projectiles) {
-                    if(!e.isDead && !(e instanceof EntityTechnicalAmbient)) {
-                        if(e instanceof IProjectile) {
-                            double xRatio = (pos.getX() + 0.5) - e.posX;
-                            double zRatio = (pos.getZ() + 0.5) - e.posZ;
+                    if (e.isAlive() && TechnicalEntityRegistry.INSTANCE.canAffect(e)) {
+                        if (e instanceof IProjectile) {
+                            double xRatio = (pos.getX() + 0.5) - e.getPosX();
+                            double zRatio = (pos.getZ() + 0.5) - e.getPosZ();
                             float f = MathHelper.sqrt(xRatio * xRatio + zRatio * zRatio);
-                            e.motionX /= 2.0D;
-                            e.motionZ /= 2.0D;
-                            e.motionX -= xRatio / f * 0.4;
-                            e.motionZ -= zRatio / f * 0.4;
-                            ((IProjectile) e).shoot(e.motionX, e.motionY, e.motionZ, 1F, 0F);
-                        } else if(e instanceof EntityMob) {
-                            ((EntityLivingBase) e).knockBack(owner == null ? e : owner, 0.4F, (pos.getX() + 0.5) - e.posX, (pos.getZ() + 0.5) - e.posZ);
+                            Vector3 motion = new Vector3(e.getMotion());
+                            motion.multiply(new Vector3(0.5, 1, 0.5));
+                            motion.subtract(xRatio / f * 0.4, 0, zRatio / f * 0.4);
+                            ((IProjectile) e).shoot(motion.getX(), motion.getY(), motion.getZ(), 1.5F, 0F);
+                        } else if (e instanceof MobEntity) {
+                            ((LivingEntity) e).knockBack(owner == null ? e : owner, 0.4F, (pos.getX() + 0.5) - e.getPosX(), (pos.getZ() + 0.5) - e.getPosZ());
                         }
-                        foundEntity = true;
                     }
                 }
             }
         }
-        List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(0, 0, 0, 1, 1, 1).offset(pos).grow(modified.getSize()));
-        for (EntityLivingBase entity : entities) {
-            if(!entity.isDead && (entity instanceof EntityMob || entity instanceof EntityPlayer)) {
-                if(modified.isCorrupted()) {
-                    if(entity instanceof EntityPlayer) continue;
 
-                    entity.addPotionEffect(new PotionEffect(MobEffects.SPEED, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new PotionEffect(MobEffects.REGENERATION, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new PotionEffect(MobEffects.RESISTANCE, 100, potionAmplifier + 2));
-                    entity.addPotionEffect(new PotionEffect(MobEffects.STRENGTH, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new PotionEffect(MobEffects.WATER_BREATHING, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new PotionEffect(MobEffects.HASTE, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new PotionEffect(RegistryPotions.potionDropModifier, 40000, 6));
+        int potionAmplifier = CONFIG.potionAmplifier.get();
+        List<LivingEntity> entities = this.collectEntities(world, pos, properties);
+        for (LivingEntity entity : entities) {
+            if (entity.isAlive() && (entity instanceof MobEntity || entity instanceof PlayerEntity)) {
+                if (properties.isCorrupted()) {
+                    if (entity instanceof PlayerEntity) {
+                        continue;
+                    }
+
+                    entity.addPotionEffect(new EffectInstance(Effects.SPEED, 100, potionAmplifier + 4));
+                    entity.addPotionEffect(new EffectInstance(Effects.REGENERATION, 100, potionAmplifier + 4));
+                    entity.addPotionEffect(new EffectInstance(Effects.RESISTANCE, 100, potionAmplifier + 2));
+                    entity.addPotionEffect(new EffectInstance(Effects.STRENGTH, 100, potionAmplifier + 4));
+                    entity.addPotionEffect(new EffectInstance(Effects.WATER_BREATHING, 100, potionAmplifier + 4));
+                    entity.addPotionEffect(new EffectInstance(Effects.HASTE, 100, potionAmplifier + 4));
+                    entity.addPotionEffect(new EffectInstance(EffectsAS.EFFECT_DROP_MODIFIER, 100, 6));
                 } else {
-                    entity.addPotionEffect(new PotionEffect(MobEffects.RESISTANCE, 30, potionAmplifier));
-                    if (entity instanceof EntityPlayer) {
-                        entity.addPotionEffect(new PotionEffect(MobEffects.ABSORPTION, 30, potionAmplifier));
+                    entity.addPotionEffect(new EffectInstance(Effects.RESISTANCE, 30, Math.min(potionAmplifier, 3)));
+                    if (entity instanceof PlayerEntity) {
+                        entity.addPotionEffect(new EffectInstance(Effects.ABSORPTION, 30, potionAmplifier));
                     }
                 }
-                foundEntity = true;
             }
         }
 
-        return foundEntity;
+        return true;
     }
 
     @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(CEffectArmara.protectionRange);
+    public Config getConfig() {
+        return CONFIG;
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound cmp) {
+    public void readFromNBT(CompoundNBT cmp) {
         super.readFromNBT(cmp);
 
-        this.rememberedTimeout = cmp.getInteger("rememberedTimeout");
+        this.rememberedTimeout = cmp.getInt("rememberedTimeout");
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound cmp) {
+    public void writeToNBT(CompoundNBT cmp) {
         super.writeToNBT(cmp);
 
-        cmp.setInteger("rememberedTimeout", rememberedTimeout);
+        cmp.putInt("rememberedTimeout", this.rememberedTimeout);
     }
 
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        protectionRange = cfg.getInt(getKey() + "Range", getConfigurationSection(), 32, 1, 128, "Defines the radius (in blocks) in which the ritual will stop mob spawning and projectiles.");
-        enabled = cfg.getBoolean(getKey() + "Enabled", getConfigurationSection(), true, "Set to false to disable this ConstellationEffect.");
-        potionAmplifier = cfg.getInt(getKey() + "ResistanceAmplifier", getConfigurationSection(), 0, 0, Short.MAX_VALUE, "Set the amplifier for the resistance potion effect.");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), 1.0F, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
-    }
+    private static class ArmaraConfig extends Config {
 
+        private final int defaultPotionAmplifier = 1;
+
+        public ForgeConfigSpec.IntValue potionAmplifier;
+
+        public ArmaraConfig() {
+            super("armara", 24, 12);
+        }
+
+        @Override
+        public void createEntries(ForgeConfigSpec.Builder cfgBuilder) {
+            super.createEntries(cfgBuilder);
+
+            this.potionAmplifier = cfgBuilder
+                    .comment("Set the amplifier for the potion effects this ritual provides.")
+                    .translation(translationKey("potionAmplifier"))
+                    .defineInRange("potionAmplifier", this.defaultPotionAmplifier, 0, 10);
+        }
+    }
 }

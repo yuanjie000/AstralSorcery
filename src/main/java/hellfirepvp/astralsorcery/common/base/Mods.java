@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,15 +8,15 @@
 
 package hellfirepvp.astralsorcery.common.base;
 
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import hellfirepvp.astralsorcery.AstralSorcery;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.event.FMLInterModComms;
+import net.minecraftforge.fml.InterModComms;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -27,80 +27,103 @@ import javax.annotation.Nullable;
  */
 public enum Mods {
 
-    TICONSTRUCT("tconstruct"),
-    CRAFTTWEAKER("crafttweaker"),
-    JEI("jei"),
-    THAUMCRAFT("thaumcraft"),
-    BLOODMAGIC("bloodmagic"),
-    BOTANIA("botania"),
-    CHISEL("chisel"),
-    GALACTICRAFT_CORE("galacticraftcore"),
-    GEOLOSYS("geolosys"),
-    ORESTAGES("orestages"),
-    GAMESTAGES("gamestages"),
-    DRACONICEVOLUTION("draconicevolution"),
-    UNIVERSALREMOTE("universalremote");
+    MINECRAFT("minecraft") {
+        @Override
+        public boolean isPresent() {
+            return true;
+        }
+    },
+    ASTRAL_SORCERY(AstralSorcery.MODID) {
+        @Override
+        public boolean isPresent() {
+            return true;
+        }
+    },
+    DRACONIC_EVOLUTION("draconicevolution"),
+    CURIOS("curios"),
+    BOTANIA("botania");
 
-    public final String modid;
+    private final String modid;
     private final boolean loaded;
 
-    private static Class<?> gcPlayerClass, urPlayerClass;
+    //private static Class<?> gcPlayerClass, urPlayerClass;
 
     private Mods(String modName) {
         this.modid = modName;
-        this.loaded = Loader.isModLoaded(this.modid);
+        this.loaded = ModList.get().isLoaded(this.modid);
+    }
+
+    public String getModId() {
+        return this.modid;
     }
 
     public boolean isPresent() {
         return loaded;
     }
 
-    public void sendIMC(String message, NBTTagCompound value) {
-        FMLInterModComms.sendMessage(this.modid, message, value);
+    public void executeIfPresent(Supplier<Runnable> execSupplier) {
+        if (this.isPresent()) {
+            execSupplier.get().run();
+        }
     }
 
-    public void sendIMC(String message, String value) {
-        FMLInterModComms.sendMessage(this.modid, message, value);
+    @Nullable
+    public <T> T getIfPresent(Supplier<Supplier<T>> supplierSupplier) {
+        if (this.isPresent()) {
+            return supplierSupplier.get().get();
+        }
+        return null;
     }
 
-    public void sendIMC(String message, Block value) {
-        sendIMC(message, new ItemStack(value));
+    public boolean owns(IForgeRegistryEntry<?> entry) {
+        return this.isPresent() &&
+                entry.getRegistryName() != null &&
+                entry.getRegistryName().getNamespace().equals(this.modid);
     }
 
-    public void sendIMC(String message, Item value) {
-        sendIMC(message, new ItemStack(value));
+    @Nonnull
+    public ResourceLocation key(String path) {
+        return new ResourceLocation(this.getModId(), path);
     }
 
-    public void sendIMC(String message, ItemStack value) {
-        FMLInterModComms.sendMessage(this.modid, message, value);
+    public void sendIMC(String method, Supplier<?> thing) {
+        if (this.isPresent()) {
+            InterModComms.sendTo(AstralSorcery.MODID, this.getModId(), method, thing);
+        }
     }
 
-    public void sendIMC(String message, ResourceLocation value) {
-        FMLInterModComms.sendMessage(this.modid, message, value);
+    @Nullable
+    public static Mods byModId(String modId) {
+        for (Mods mod : values()) {
+            if (mod.getModId().equals(modId)) {
+                return mod;
+            }
+        }
+        return null;
     }
 
     @Nullable
     public Class<?> getExtendedPlayerClass() {
-        if(!isPresent()) return null;
+        if (!isPresent()) return null;
 
-        switch (this) {
-            case GALACTICRAFT_CORE:
-                if(gcPlayerClass == null) {
-                    try {
-                        gcPlayerClass = Class.forName("micdoodle8.mods.galacticraft.core.entities.player.GCEntityPlayerMP");
-                    } catch (Exception ignored) {}
-                }
-                return gcPlayerClass;
-            case UNIVERSALREMOTE:
-                if(urPlayerClass == null) {
-                    try {
-                        urPlayerClass = Class.forName("clayborn.universalremote.hooks.entity.HookedEntityPlayerMP");
-                    } catch (Exception ignored) {}
-                }
-                return urPlayerClass;
-            default:
-                break;
-        }
+        //switch (this) {
+        //    case GALACTICRAFT_CORE:
+        //        if (gcPlayerClass == null) {
+        //            try {
+        //                gcPlayerClass = Class.forName("micdoodle8.mods.galacticraft.core.entities.player.GCServerPlayerEntity");
+        //            } catch (Exception ignored) {}
+        //        }
+        //        return gcPlayerClass;
+        //    case UNIVERSALREMOTE:
+        //        if (urPlayerClass == null) {
+        //            try {
+        //                urPlayerClass = Class.forName("clayborn.universalremote.hooks.entity.HookedServerPlayerEntity");
+        //            } catch (Exception ignored) {}
+        //        }
+        //        return urPlayerClass;
+        //    default:
+        //        break;
+        //}
         return null;
     }
 

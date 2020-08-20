@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -11,8 +11,10 @@ package hellfirepvp.astralsorcery.common.starlight.transmission.registry;
 import hellfirepvp.astralsorcery.common.event.StarlightNetworkEvent;
 import hellfirepvp.astralsorcery.common.starlight.IIndependentStarlightSource;
 import hellfirepvp.astralsorcery.common.starlight.transmission.base.crystal.IndependentCrystalSource;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +30,7 @@ public class SourceClassRegistry {
 
     public static final SourceClassRegistry eventInstance = new SourceClassRegistry();
 
-    private static Map<String, SourceProvider> providerMap = new HashMap<>();
+    private static Map<ResourceLocation, SourceProvider> providerMap = new HashMap<>();
 
     private SourceClassRegistry() {}
 
@@ -37,12 +39,14 @@ public class SourceClassRegistry {
     }
 
     @Nullable
-    public static SourceProvider getProvider(String identifier) {
+    public static SourceProvider getProvider(ResourceLocation identifier) {
         return providerMap.get(identifier);
     }
 
     public static void register(SourceProvider provider) {
-        if(providerMap.containsKey(provider.getIdentifier())) throw new RuntimeException("Already registered identifier SourceProvider: " + provider.getIdentifier());
+        if (providerMap.containsKey(provider.getIdentifier())) {
+            throw new IllegalArgumentException("Already registered identifier SourceProvider: " + provider.getIdentifier());
+        }
         providerMap.put(provider.getIdentifier(), provider);
     }
 
@@ -56,7 +60,8 @@ public class SourceClassRegistry {
 
         public IIndependentStarlightSource provideEmptySource();
 
-        public String getIdentifier();
+        @Nonnull
+        public ResourceLocation getIdentifier();
 
     }
 

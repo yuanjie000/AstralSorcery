@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -10,414 +10,430 @@ package hellfirepvp.astralsorcery.common.item.wand;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
-import hellfirepvp.astralsorcery.client.event.ClientRenderEventHandler;
+import com.google.common.collect.Maps;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
+import hellfirepvp.astralsorcery.client.resource.BlockAtlasTexture;
 import hellfirepvp.astralsorcery.client.util.Blending;
+import hellfirepvp.astralsorcery.client.util.RenderingOverlayUtils;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
-import hellfirepvp.astralsorcery.client.util.TextureHelper;
-import hellfirepvp.astralsorcery.common.base.Mods;
-import hellfirepvp.astralsorcery.common.data.config.Config;
-import hellfirepvp.astralsorcery.common.integrations.ModIntegrationBotania;
-import hellfirepvp.astralsorcery.common.item.ItemBlockStorage;
-import hellfirepvp.astralsorcery.common.item.base.render.ItemAlignmentChargeConsumer;
-import hellfirepvp.astralsorcery.common.item.base.render.ItemHandRender;
-import hellfirepvp.astralsorcery.common.item.base.render.ItemHudRender;
+import hellfirepvp.astralsorcery.client.util.RenderingVectorUtils;
+import hellfirepvp.astralsorcery.common.CommonProxy;
+import hellfirepvp.astralsorcery.common.auxiliary.charge.AlignmentChargeHandler;
+import hellfirepvp.astralsorcery.common.item.base.AlignmentChargeConsumer;
+import hellfirepvp.astralsorcery.common.item.base.ItemBlockStorage;
+import hellfirepvp.astralsorcery.common.item.base.render.ItemHeldRender;
+import hellfirepvp.astralsorcery.common.item.base.render.ItemOverlayRender;
 import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktParticleEvent;
-import hellfirepvp.astralsorcery.common.registry.RegistryItems;
-import hellfirepvp.astralsorcery.common.util.ItemUtils;
+import hellfirepvp.astralsorcery.common.network.play.server.PktPlayEffect;
+import hellfirepvp.astralsorcery.common.util.MapStream;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import hellfirepvp.astralsorcery.common.util.data.Tuple;
+import hellfirepvp.astralsorcery.common.util.RaytraceAssist;
+import hellfirepvp.astralsorcery.common.util.block.BlockGeometry;
+import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
+import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
+import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
+import hellfirepvp.observerlib.client.util.BufferDecoratorBuilder;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.*;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.item.ItemUseContext;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.items.wrapper.InvWrapper;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.LogicalSide;
 import org.lwjgl.opengl.GL11;
 
-import java.awt.*;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
-import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: ItemArchitectWand
  * Created by HellFirePvP
- * Date: 06.02.2017 / 22:49
+ * Date: 28.02.2020 / 21:28
  */
-public class ItemArchitectWand extends ItemBlockStorage implements ItemHandRender, ItemHudRender, ItemAlignmentChargeConsumer {
+public class ItemArchitectWand extends Item implements ItemBlockStorage, ItemOverlayRender, ItemHeldRender, AlignmentChargeConsumer {
 
-    private static final double architectRange = 60.0D;
+    private static final float COST_PER_PLACEMENT = 8F;
 
     public ItemArchitectWand() {
-        setMaxDamage(0);
-        setMaxStackSize(1);
-        setCreativeTab(RegistryItems.creativeTabAstralSorcery);
+        super(new Properties()
+                .maxStackSize(1)
+                .group(CommonProxy.ITEM_GROUP_AS));
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public boolean shouldReveal(ChargeType ct, ItemStack stack) {
-        return ct == ChargeType.TEMP;
+    @OnlyIn(Dist.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
+        tooltip.add(getPlaceMode(stack).getDisplay().setStyle(new Style().setColor(TextFormatting.GOLD)));
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void onRenderInHandHUD(ItemStack lastCacheInstance, float fadeAlpha, float pTicks) {
-        Collection<ItemStack> stored = getMappedStoredStates(lastCacheInstance).values();
-        if(stored.isEmpty()) return;
+    public float getAlignmentChargeCost(PlayerEntity player, ItemStack stack) {
+        PlaceMode mode = getPlaceMode(stack);
+        return getPlayerPlaceableStates(player, stack).size() * COST_PER_PLACEMENT * mode.getPlaceCostMulitplier();
+    }
 
-        Map<ItemStack, Integer> amountMap = new LinkedHashMap<>();
-        for (ItemStack stack : stored) {
-            int found = 0;
-            if(Mods.BOTANIA.isPresent()) {
-                found = ModIntegrationBotania.getItemCount(Minecraft.getMinecraft().player, lastCacheInstance, ItemUtils.createBlockState(stack));
-            } else {
-                Collection<ItemStack> stacks = ItemUtils.scanInventoryForMatching(new InvWrapper(Minecraft.getMinecraft().player.inventory), stack, false);
-                for (ItemStack foundStack : stacks) {
-                    found += foundStack.getCount();
-                }
-            }
-            amountMap.put(stack, found);
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public boolean renderInHand(ItemStack stack, MatrixStack renderStack, float pTicks) {
+        PlayerEntity player = Minecraft.getInstance().player;
+        Map<BlockPos, BlockState> placeStates = getPlayerPlaceableStates(player, stack);
+        if (placeStates.isEmpty()) {
+            return true;
         }
 
-        int heightNormal  =  26;
-        int heightSplit = 13;
-        int width   =  26;
-        int offsetX =  30;
-        int offsetY =  15;
+        BlockAtlasTexture.getInstance().bindTexture();
 
-        GlStateManager.pushMatrix();
-        GlStateManager.disableAlpha();
-        GlStateManager.enableBlend();
-        Blending.DEFAULT.applyStateManager();
+        int[] fullBright = new int[] { 15, 15 };
+        BufferDecoratorBuilder decorator = BufferDecoratorBuilder.withLightmap((skyLight, blockLight) -> fullBright);
+        Vector3 offset = RenderingVectorUtils.getStandardTranslationRemovalVector(pTicks);
+
+        RenderSystem.enableBlend();
+        Blending.ADDITIVEDARK.apply();
+        RenderSystem.disableDepthTest();
+        RenderSystem.disableAlphaTest();
+
+        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.BLOCK, buf -> {
+            placeStates.forEach((pos, state) -> {
+                renderStack.push();
+                renderStack.translate(pos.getX() - offset.getX() + 0.1F, pos.getY() - offset.getY() + 0.1F, pos.getZ() - offset.getZ() + 0.1F);
+                renderStack.scale(0.8F, 0.8F, 0.8F);
+                RenderingUtils.renderSimpleBlockModel(state, renderStack, decorator.decorate(buf), pos, null, false);
+                renderStack.pop();
+            });
+        });
+
+        RenderSystem.enableAlphaTest();
+        RenderSystem.enableDepthTest();
         Blending.DEFAULT.apply();
-        GlStateManager.color(1F, 1F, 1F, fadeAlpha * 0.9F);
-        GL11.glColor4f(1F, 1F, 1F, fadeAlpha * 0.9F);
-        Tessellator tes = Tessellator.getInstance();
-        BufferBuilder vb = tes.getBuffer();
-
-        int tempOffsetY = offsetY;
-        for (int i = 0; i < amountMap.size(); i++) {
-            boolean first = i == 0;
-            boolean last = (i + 1 == amountMap.size());
-            if(first) {
-                vb.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-                ClientRenderEventHandler.texHUDItemFrame.bind();
-                vb.pos(offsetX,            tempOffsetY + heightSplit, 10).tex(0, 0.5).endVertex();
-                vb.pos(offsetX + width, tempOffsetY + heightSplit, 10).tex(1, 0.5).endVertex();
-                vb.pos(offsetX + width,    tempOffsetY,               10).tex(1, 0)  .endVertex();
-                vb.pos(offsetX,               tempOffsetY,               10).tex(0, 0)  .endVertex();
-                tempOffsetY += heightSplit;
-                tes.draw();
-            } else {
-                vb.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-                ClientRenderEventHandler.texHUDItemFrameEx.bind();
-                vb.pos(offsetX,            tempOffsetY + heightNormal, 10).tex(0, 1).endVertex();
-                vb.pos(offsetX + width, tempOffsetY + heightNormal, 10).tex(1, 1).endVertex();
-                vb.pos(offsetX + width,    tempOffsetY,                10).tex(1, 0).endVertex();
-                vb.pos(offsetX,               tempOffsetY,                10).tex(0, 0).endVertex();
-                tempOffsetY += heightNormal;
-                tes.draw();
-            }
-            if(last) {
-                vb.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-                ClientRenderEventHandler.texHUDItemFrame.bind();
-                vb.pos(offsetX,            tempOffsetY + heightSplit, 10).tex(0, 1)  .endVertex();
-                vb.pos(offsetX + width, tempOffsetY + heightSplit, 10).tex(1, 1)  .endVertex();
-                vb.pos(offsetX + width,    tempOffsetY,               10).tex(1, 0.5).endVertex();
-                vb.pos(offsetX,               tempOffsetY,               10).tex(0, 0.5).endVertex();
-                tempOffsetY += heightSplit;
-                tes.draw();
-            }
-        }
-
-        TextureHelper.refreshTextureBindState();
-        TextureHelper.setActiveTextureToAtlasSprite();
-        RenderHelper.enableGUIStandardItemLighting();
-        RenderItem ri = Minecraft.getMinecraft().getRenderItem();
-
-        tempOffsetY = offsetY;
-        for (Map.Entry<ItemStack, Integer> entry : amountMap.entrySet()) {
-            ri.renderItemAndEffectIntoGUI(Minecraft.getMinecraft().player, entry.getKey(), offsetX + 5, tempOffsetY + 5);
-            tempOffsetY += heightNormal;
-            GlStateManager.enableAlpha(); //Because Mc item rendering..
-        }
-
-        RenderHelper.disableStandardItemLighting();
-
-        GlStateManager.disableDepth();
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(offsetX + 14, offsetY + 16, 0);
-        int c = 0x00DDDDDD;
-        for (Map.Entry<ItemStack, Integer> entry : amountMap.entrySet()) {
-            String amountStr = String.valueOf(entry.getValue());
-            if(entry.getValue() == -1) {
-                amountStr = "\u221E";
-            }
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(-Minecraft.getMinecraft().fontRenderer.getStringWidth(amountStr) / 3, 0, 0);
-            GlStateManager.scale(0.7, 0.7, 0.7);
-            if(amountStr.length() > 3) {
-                GlStateManager.scale(0.9, 0.9, 0.9);
-            }
-            Minecraft.getMinecraft().fontRenderer.drawStringWithShadow(amountStr, 0, 0, c);
-            GlStateManager.popMatrix();
-            GlStateManager.color(1F, 1F, 1F, 1F);
-
-            GlStateManager.translate(0, heightNormal, 0);
-        }
-        TextureHelper.refreshTextureBindState();
-
-        GlStateManager.popMatrix();
-        GlStateManager.enableDepth();
-        GlStateManager.enableAlpha();
-        GlStateManager.popMatrix();
+        RenderSystem.disableBlend();
+        return true;
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void onRenderWhileInHand(ItemStack stack, EnumHand hand, float pTicks) {
-        List<IBlockState> storedStates = Lists.newArrayList(getMappedStoredStates(stack).keySet());
-        if(storedStates.isEmpty()) return;
-        Random r = getPreviewRandomFromWorld(Minecraft.getMinecraft().world);
-
-        Deque<BlockPos> placeable = filterBlocksToPlace(Minecraft.getMinecraft().player, Minecraft.getMinecraft().world, architectRange);
-        if(!placeable.isEmpty()) {
-            RayTraceResult rtr = getLookBlock(Minecraft.getMinecraft().player, false, true, architectRange);
-            if(rtr == null || rtr.typeOfHit != RayTraceResult.Type.BLOCK) {
-                return;
-            }
-            Vec3d hitVec = rtr.hitVec;
-            EnumFacing sideHit = rtr.sideHit;
-
-            GlStateManager.pushMatrix();
-            GlStateManager.enableBlend();
-            Blending.ADDITIVEDARK.applyStateManager();
-            GlStateManager.disableAlpha();
-            RenderingUtils.removeStandartTranslationFromTESRMatrix(pTicks);
-            World w = Minecraft.getMinecraft().world;
-
-            TextureHelper.setActiveTextureToAtlasSprite();
-            Tessellator tes = Tessellator.getInstance();
-            BufferBuilder vb = tes.getBuffer();
-            vb.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-            for (BlockPos pos : placeable) {
-                Collections.shuffle(storedStates, r);
-                IBlockState potentialState = Iterables.getFirst(storedStates, Blocks.AIR.getDefaultState());
-                try {
-                    potentialState = potentialState.getBlock().getStateForPlacement(Minecraft.getMinecraft().world, pos, sideHit, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z, potentialState.getBlock().getMetaFromState(potentialState), Minecraft.getMinecraft().player, hand);
-                } catch (Exception exc) {}
-                RenderingUtils.renderBlockSafely(w, pos, potentialState, vb);
-            }
-            vb.sortVertexData((float) TileEntityRendererDispatcher.staticPlayerX, (float) TileEntityRendererDispatcher.staticPlayerY, (float) TileEntityRendererDispatcher.staticPlayerZ);
-            tes.draw();
-            Blending.DEFAULT.applyStateManager();
-            Blending.DEFAULT.apply();
-            GlStateManager.enableAlpha();
-            GlStateManager.popMatrix();
-        }
+    @OnlyIn(Dist.CLIENT)
+    public boolean renderOverlay(ItemStack stack, float pTicks) {
+        List<Tuple<ItemStack, Integer>> foundStacks = ItemBlockStorage.getInventoryMatchingItemStacks(Minecraft.getInstance().player, stack);
+        RenderingOverlayUtils.renderDefaultItemDisplay(foundStacks);
+        return true;
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer playerIn, EnumHand hand) {
-        ItemStack stack = playerIn.getHeldItem(hand);
-        if (stack.isEmpty()) return ActionResult.newResult(EnumActionResult.PASS, playerIn.getHeldItem(hand));
-        if (world.isRemote) return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
-
-        Map<IBlockState, ItemStack> storedStates = getMappedStoredStates(stack);
-        if(storedStates.isEmpty()) return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
-
-        RayTraceResult rtr = getLookBlock(playerIn, false, true, architectRange);
-        if(rtr == null || rtr.sideHit == null || rtr.hitVec == null) return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
-        EnumFacing sideHit = rtr.sideHit;
-        List<Tuple<IBlockState, ItemStack>> shuffleable = MiscUtils.flatten(storedStates, Tuple::new);
-
-        Random r = getPreviewRandomFromWorld(world);
-        Deque<BlockPos> placeable = filterBlocksToPlace(playerIn, world, architectRange);
-        if(!placeable.isEmpty()) {
-            for (BlockPos placePos : placeable) {
-                Collections.shuffle(shuffleable, r);
-                Tuple<IBlockState, ItemStack> applicable = playerIn.isCreative() ? Iterables.getFirst(shuffleable, null) : null;
-                if(!playerIn.isCreative()) {
-                    for (Tuple<IBlockState, ItemStack> it : shuffleable) {
-                        ItemStack test = ItemUtils.copyStackWithSize(it.value, 1);
-                        if(ItemUtils.consumeFromPlayerInventory(playerIn, stack, test, true)) {
-                            applicable = it;
-                            break;
-                        }
-                    }
-                }
-                if(applicable == null) break; //No more blocks. LUL
-
-                if(drainTempCharge(playerIn, Config.architectWandUseCost, true)) {
-                    IBlockState place = applicable.key;
-                    try {
-                        place = applicable.key.getBlock().getStateForPlacement(world, placePos, sideHit, (float) rtr.hitVec.x, (float) rtr.hitVec.y, (float) rtr.hitVec.z, applicable.value.getMetadata(), playerIn, hand);
-                    } catch (Exception exc) {}
-                    if (MiscUtils.canPlayerPlaceBlockPos(playerIn, hand, place, placePos, sideHit)) {
-                        if (world.setBlockState(placePos, place)) {
-                            drainTempCharge(playerIn, Config.architectWandUseCost, false);
-                            if(!playerIn.isCreative()) {
-                                ItemUtils.consumeFromPlayerInventory(playerIn, stack, ItemUtils.copyStackWithSize(applicable.value, 1), false);
-                            }
-                            PktParticleEvent ev = new PktParticleEvent(PktParticleEvent.ParticleEventType.ARCHITECT_PLACE, placePos);
-                            ev.setAdditionalDataLong(Block.getStateId(applicable.key));
-                            PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 40));
-                        }
-                    }
-                }
-            }
+    public ActionResultType onItemUse(ItemUseContext context) {
+        World world = context.getWorld();
+        ItemStack stack = context.getItem();
+        PlayerEntity player = context.getPlayer();
+        BlockPos pos = context.getPos();
+        if (world.isRemote() || !(player instanceof ServerPlayerEntity) || stack.isEmpty()) {
+            return ActionResultType.SUCCESS;
         }
-        return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
+        if (player.isSneaking()) {
+            ItemBlockStorage.storeBlockState(stack, world, pos);
+            return ActionResultType.SUCCESS;
+        }
+        return ActionResultType.FAIL;
     }
 
     @Override
-    public EnumActionResult onItemUse(EntityPlayer playerIn, World world, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        ItemStack stack = playerIn.getHeldItem(hand);
-        if(stack.isEmpty()) return EnumActionResult.SUCCESS;
-
-        if(playerIn.isSneaking()) {
-            tryStoreBlock(stack, world, pos);
-            return EnumActionResult.SUCCESS;
-        } else {
-            if(!world.isRemote) {
-                Map<IBlockState, ItemStack> storedStates = getMappedStoredStates(stack);
-                if(storedStates.isEmpty()) return EnumActionResult.SUCCESS;
-
-                List<Tuple<IBlockState, ItemStack>> shuffleable = MiscUtils.flatten(storedStates, Tuple::new);
-                Random r = getPreviewRandomFromWorld(world);
-
-                Deque<BlockPos> placeable = filterBlocksToPlace(playerIn, world, architectRange);
-                if(!placeable.isEmpty()) {
-                    for (BlockPos placePos : placeable) {
-                        Collections.shuffle(shuffleable, r);
-                        Tuple<IBlockState, ItemStack> applicable = playerIn.isCreative() ? Iterables.getFirst(shuffleable, null) : null;
-                        if(!playerIn.isCreative()) {
-                            for (Tuple<IBlockState, ItemStack> it : shuffleable) {
-                                ItemStack test = ItemUtils.copyStackWithSize(it.value, 1);
-                                if(ItemUtils.consumeFromPlayerInventory(playerIn, stack, test, true)) {
-                                    applicable = it;
-                                    break;
-                                }
-                            }
-                        }
-                        if(applicable == null) break; //No more blocks. LUL
-
-                        if(drainTempCharge(playerIn, Config.architectWandUseCost, true)) {
-                            IBlockState place = applicable.key;
-                            try {
-                                place = applicable.key.getBlock().getStateForPlacement(world, placePos, facing, hitX, hitY, hitZ, applicable.value.getMetadata(), playerIn, hand);
-                            } catch (Exception exc) {}
-                            if (MiscUtils.canPlayerPlaceBlockPos(playerIn, hand, place, placePos, facing)) {
-                                if (world.setBlockState(placePos, place)) {
-                                    drainTempCharge(playerIn, Config.architectWandUseCost, false);
-                                    if(!playerIn.isCreative()) {
-                                        ItemUtils.consumeFromPlayerInventory(playerIn, stack, ItemUtils.copyStackWithSize(applicable.value, 1), false);
-                                    }
-                                    PktParticleEvent ev = new PktParticleEvent(PktParticleEvent.ParticleEventType.ARCHITECT_PLACE, placePos);
-                                    ev.setAdditionalDataLong(Block.getStateId(applicable.key));
-                                    PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 40));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+    public ActionResult<ItemStack> onItemRightClick(World world, PlayerEntity player, Hand hand) {
+        ItemStack held = player.getHeldItem(hand);
+        PlaceMode mode = getPlaceMode(held);
+        if (player.isSneaking()) {
+            PlaceMode nextMode = mode.next();
+            setPlaceMode(held, nextMode);
+            player.sendStatusMessage(nextMode.getDisplay(), true);
+            return ActionResult.resultSuccess(held);
+        }
+        if (world.isRemote()) {
+            return ActionResult.resultSuccess(held);
         }
 
-        return EnumActionResult.SUCCESS;
-    }
+        Map<BlockPos, BlockState> placeStates = getPlayerPlaceableStates(player, held);
+        if (placeStates.isEmpty()) {
+            return ActionResult.resultFail(held);
+        }
 
-    @SideOnly(Side.CLIENT)
-    public static void playArchitectPlaceEvent(PktParticleEvent event) {
-        AstralSorcery.proxy.scheduleClientside(() -> {
-            Vector3 at = event.getVec();
-            IBlockState state = Block.getStateById((int) event.getAdditionalDataLong());
-            RenderingUtils.playBlockBreakParticles(at.toBlockPos(), state);
-            for (int i = 0; i < 9; i++) {
-                EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                        at.getX() + (itemRand.nextBoolean() ? -(itemRand.nextFloat() * 0.1) : 1 + (itemRand.nextFloat() * 0.1)),
-                        at.getY() + (itemRand.nextBoolean() ? -(itemRand.nextFloat() * 0.1) : 1 + (itemRand.nextFloat() * 0.1)),
-                        at.getZ() + (itemRand.nextBoolean() ? -(itemRand.nextFloat() * 0.1) : 1 + (itemRand.nextFloat() * 0.1)));
-                p.motion((itemRand.nextFloat() * 0.03F) * (itemRand.nextBoolean() ? 1 : -1),
-                        (itemRand.nextFloat() * 0.03F) * (itemRand.nextBoolean() ? 1 : -1),
-                        (itemRand.nextFloat() * 0.03F) * (itemRand.nextBoolean() ? 1 : -1));
-                p.scale(0.35F).setColor(Color.WHITE.brighter());
-            }
-        }, 1);
-    }
+        Map<BlockState, Tuple<ItemStack, Integer>> availableStacks = MapStream.of(ItemBlockStorage.getInventoryMatching(player, held))
+                .filter(tpl -> placeStates.containsValue(tpl.getA()))
+                .collect(Collectors.toMap(Tuple::getA, Tuple::getB));
 
-    private Deque<BlockPos> filterBlocksToPlace(Entity entity, World world, double range) {
-        Deque<BlockPos> placeable = getBlocksToPlaceAt(entity, range);
-        boolean discard = false;
-        Iterator<BlockPos> iterator = placeable.iterator();
-        while (iterator.hasNext()) {
-            BlockPos pos = iterator.next();
-            if(discard) {
-                iterator.remove();
+
+        for (BlockPos placePos : placeStates.keySet()) {
+            BlockState stateToPlace = placeStates.get(placePos);
+            Tuple<ItemStack, Integer> availableStack = availableStacks.get(stateToPlace);
+            if (availableStack == null) {
                 continue;
             }
-            if(!world.isAirBlock(pos) && !world.getBlockState(pos).getBlock().isReplaceable(world, pos)) {
-                discard = true;
-                iterator.remove();
+
+            ItemStack extractable = ItemUtils.copyStackWithSize(availableStack.getA(), 1);
+            boolean canExtract = player.isCreative();
+            if (!canExtract) {
+                if (ItemUtils.consumeFromPlayerInventory(player, held, extractable, true)) {
+                    canExtract = true;
+                }
+            }
+            if (!canExtract) {
+                continue;
+            }
+
+            if (MiscUtils.canPlayerPlaceBlockPos(player, stateToPlace, placePos, Direction.UP)) {
+                if (AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_PLACEMENT, false) &&
+                        world.setBlockState(placePos, stateToPlace)) {
+                    if (!player.isCreative()) {
+                        ItemUtils.consumeFromPlayerInventory(player, held, extractable, false);
+                    }
+
+                    PktPlayEffect ev = new PktPlayEffect(PktPlayEffect.Type.BLOCK_EFFECT)
+                            .addData(buf -> {
+                                ByteBufUtils.writePos(buf, placePos);
+                                ByteBufUtils.writeBlockState(buf, stateToPlace);
+                            });
+                    PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 32));
+                }
             }
         }
-        return placeable;
+
+        return ActionResult.resultSuccess(held);
     }
 
-    private Deque<BlockPos> getBlocksToPlaceAt(Entity entity, double range) {
-        RayTraceResult rtr = getLookBlock(entity, false, true, range);
-        if(rtr == null || rtr.typeOfHit != RayTraceResult.Type.BLOCK) {
-            return Lists.newLinkedList();
+    @Nonnull
+    private Map<BlockPos, BlockState> getPlayerPlaceableStates(PlayerEntity player, ItemStack stack) {
+        PlaceMode mode = getPlaceMode(stack);
+        World world = player.getEntityWorld();
+
+        BlockRayTraceResult rtr = MiscUtils.rayTraceLookBlock(player, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.ANY, 60F);
+        if (rtr == null && mode.needsOffset()) {
+            return new HashMap<>();
         }
-        LinkedList<BlockPos> blocks = Lists.newLinkedList();
-        EnumFacing sideHit = rtr.sideHit;
-        BlockPos hitPos = rtr.getBlockPos();
-        int length;
-        int cmpFrom;
-        double cmpTo;
-        switch (sideHit.getAxis()) {
-            case X:
-                cmpFrom = hitPos.getX();
-                cmpTo = entity.posX;
-                break;
-            case Y:
-                cmpFrom = hitPos.getY();
-                cmpTo = entity.posY;
-                break;
-            case Z:
-                cmpFrom = hitPos.getZ();
-                cmpTo = entity.posZ;
-                break;
-            default:
-                return Lists.newLinkedList();
+
+        Map<BlockPos, BlockState> placeStates;
+        if (rtr != null) {
+            Direction placingAgainst = rtr.getFace();
+            BlockPos at = rtr.getPos().offset(rtr.getFace());
+            placeStates = getPlaceStates(player, world, at, placingAgainst, stack);
+        } else {
+            placeStates = getPlaceStates(player, world, null, null, stack);
         }
-        length = (int) Math.min(20, Math.abs(cmpFrom + 0.5 - cmpTo));
-        for (int i = 1; i < length; i++) {
-            blocks.add(hitPos.offset(sideHit, i));
-        }
-        return blocks;
+        return placeStates;
     }
 
+    @Nonnull
+    private Map<BlockPos, BlockState> getPlaceStates(PlayerEntity placer, World world, @Nullable BlockPos origin, @Nullable Direction placingAgainst, ItemStack refStack) {
+        Map<BlockState, Tuple<ItemStack, Integer>> tplStates = ItemBlockStorage.getInventoryMatching(placer, refStack);
+        PlaceMode placeMode = getPlaceMode(refStack);
+        Map<BlockPos, BlockState> placeables = Maps.newHashMap();
+
+        int totalItems = 0;
+        if (placer.isCreative()) {
+            totalItems = Integer.MAX_VALUE;
+        } else {
+            for (Tuple<ItemStack, Integer> amountTpl : tplStates.values()) {
+                totalItems += (amountTpl.getB() == -1 ? 500_000 : amountTpl.getB());
+            }
+        }
+
+        List<BlockPos> foundPositions = placeMode.generatePlacementPositions(world, placer, placingAgainst, origin);
+        if (foundPositions.isEmpty()) {
+            return placeables; //It.. shouldn't actually be empty here, ever. Should at least have 1 entry.
+        }
+        foundPositions = foundPositions.subList(0, Math.min(foundPositions.size(), totalItems));
+
+        Map<BlockState, Integer> placeAmounts = Maps.newHashMap();
+        for (BlockState state : tplStates.keySet()) {
+            placeAmounts.put(state, placer.isCreative() ? Integer.MAX_VALUE : tplStates.get(state).getB());
+        }
+        List<BlockState> placeableStates = Lists.newArrayList(placeAmounts.keySet());
+        Random rand = ItemBlockStorage.getPreviewRandomFromWorld(world);
+
+        for (BlockPos pos : foundPositions) {
+            Collections.shuffle(placeableStates, rand);
+            BlockState toPlace = Iterables.getFirst(placeableStates, null);
+
+            if (toPlace == null) {
+                continue;
+            }
+
+            MiscUtils.executeWithChunk(world, pos, () -> {
+                if (BlockUtils.isReplaceable(world, pos)) {
+
+                    if (!placer.isCreative()) {
+                        int count = placeAmounts.get(toPlace);
+                        count--;
+                        if (count <= 0) {
+                            placeAmounts.remove(toPlace);
+                            placeableStates.remove(toPlace);
+                        } else {
+                            placeAmounts.put(toPlace, count);
+                        }
+                    }
+
+                    placeables.put(pos, toPlace);
+                }
+            });
+        }
+        return placeables;
+    }
+
+    public static void setPlaceMode(@Nonnull ItemStack stack, @Nonnull PlaceMode mode) {
+        if (stack.isEmpty() || !(stack.getItem() instanceof ItemArchitectWand)) {
+            return;
+        }
+        CompoundNBT nbt = NBTHelper.getPersistentData(stack);
+        nbt.putInt("placeMode", mode.ordinal());
+    }
+
+    @Nonnull
+    public static PlaceMode getPlaceMode(@Nonnull ItemStack stack) {
+        if (stack.isEmpty() || !(stack.getItem() instanceof ItemArchitectWand)) {
+            return PlaceMode.TOWARDS_PLAYER;
+        }
+        CompoundNBT nbt = NBTHelper.getPersistentData(stack);
+        return MiscUtils.getEnumEntry(PlaceMode.class, nbt.getInt("placeMode"));
+    }
+
+    public static enum PlaceMode {
+
+        TOWARDS_PLAYER("towards", true, 3F) {
+            @Override
+            public List<BlockPos> generatePlacementPositions(World world, PlayerEntity player, Direction placedAgainst, BlockPos center) {
+                List<BlockPos> blocks = new ArrayList<>();
+                double cmpFrom, cmpTo;
+                switch (placedAgainst.getAxis()) {
+                    case X:
+                        cmpFrom = center.getX();
+                        cmpTo = player.getPosX();
+                        break;
+                    case Y:
+                        cmpFrom = center.getY();
+                        cmpTo = player.getPosY();
+                        break;
+                    case Z:
+                        cmpFrom = center.getZ();
+                        cmpTo = player.getPosZ();
+                        break;
+                    default:
+                        return Lists.newLinkedList();
+                }
+                int length = (int) Math.min(20, Math.abs(cmpFrom + 0.5 - cmpTo));
+                for (int i = 0; i < length; i++) {
+                    BlockPos at = center.offset(placedAgainst, i);
+                    if (MiscUtils.executeWithChunk(world, at, () -> !BlockUtils.isReplaceable(world, at), true)) {
+                        break;
+                    }
+                    blocks.add(at);
+                }
+                return blocks;
+            }
+        },
+        FROM_PLAYER("line", false) {
+            @Override
+            public List<BlockPos> generatePlacementPositions(World world, PlayerEntity player, Direction placedAgainst, BlockPos center) {
+                BlockPos origin = player.getPosition().down();
+                RayTraceResult result = player.pick(60F, 1F, false);
+                BlockPos hit;
+                if (result instanceof BlockRayTraceResult) {
+                    hit = ((BlockRayTraceResult) result).getPos();
+                } else {
+                    hit = new BlockPos(result.getHitVec());
+                }
+                List<BlockPos> line = new ArrayList<>();
+                RaytraceAssist rta = new RaytraceAssist(origin, hit);
+                rta.forEachBlockPos(pos -> {
+                    return MiscUtils.executeWithChunk(world, pos, () -> {
+                        if (BlockUtils.isReplaceable(world, pos)) {
+                            line.add(pos);
+                            return true;
+                        }
+                        return false;
+                    }, false);
+                });
+                return line;
+            }
+        },
+        H_PLANE("plane", true) {
+            @Override
+            public List<BlockPos> generatePlacementPositions(World world, PlayerEntity player, Direction placedAgainst, BlockPos center) {
+                return MiscUtils.transformList(BlockGeometry.getPlane(Direction.UP, 5), at -> at.add(center));
+            }
+        },
+        V_PLANE("wall", true) {
+            @Override
+            public List<BlockPos> generatePlacementPositions(World world, PlayerEntity player, Direction placedAgainst, BlockPos center) {
+                return MiscUtils.transformList(BlockGeometry.getPlane(player.getHorizontalFacing(), 5), at -> at.add(center));
+            }
+        },
+        SPHERE("sphere", true, 0.2F) {
+            @Override
+            public List<BlockPos> generatePlacementPositions(World world, PlayerEntity player, Direction placedAgainst, BlockPos center) {
+                return MiscUtils.transformList(BlockGeometry.getSphere(5), at -> at.add(center));
+            }
+        },
+        SPHERE_HOLLOW("sphere_hollow", true, 0.5F) {
+            @Override
+            public List<BlockPos> generatePlacementPositions(World world, PlayerEntity player, Direction placedAgainst, BlockPos center) {
+                return MiscUtils.transformList(BlockGeometry.getHollowSphere(5, 4), at -> at.add(center));
+            }
+        };
+
+        private final String name;
+        private final boolean needsOffset;
+        private final float placeCostMulitplier;
+
+        PlaceMode(String name, boolean needsOffset) {
+            this(name, needsOffset, 1F);
+        }
+
+        PlaceMode(String name, boolean needsOffset, float placeCostMultiplier) {
+            this.name = name;
+            this.needsOffset = needsOffset;
+            this.placeCostMulitplier = placeCostMultiplier;
+        }
+
+        public ITextComponent getName() {
+            return new TranslationTextComponent("astralsorcery.misc.architect.mode." + this.name);
+        }
+
+        public ITextComponent getDisplay() {
+            return new TranslationTextComponent("astralsorcery.misc.architect.mode", this.getName());
+        }
+
+        public float getPlaceCostMulitplier() {
+            return placeCostMulitplier;
+        }
+
+        public boolean needsOffset() {
+            return needsOffset;
+        }
+
+        public abstract List<BlockPos> generatePlacementPositions(World world, PlayerEntity player, Direction placedAgainst, BlockPos center);
+
+        @Nonnull
+        private PlaceMode next() {
+            int next = (this.ordinal() + 1) % values().length;
+            return MiscUtils.getEnumEntry(PlaceMode.class, next);
+        }
+
+    }
 }

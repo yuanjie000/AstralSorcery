@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,38 +8,55 @@
 
 package hellfirepvp.astralsorcery.client.effect;
 
+import hellfirepvp.astralsorcery.client.effect.function.RefreshFunction;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
-import hellfirepvp.astralsorcery.common.util.EntityUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.Entity;
 
-import java.util.function.Function;
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
+import java.util.function.Supplier;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: EntityComplexFX
  * Created by HellFirePvP
- * Date: 17.09.2016 / 22:55
+ * Date: 27.05.2019 / 22:18
  */
-public abstract class EntityComplexFX implements IComplexEffect {
+public abstract class EntityComplexFX {
 
+    protected static final Random rand = new Random();
     private static long counter = 0;
 
-    public final long id;
+    private final long id;
     protected int age = 0;
     protected int maxAge = 40;
-    protected boolean removeRequested = false;
+    protected int ageRefreshCount = 0;
 
+    protected Vector3 pos;
+
+    private RefreshFunction refreshFunction = RefreshFunction.DESPAWN;
+    private Map<String, Object> customData = new HashMap<>();
+
+    protected boolean removeRequested = false;
     private boolean flagRemoved = true;
 
-    public EntityComplexFX() {
+    protected EntityComplexFX(Vector3 pos) {
         this.id = counter;
         counter++;
+        this.pos = pos;
     }
 
-    public void setMaxAge(int maxAge) {
+    public final long getId() {
+        return id;
+    }
+
+    public <T extends EntityComplexFX> T setMaxAge(int maxAge) {
         this.maxAge = maxAge;
+        return (T) this;
     }
 
     public int getMaxAge() {
@@ -50,19 +67,58 @@ public abstract class EntityComplexFX implements IComplexEffect {
         return age;
     }
 
-    @Override
-    public boolean canRemove() {
-        return age >= maxAge || removeRequested;
+    public <T extends EntityComplexFX> T move(Vector3 change) {
+        this.setPosition(this.getPosition().add(change));
+        return (T) this;
     }
 
-    @Override
-    public RenderTarget getRenderTarget() {
-        return RenderTarget.RENDERLOOP;
+    public Vector3 getPosition() {
+        return pos.clone();
     }
 
-    @Override
+    public <T extends EntityComplexFX> T setPosition(Vector3 pos) {
+        this.pos = pos.clone();
+        return (T) this;
+    }
+
+    public <T extends EntityComplexFX> T addPosition(Vector3 offset) {
+        this.pos.add(offset);
+        return (T) this;
+    }
+
+    public <T extends EntityComplexFX> T  refresh(RefreshFunction<?> refreshFunction) {
+        this.refreshFunction = refreshFunction;
+        return (T) this;
+    }
+
+    public <T> T getOrCreateData(String str, Supplier<T> defaultProvider) {
+        return (T) this.customData.computeIfAbsent(str, s -> defaultProvider.get());
+    }
+
+    @Nullable
+    public <T> T getData(String str) {
+        return (T) this.customData.get(str);
+    }
+
     public void tick() {
-        age++;
+        this.age++;
+
+        if (this.canRemove() && refreshFunction.shouldRefresh(this) && RenderingUtils.canEffectExist(this)) {
+            this.resetLifespan();
+            this.ageRefreshCount++;
+        }
+    }
+
+    public void resetLifespan() {
+        this.age = 0;
+    }
+
+    public int getAgeRefreshCount() {
+        return ageRefreshCount;
+    }
+
+    public boolean canRemove() {
+        return this.age >= this.maxAge || removeRequested;
     }
 
     public void requestRemoval() {
@@ -70,109 +126,29 @@ public abstract class EntityComplexFX implements IComplexEffect {
     }
 
     public boolean isRemoved() {
-        return flagRemoved;
+        return this.flagRemoved;
     }
 
     public void flagAsRemoved() {
-        flagRemoved = true;
-        removeRequested = false;
+        this.flagRemoved = true;
+        this.removeRequested = false;
     }
 
-    public void clearRemoveFlag() {
-        flagRemoved = false;
+    public void setActive() {
+        this.flagRemoved = false;
+        this.removeRequested = false;
     }
 
-    public static interface RenderAlphaFunction<T extends IComplexEffect> {
-
-        public float getRenderAlpha(T fx, float currentAlpha);
-
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EntityComplexFX that = (EntityComplexFX) o;
+        return id == that.id;
     }
 
-    public static enum AlphaFunction {
-
-        CONSTANT,
-        FADE_OUT,
-        PYRAMID;
-
-        AlphaFunction() {}
-
-        public float getAlpha(int age, int maxAge) {
-            switch (this) {
-                case CONSTANT:
-                    return 1F;
-                case FADE_OUT:
-                    return 1F - (((float) age) / ((float) maxAge));
-                case PYRAMID:
-                    float halfAge = maxAge / 2F;
-                    return 1F - (Math.abs(halfAge - age) / halfAge);
-                default:
-                    break;
-            }
-            return 1F;
-        }
-
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
-
-    public static interface RenderOffsetController {
-
-        public Vector3 changeRenderPosition(EntityComplexFX fx, Vector3 currentRenderPos, Vector3 currentMotion, float pTicks);
-
-    }
-
-    public static interface PositionController<T extends IComplexEffect> {
-
-        public Vector3 updatePosition(T fx, Vector3 position, Vector3 motionToBeMoved);
-
-    }
-
-    public static interface MotionController<T extends IComplexEffect> {
-
-        public Vector3 updateMotion(T fx, Vector3 motion);
-
-        public static class EntityTarget<T extends IComplexEffect> implements MotionController<T> {
-
-            private final Entity target;
-            private final Function<T, Vector3> positionFunction;
-
-            public EntityTarget(Entity target, Function<T, Vector3> positionFunction) {
-                this.target = target;
-                this.positionFunction = positionFunction;
-            }
-
-            @Override
-            public Vector3 updateMotion(T fx, Vector3 motion) {
-                if (target.isDead) return motion;
-                EntityUtils.applyVortexMotion((v) -> positionFunction.apply(fx), motion::add, Vector3.atEntityCorner(target), 256, 1);
-                return motion.multiply(0.9);
-            }
-
-        }
-
-    }
-
-    public static interface ScaleFunction<T extends IComplexEffect> {
-
-        public static final ScaleFunction<IComplexEffect> IDENTITY = (ScaleFunction<IComplexEffect>) (fx, pos, pTicks, scaleIn) -> scaleIn;
-
-        public float getScale(T fx, Vector3 pos, float pTicks, float scaleIn);
-
-        public static class Shrink<T extends EntityComplexFX> implements ScaleFunction<T> {
-
-            @Override
-            public float getScale(T fx, Vector3 pos, float pTicks, float scaleIn) {
-                float prevAge = Math.max(0F, ((float) fx.getAge() - 1)) / ((float) fx.getMaxAge());
-                float currAge = Math.max(0F, ((float) fx.getAge()))     / ((float) fx.getMaxAge());
-                return (float) (scaleIn * (1 - (RenderingUtils.interpolate(prevAge, currAge, pTicks))));
-            }
-
-        }
-
-    }
-
-    public static interface RefreshFunction {
-
-        public boolean shouldRefresh();
-
-    }
-
 }

@@ -1,19 +1,28 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
- * All rights reserved.
- * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
- * For further details, see the License file there.
+ *  All rights reserved.
+ *  The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ *  For further details, see the License file there.
  ******************************************************************************/
 
 package hellfirepvp.astralsorcery.common.tile;
 
-import hellfirepvp.astralsorcery.common.item.tool.wand.ItemWand;
-import hellfirepvp.astralsorcery.common.item.tool.wand.WandAugment;
+import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.effect.vfx.FXFacingParticle;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
+import hellfirepvp.astralsorcery.common.item.armor.ItemMantle;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
+import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.base.TileEntityTick;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
+import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.List;
 
@@ -22,33 +31,67 @@ import java.util.List;
  * The complete source code for this mod can be found on github.
  * Class: TileVanishing
  * Created by HellFirePvP
- * Date: 30.07.2017 / 17:35
+ * Date: 11.03.2020 / 21:16
  */
 public class TileVanishing extends TileEntityTick {
 
-    private static final AxisAlignedBB topBox = new AxisAlignedBB(-0.9,0, -0.9, 0.9, 0.9, 0.9);
+    private static final AxisAlignedBB SEARCH_BOX = new AxisAlignedBB(-4,0, -4, 4, 3, 4);
 
-    @Override
-    public void update() {
-        super.update();
-
-        if(!world.isRemote && ticksExisted % 10 == 0) {
-            List<EntityPlayer> players = world.getEntitiesWithinAABB(EntityPlayer.class, topBox.offset(pos));
-            for (EntityPlayer player : players) {
-                ItemStack held = player.getHeldItemMainhand();
-                if(!held.isEmpty() && held.getItem() instanceof ItemWand && WandAugment.AEVITAS == ItemWand.getAugment(held)) {
-                    return;
-                }
-                held = player.getHeldItemOffhand();
-                if(!held.isEmpty() && held.getItem() instanceof ItemWand && WandAugment.AEVITAS == ItemWand.getAugment(held)) {
-                    return;
-                }
-            }
-            getWorld().setBlockToAir(getPos());
-        }
+    public TileVanishing() {
+        super(TileEntityTypesAS.VANISHING);
     }
 
     @Override
-    protected void onFirstTick() {}
+    public void tick() {
+        super.tick();
 
+        if (!this.getWorld().isRemote() && this.getTicksExisted() % 5 == 0) {
+            boolean removeBlock = true;
+
+            List<PlayerEntity> players = getWorld().getEntitiesWithinAABB(PlayerEntity.class, SEARCH_BOX.offset(getPos()));
+            for (PlayerEntity player : players) {
+                if (ItemMantle.getEffect(player, ConstellationsAS.aevitas) != null) {
+                    double yDiff = player.getPosY() - this.getPos().getY();
+
+                    //Standing on top of this block
+                    if (player.onGround && yDiff >= 0.95 && yDiff <= 1.15) {
+                        if (player.isSneaking()) { //Indicating they want to drop down
+                            break; //Remove the block
+                        }
+
+                        removeBlock = false;
+                    } else if (player.isSneaking() && yDiff >= 0.95 && yDiff <= 2.15) {
+                        removeBlock = false;
+                    }
+                }
+            }
+
+            if (removeBlock) {
+                this.getWorld().removeBlock(getPos(), false);
+            }
+        }
+
+        if (this.getWorld().isRemote()) {
+            this.tickClient();
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void tickClient() {
+        for (int i = 0; i < 3; i++) {
+            if (rand.nextFloat() < 0.07F) {
+                Vector3 at = new Vector3(pos).add(0.5F, 0.5F, 0.5F).add(Vector3.random());
+                FXFacingParticle p = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                        .spawn(at)
+                        .setScaleMultiplier(0.15F + rand.nextFloat() * 0.1F)
+                        .alpha(VFXAlphaFunction.PYRAMID)
+                        .setMaxAge(40 + rand.nextInt(10));
+                if (rand.nextBoolean()) {
+                    p.color(VFXColorFunction.WHITE);
+                } else {
+                    p.color(VFXColorFunction.constant(ColorsAS.RITUAL_CONSTELLATION_AEVITAS));
+                }
+            }
+        }
+    }
 }

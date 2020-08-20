@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,10 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.event;
 
-import hellfirepvp.astralsorcery.core.ASMCallHook;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.potion.PotionEffect;
-import net.minecraftforge.common.MinecraftForge;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.potion.EffectInstance;
 import net.minecraftforge.event.entity.living.LivingEvent;
 
 /**
@@ -19,51 +17,40 @@ import net.minecraftforge.event.entity.living.LivingEvent;
  * The complete source code for this mod can be found on github.
  * Class: PotionApplyEvent
  * Created by HellFirePvP
- * Date: 24.10.2018 / 21:25
+ * Date: 25.08.2019 / 00:37
  */
 public class PotionApplyEvent {
 
     public static class New extends LivingEvent {
 
-        private final PotionEffect applied;
+        private final EffectInstance applied;
 
-        public New(EntityLivingBase entity, PotionEffect applied) {
+        public New(LivingEntity entity, EffectInstance applied) {
             super(entity);
             this.applied = applied;
         }
 
-        public PotionEffect getPotionEffect() {
+        public EffectInstance getPotionEffect() {
             return applied;
         }
     }
 
     public static class Changed extends LivingEvent {
 
-        private final PotionEffect addedEffect, newCombinedEffect;
+        private final EffectInstance addedEffect, newCombinedEffect;
 
-        public Changed(EntityLivingBase entity, PotionEffect newlyAddedEffect, PotionEffect newCombinedEffect) {
+        public Changed(LivingEntity entity, EffectInstance newlyAddedEffect, EffectInstance newCombinedEffect) {
             super(entity);
             this.addedEffect = newlyAddedEffect;
             this.newCombinedEffect = newCombinedEffect;
         }
 
-        public PotionEffect getAddedEffect() {
+        public EffectInstance getAddedEffect() {
             return addedEffect;
         }
 
-        public PotionEffect getNewCombinedEffect() {
+        public EffectInstance getNewCombinedEffect() {
             return newCombinedEffect;
         }
     }
-
-    @ASMCallHook
-    public static void fireNew(EntityLivingBase entity, PotionEffect added) {
-        MinecraftForge.EVENT_BUS.post(new New(entity, added));
-    }
-
-    @ASMCallHook
-    public static void fireChanged(EntityLivingBase entity, PotionEffect previous, PotionEffect newCombined) {
-        MinecraftForge.EVENT_BUS.post(new Changed(entity, previous, newCombined));
-    }
-
 }

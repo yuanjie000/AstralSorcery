@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2018
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -11,8 +11,7 @@ package hellfirepvp.astralsorcery.common.base.patreon;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.common.base.patreon.data.PatreonEffectData;
-import hellfirepvp.astralsorcery.common.base.patreon.data.PatreonEffectType;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -20,6 +19,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 /**
@@ -27,7 +27,7 @@ import java.util.UUID;
  * The complete source code for this mod can be found on github.
  * Class: PatreonDataManager
  * Created by HellFirePvP
- * Date: 16.02.2019 / 16:56
+ * Date: 30.08.2019 / 23:23
  */
 public class PatreonDataManager {
 
@@ -47,9 +47,9 @@ public class PatreonDataManager {
                 return;
             }
 
-            PatreonEffectData data;
+            PatreonData data;
             try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                data = GSON.fromJson(br, PatreonEffectData.class);
+                data = GSON.fromJson(br, PatreonData.class);
             } catch (IOException e) {
                 AstralSorcery.log.error("Failed to connect to patreon fileserver! Not loading patreon files...");
                 e.printStackTrace();
@@ -59,7 +59,7 @@ public class PatreonDataManager {
             }
 
             int skipped = 0;
-            for (PatreonEffectData.EffectEntry entry : data.getEffectList()) {
+            for (PatreonData.EffectEntry entry : data.getEffectList()) {
                 UUID plUuid;
                 PatreonEffectType type;
                 try {
@@ -71,11 +71,13 @@ public class PatreonDataManager {
                 }
 
                 try {
-                    PatreonEffectHelper.PatreonEffect pe =
-                            type.getProvider().buildEffect(plUuid, entry.getParameters());
+                    PatreonEffect pe = type.getProvider().buildEffect(plUuid, entry.getParameters());
 
                     pe.initialize();
-                    PatreonEffectHelper.effectMap.computeIfAbsent(plUuid, uuid -> new ArrayList<>()).add(pe);
+                    pe.attachEventListeners(MinecraftForge.EVENT_BUS);
+                    pe.attachTickListeners(AstralSorcery.getProxy().getTickManager()::register);
+                    PatreonEffectHelper.playerEffectMap.computeIfAbsent(plUuid, uuid -> new ArrayList<>()).add(pe);
+                    PatreonEffectHelper.effectMap.put(pe.getEffectUUID(), pe);
                 } catch (Exception exc) {
                     skipped++;
                 }
@@ -86,30 +88,24 @@ public class PatreonDataManager {
             }
             AstralSorcery.log.info("Patreon effect loading finished.");
 
-            //UUID hellfire = UUID.fromString("7f6971c5-fb58-4519-a975-b1b5766e92d1");
-            //PatreonEffectHelper.PatreonEffect pe = new PtEffectCorruptedCelestialCrystal(
-            //        UUID.fromString("7f6971c5-fb58-4519-a975-b1b5766e44d1"),
-            //        PatreonEffectHelper.FlareColor.FIRE);
-            //PatreonEffectHelper.PatreonEffect pe =
-            //        new PtEffectCrystalFootprint(UUID.fromString("7f6971c5-fb58-4519-a975-b1b5766e92d1"),
-            //                PatreonEffectHelper.FlareColor.WATER, hellfire,
-            //                new Color(Integer.parseInt("14287086")));
-            //PatreonEffectHelper.PatreonEffect pe =
-            //        new PtEffectBlockRing(UUID.fromString("7f6971c5-fb58-4519-a975-b1b5766e92d1"),
-            //                PatreonEffectHelper.FlareColor.WATER,
-            //                hellfire,
-            //                4,
-            //                7.5F,
-            //                8,
-            //                5000,
-            //                new HashMap<>());
-            //pe.initialize();
-            //PatreonEffectHelper.effectMap.get(hellfire).add(pe);
+            UUID hellfire = UUID.fromString("7f6971c5-fb58-4519-a975-b1b5766e92d1");
+            try {
+                /*PatreonEffect effect = PatreonEffectType.CRYSTAL_FOOTPRINTS.getProvider().buildEffect(hellfire,
+                        Arrays.asList("777971c5-fb58-4519-a975-b1b5766e44d1",
+                                "DARK_GREEN",
+                                "7865553"));
+                effect.initialize();
+                effect.attachEventListeners(MinecraftForge.EVENT_BUS);
+                effect.attachTickListeners(AstralSorcery.getProxy().getTickManager()::register);
+                PatreonEffectHelper.playerEffectMap.computeIfAbsent(hellfire, uuid -> new ArrayList<>()).add(effect);
+                PatreonEffectHelper.effectMap.put(effect.getEffectUUID(), effect);*/
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
             PatreonEffectHelper.loadingFinished = true;
         });
         tr.setName("AstralSorcery Patreon Effect Loader");
         tr.start();
     }
-
 }

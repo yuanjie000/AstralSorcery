@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,47 +8,47 @@
 
 package hellfirepvp.astralsorcery.common;
 
+import com.google.common.collect.Lists;
 import com.mojang.authlib.GameProfile;
 import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.common.auxiliary.CelestialGatewaySystem;
+import hellfirepvp.astralsorcery.common.auxiliary.BlockBreakHelper;
+import hellfirepvp.astralsorcery.common.auxiliary.charge.AlignmentChargeHandler;
+import hellfirepvp.astralsorcery.common.auxiliary.gateway.CelestialGatewayHandler;
 import hellfirepvp.astralsorcery.common.auxiliary.link.LinkHandler;
-import hellfirepvp.astralsorcery.common.auxiliary.tick.TickManager;
-import hellfirepvp.astralsorcery.common.base.*;
+import hellfirepvp.astralsorcery.common.base.Mods;
 import hellfirepvp.astralsorcery.common.base.patreon.PatreonDataManager;
-import hellfirepvp.astralsorcery.common.base.patreon.flare.PatreonFlareManager;
-import hellfirepvp.astralsorcery.common.block.BlockCustomOre;
-import hellfirepvp.astralsorcery.common.block.BlockCustomSandOre;
-import hellfirepvp.astralsorcery.common.block.BlockMarble;
-import hellfirepvp.astralsorcery.common.constellation.cape.CapeEffectRegistry;
-import hellfirepvp.astralsorcery.common.constellation.charge.PlayerChargeHandler;
-import hellfirepvp.astralsorcery.common.constellation.distribution.ConstellationSkyHandler;
+import hellfirepvp.astralsorcery.common.base.patreon.manager.PatreonManager;
+import hellfirepvp.astralsorcery.common.cmd.CommandAstralSorcery;
+import hellfirepvp.astralsorcery.common.constellation.SkyHandler;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectRegistry;
-import hellfirepvp.astralsorcery.common.constellation.perk.PerkEffectHelper;
-import hellfirepvp.astralsorcery.common.constellation.perk.PerkLevelManager;
-import hellfirepvp.astralsorcery.common.constellation.perk.attribute.AttributeTypeLimiter;
-import hellfirepvp.astralsorcery.common.container.*;
-import hellfirepvp.astralsorcery.common.crafting.ItemHandle;
-import hellfirepvp.astralsorcery.common.crafting.helper.CraftingAccessManager;
-import hellfirepvp.astralsorcery.common.data.SyncDataHolder;
-import hellfirepvp.astralsorcery.common.data.config.Config;
+import hellfirepvp.astralsorcery.common.constellation.mantle.MantleEffectRegistry;
+import hellfirepvp.astralsorcery.common.crafting.recipe.altar.AltarRecipeTypeHandler;
+import hellfirepvp.astralsorcery.common.data.config.CommonConfig;
+import hellfirepvp.astralsorcery.common.data.config.ServerConfig;
+import hellfirepvp.astralsorcery.common.data.config.base.ConfigRegistries;
+import hellfirepvp.astralsorcery.common.data.config.entry.*;
+import hellfirepvp.astralsorcery.common.data.config.entry.common.CommonGeneralConfig;
+import hellfirepvp.astralsorcery.common.data.config.registry.*;
 import hellfirepvp.astralsorcery.common.data.research.ResearchIOThread;
-import hellfirepvp.astralsorcery.common.data.world.WorldCacheManager;
-import hellfirepvp.astralsorcery.common.enchantment.amulet.AmuletEnchantHelper;
-import hellfirepvp.astralsorcery.common.enchantment.amulet.AmuletHolderCapability;
+import hellfirepvp.astralsorcery.common.data.sync.SyncDataHolder;
+import hellfirepvp.astralsorcery.common.enchantment.amulet.AmuletRandomizeHelper;
 import hellfirepvp.astralsorcery.common.enchantment.amulet.PlayerAmuletHandler;
-import hellfirepvp.astralsorcery.common.enchantment.amulet.registry.AmuletEnchantmentRegistry;
-import hellfirepvp.astralsorcery.common.event.listener.*;
-import hellfirepvp.astralsorcery.common.integrations.ModIntegrationBloodMagic;
-import hellfirepvp.astralsorcery.common.integrations.ModIntegrationChisel;
-import hellfirepvp.astralsorcery.common.integrations.ModIntegrationCrafttweaker;
-import hellfirepvp.astralsorcery.common.integrations.ModIntegrationThaumcraft;
-import hellfirepvp.astralsorcery.common.item.ItemCraftingComponent;
-import hellfirepvp.astralsorcery.common.item.ItemJournal;
-import hellfirepvp.astralsorcery.common.item.gem.GemAttributeHelper;
-import hellfirepvp.astralsorcery.common.item.tool.sextant.SextantFinder;
-import hellfirepvp.astralsorcery.common.migration.MappingMigrationHandler;
+import hellfirepvp.astralsorcery.common.event.ClientInitializedEvent;
+import hellfirepvp.astralsorcery.common.event.handler.*;
+import hellfirepvp.astralsorcery.common.event.helper.EventHelperEnchantmentTick;
+import hellfirepvp.astralsorcery.common.event.helper.EventHelperInvulnerability;
+import hellfirepvp.astralsorcery.common.event.helper.EventHelperSpawnDeny;
+import hellfirepvp.astralsorcery.common.event.helper.EventHelperTemporaryFlight;
+import hellfirepvp.astralsorcery.common.integration.IntegrationCurios;
+import hellfirepvp.astralsorcery.common.item.armor.ArmorMaterialImbuedLeather;
 import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktLightningEffect;
+import hellfirepvp.astralsorcery.common.network.play.server.PktOpenGui;
+import hellfirepvp.astralsorcery.common.perk.PerkAttributeLimiter;
+import hellfirepvp.astralsorcery.common.perk.PerkCooldownHelper;
+import hellfirepvp.astralsorcery.common.perk.data.PerkTreeLoader;
+import hellfirepvp.astralsorcery.common.perk.data.PerkTypeHandler;
+import hellfirepvp.astralsorcery.common.perk.source.ModifierManager;
+import hellfirepvp.astralsorcery.common.perk.tick.PerkTickHelper;
 import hellfirepvp.astralsorcery.common.registry.*;
 import hellfirepvp.astralsorcery.common.registry.internal.InternalRegistryPrimer;
 import hellfirepvp.astralsorcery.common.registry.internal.PrimerEventHandler;
@@ -56,411 +56,313 @@ import hellfirepvp.astralsorcery.common.starlight.network.StarlightNetworkRegist
 import hellfirepvp.astralsorcery.common.starlight.network.StarlightTransmissionHandler;
 import hellfirepvp.astralsorcery.common.starlight.network.StarlightUpdateHandler;
 import hellfirepvp.astralsorcery.common.starlight.network.TransmissionChunkTracker;
-import hellfirepvp.astralsorcery.common.starlight.transmission.registry.SourceClassRegistry;
-import hellfirepvp.astralsorcery.common.starlight.transmission.registry.TransmissionClassRegistry;
-import hellfirepvp.astralsorcery.common.structure.change.StructureIntegrityObserver;
-import hellfirepvp.astralsorcery.common.tile.*;
-import hellfirepvp.astralsorcery.common.util.*;
-import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import hellfirepvp.astralsorcery.common.util.effect.time.TimeStopController;
-import hellfirepvp.astralsorcery.common.util.log.LogUtil;
-import hellfirepvp.astralsorcery.common.world.AstralWorldGenerator;
-import hellfirepvp.astralsorcery.common.world.retrogen.ChunkVersionController;
-import hellfirepvp.astralsorcery.common.world.retrogen.RetroGenController;
-import net.minecraft.block.Block;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
+import hellfirepvp.astralsorcery.common.util.BlockDropCaptureAssist;
+import hellfirepvp.astralsorcery.common.util.DamageSourceUtil;
+import hellfirepvp.astralsorcery.common.util.ServerLifecycleListener;
+import hellfirepvp.astralsorcery.common.util.time.TimeStopController;
+import hellfirepvp.observerlib.common.event.BlockChangeNotifier;
+import hellfirepvp.observerlib.common.util.tick.ITickHandler;
+import hellfirepvp.observerlib.common.util.tick.TickManager;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.item.IArmorMaterial;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.item.Rarity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.resources.IReloadableResourceManager;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
-import net.minecraftforge.fml.common.network.IGuiHandler;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.registry.GameRegistry;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSidedProvider;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
+import net.minecraftforge.fml.event.server.*;
 
-import javax.annotation.Nullable;
-import java.awt.*;
+import java.io.File;
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
+
+import static hellfirepvp.astralsorcery.common.lib.ItemsAS.*;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: CommonProxy
  * Created by HellFirePvP
- * Date: 07.05.2016 / 00:23
+ * Date: 19.04.2019 / 18:38
  */
-public class CommonProxy implements IGuiHandler {
+public class CommonProxy {
 
-    private static final UUID AS_FAKEPLAYER_UUID = UUID.fromString("5ae0411c-9069-4d79-8892-bc112c4b3a08");
+    public static final UUID FAKEPLAYER_UUID = UUID.fromString("b0c3097f-8391-4b4b-a89a-553ef730b13a");
 
-    public static DamageSource dmgSourceBleed   = DamageSourceUtil.newType("as.bleed").setDamageBypassesArmor();
-    public static DamageSource dmgSourceStellar = DamageSourceUtil.newType("as.stellar").setDamageBypassesArmor().setMagicDamage();
-    public static DamageSource dmgSourceReflect = DamageSourceUtil.newType("thorns");
-    public static InternalRegistryPrimer registryPrimer;
+    public static DamageSource DAMAGE_SOURCE_BLEED   = DamageSourceUtil.newType("astralsorcery.bleed")
+            .setDamageBypassesArmor();
+    public static DamageSource DAMAGE_SOURCE_STELLAR = DamageSourceUtil.newType("astralsorcery.stellar")
+            .setDamageBypassesArmor().setMagicDamage();
+    public static DamageSource DAMAGE_SOURCE_REFLECT = DamageSourceUtil.newType("thorns")
+            .setDamageBypassesArmor().setDamageIsAbsolute();
 
-    public static AstralWorldGenerator worldGenerator = new AstralWorldGenerator();
-    private CommonScheduler commonScheduler = new CommonScheduler();
+    public static final ItemGroup ITEM_GROUP_AS = new ItemGroup(AstralSorcery.MODID) {
+        @Override
+        public ItemStack createIcon() {
+            return new ItemStack(TOME);
+        }
+    };
+    public static final ItemGroup ITEM_GROUP_AS_PAPERS = new ItemGroup(AstralSorcery.MODID + ".papers") {
+        @Override
+        public ItemStack createIcon() {
+            return new ItemStack(CONSTELLATION_PAPER);
+        }
+    };
+    public static final ItemGroup ITEM_GROUP_AS_CRYSTALS = new ItemGroup(AstralSorcery.MODID + ".crystals") {
+        @Override
+        public ItemStack createIcon() {
+            return new ItemStack(ROCK_CRYSTAL);
+        }
+    };
+    public static final Rarity RARITY_CELESTIAL = Rarity.create("AS_CELESTIAL", TextFormatting.BLUE);
+    public static final Rarity RARITY_ARTIFACT = Rarity.create("AS_ARTIFACT", TextFormatting.GOLD);
+    public static final Rarity RARITY_VESTIGE = Rarity.create("AS_VESTIGE", TextFormatting.RED);
 
-    public void setupConfiguration() {
-        worldGenerator.pushConfigEntries();
-        ConstellationEffectRegistry.addDynamicConfigEntries();
-        CapeEffectRegistry.addDynamicConfigEntries();
-        Config.addDynamicEntry(TileTreeBeacon.ConfigEntryTreeBeacon.instance);
-        Config.addDynamicEntry(TileOreGenerator.ConfigEntryMultiOre.instance);
-        Config.addDynamicEntry(TileChalice.ConfigEntryChalice.instance);
-        Config.addDynamicEntry(TileBore.CfgEntry.instance);
-        Config.addDynamicEntry(new AmuletEnchantHelper.CfgEntry());
-        Config.addDynamicEntry(new GemAttributeHelper.CfgEntry());
-        Config.addDynamicEntry(new TileAccelerationBlacklist.TileAccelBlacklistEntry());
-        Config.addDynamicEntry(new ShootingStarHandler.StarConfigEntry());
-        Config.addDynamicEntry(PerkLevelManager.INSTANCE);
-        Config.addDynamicEntry(new LogUtil.CfgEntry());
-    }
+    public static final IArmorMaterial ARMOR_MATERIAL_IMBUED_LEATHER = new ArmorMaterialImbuedLeather();
 
-    public void registerConfigDataRegistries() {
-        Config.addDataRegistry(OreTypes.RITUAL_MINERALIS);
-        Config.addDataRegistry(OreTypes.AEVITAS_ORE_PERK);
-        Config.addDataRegistry(OreTypes.TREASURE_SHRINE_GEN);
-        Config.addDataRegistry(OreTypes.PERK_VOID_TRASH_REPLACEMENT);
-        Config.addDataRegistry(FluidRarityRegistry.INSTANCE);
-        Config.addDataRegistry(AmuletEnchantmentRegistry.INSTANCE);
-        Config.addDataRegistry(HerdableAnimal.HerdableAdapter.INSTANCE);
-    }
+    private InternalRegistryPrimer registryPrimer;
+    private PrimerEventHandler registryEventHandler;
+    private CommonScheduler commonScheduler;
+    private TickManager tickManager;
+    private List<ServerLifecycleListener> serverLifecycleListeners = Lists.newArrayList();
 
-    public void preInit() {
-        registryPrimer = new InternalRegistryPrimer();
-        MinecraftForge.EVENT_BUS.register(new PrimerEventHandler(registryPrimer));
+    private CommonConfig commonConfig;
+    private ServerConfig serverConfig;
 
-        RegistryItems.setupDefaults();
+    public void initialize() {
+        this.registryPrimer = new InternalRegistryPrimer();
+        this.registryEventHandler = new PrimerEventHandler(this.registryPrimer);
+        this.commonScheduler = new CommonScheduler();
 
-        RegistryConstellations.init();
-        ASDataSerializers.registerSerializers();
+        this.commonConfig = new CommonConfig();
+        this.serverConfig = new ServerConfig();
+
+        RegistryData.init();
+        RegistryMaterials.init();
+        RegistryGameRules.init();
+        RegistryStructureTypes.init();
+        PacketChannel.registerPackets();
+        RegistryPerkAttributeTypes.init();
+        RegistryPerkConverters.init();
+        RegistryPerkCustomModifiers.init();
+        RegistryPerkAttributeReaders.init();
+        RegistryIngredientTypes.init();
         RegistryAdvancements.init();
+        AltarRecipeTypeHandler.init();
+        PerkTypeHandler.init();
+        ModifierManager.init();
+        RegistryConstellations.init();
 
-        PacketChannel.init();
+        this.initializeConfigurations();
+        ConfigRegistries.getRegistries().buildDataRegistries(this.serverConfig);
 
-        RegistryEntities.init();
+        this.tickManager = new TickManager();
+        this.attachTickListeners(tickManager::register);
 
-        //Transmission registry
-        SourceClassRegistry.setupRegistry();
-        TransmissionClassRegistry.setupRegistry();
-        StarlightNetworkRegistry.setupRegistry();
-
-        LootTableUtil.initLootTable();
-        ConstellationEffectRegistry.init();
-
-        if (Mods.THAUMCRAFT.isPresent()) {
-            MinecraftForge.EVENT_BUS.register(ModIntegrationThaumcraft.INSTANCE);
-        }
-
-        RegistryPerks.initPerkTree();
-
-        registerCapabilities();
-
-        if (Mods.CRAFTTWEAKER.isPresent()) {
-            AstralSorcery.log.info("Crafttweaker found! Adding recipe handlers...");
-            ModIntegrationCrafttweaker.instance.load();
-        } else {
-            AstralSorcery.log.info("Crafttweaker not found!");
-        }
-    }
-
-    private void registerCapabilities() {
-        //Chunk Fluid storage for Neromantic primes
-        CapabilityManager.INSTANCE.register(FluidRarityRegistry.ChunkFluidEntry.class, new Capability.IStorage<FluidRarityRegistry.ChunkFluidEntry>() {
-            @Nullable
-            @Override
-            public NBTBase writeNBT(Capability<FluidRarityRegistry.ChunkFluidEntry> capability, FluidRarityRegistry.ChunkFluidEntry instance, EnumFacing side) {
-                return instance.serializeNBT();
-            }
-
-            @Override
-            public void readNBT(Capability<FluidRarityRegistry.ChunkFluidEntry> capability, FluidRarityRegistry.ChunkFluidEntry instance, EnumFacing side, NBTBase nbt) {
-                instance.deserializeNBT((NBTTagCompound) nbt);
-            }
-        }, new FluidRarityRegistry.ChunkFluidEntryFactory());
-
-        //Item data storage to find player + item combinations
-        CapabilityManager.INSTANCE.register(AmuletHolderCapability.class, new Capability.IStorage<AmuletHolderCapability>() {
-            @Nullable
-            @Override
-            public NBTBase writeNBT(Capability<AmuletHolderCapability> capability, AmuletHolderCapability instance, EnumFacing side) {
-                return instance.serializeNBT();
-            }
-
-            @Override
-            public void readNBT(Capability<AmuletHolderCapability> capability, AmuletHolderCapability instance, EnumFacing side, NBTBase nbt) {
-                instance.deserializeNBT((NBTTagCompound) nbt);
-            }
-        }, new AmuletHolderCapability.Factory());
-
-        //Chunk rock crystal storage for rock crystal generation
-        CapabilityManager.INSTANCE.register(RockCrystalHandler.RockCrystalPositions.class, new Capability.IStorage<RockCrystalHandler.RockCrystalPositions>() {
-            @Nullable
-            @Override
-            public NBTBase writeNBT(Capability<RockCrystalHandler.RockCrystalPositions> capability, RockCrystalHandler.RockCrystalPositions instance, EnumFacing side) {
-                return instance.serializeNBT();
-            }
-
-            @Override
-            public void readNBT(Capability<RockCrystalHandler.RockCrystalPositions> capability, RockCrystalHandler.RockCrystalPositions instance, EnumFacing side, NBTBase nbt) {
-                instance.deserializeNBT((NBTTagCompound) nbt);
-            }
-        }, new RockCrystalHandler.ChunkFluidEntryFactory());
-    }
-
-    public void registerOreDictEntries() {
-        OreDictionary.registerOre(OreDictAlias.BLOCK_MARBLE, BlockMarble.MarbleBlockType.RAW.asStack());
-        OreDictionary.registerOre(OreDictAlias.BLOCK_MARBLE, BlockMarble.MarbleBlockType.BRICKS.asStack());
-        OreDictionary.registerOre(OreDictAlias.BLOCK_MARBLE, BlockMarble.MarbleBlockType.PILLAR.asStack());
-        OreDictionary.registerOre(OreDictAlias.BLOCK_MARBLE, BlockMarble.MarbleBlockType.ARCH.asStack());
-        OreDictionary.registerOre(OreDictAlias.BLOCK_MARBLE, BlockMarble.MarbleBlockType.CHISELED.asStack());
-        OreDictionary.registerOre(OreDictAlias.BLOCK_MARBLE, BlockMarble.MarbleBlockType.ENGRAVED.asStack());
-        OreDictionary.registerOre(OreDictAlias.BLOCK_MARBLE, BlockMarble.MarbleBlockType.RUNED.asStack());
-        OreDictionary.registerOre("blockMarble", BlockMarble.MarbleBlockType.RAW.asStack());
-        OreDictionary.registerOre("blockMarble", BlockMarble.MarbleBlockType.BRICKS.asStack());
-        OreDictionary.registerOre("blockMarble", BlockMarble.MarbleBlockType.PILLAR.asStack());
-        OreDictionary.registerOre("blockMarble", BlockMarble.MarbleBlockType.ARCH.asStack());
-        OreDictionary.registerOre("blockMarble", BlockMarble.MarbleBlockType.CHISELED.asStack());
-        OreDictionary.registerOre("blockMarble", BlockMarble.MarbleBlockType.ENGRAVED.asStack());
-        OreDictionary.registerOre("blockMarble", BlockMarble.MarbleBlockType.RUNED.asStack());
-
-        OreDictionary.registerOre("oreAstralStarmetal", BlockCustomOre.OreType.STARMETAL.asStack());
-        OreDictionary.registerOre(OreDictAlias.ITEM_STARMETAL_INGOT, ItemCraftingComponent.MetaType.STARMETAL_INGOT.asStack());
-        OreDictionary.registerOre(OreDictAlias.ITEM_STARMETAL_DUST, ItemCraftingComponent.MetaType.STARDUST.asStack());
-
-        OreDictionary.registerOre("oreAquamarine", BlockCustomSandOre.OreType.AQUAMARINE.asStack());
-        OreDictionary.registerOre(OreDictAlias.ITEM_AQUAMARINE, ItemCraftingComponent.MetaType.AQUAMARINE.asStack());
-    }
-
-    public void init() {
-        RegistryStructures.init();
-        RegistryResearch.init();
-        RegistryRecipes.initGrindstoneOreRecipes();
-        SextantFinder.initialize();
-        RegistryKnowledgeFragments.init();
-        PatreonDataManager.loadPatreonEffects();
-
-        RegistryConstellations.initMapEffects();
-
-        if(Mods.CRAFTTWEAKER.isPresent()) {
-            ModIntegrationCrafttweaker.instance.pushChanges();
-        }
-        ModIntegrationChisel.sendVariantIMC();
-        MappingMigrationHandler.init();
-
-        ModIntegrationBloodMagic.sendIMC();
-
-        NetworkRegistry.INSTANCE.registerGuiHandler(AstralSorcery.instance, this);
-
-        MinecraftForge.TERRAIN_GEN_BUS.register(TreeCaptureHelper.eventInstance);
-
-        MinecraftForge.EVENT_BUS.register(new EventHandlerNetwork());
-        MinecraftForge.EVENT_BUS.register(new EventHandlerServer());
-        MinecraftForge.EVENT_BUS.register(new EventHandlerMisc());
-        MinecraftForge.EVENT_BUS.register(new EventHandlerEntity());
-        MinecraftForge.EVENT_BUS.register(new EventHandlerIO());
-        MinecraftForge.EVENT_BUS.register(TransmissionChunkTracker.getInstance());
-        MinecraftForge.EVENT_BUS.register(TickManager.getInstance());
-        MinecraftForge.EVENT_BUS.register(StarlightTransmissionHandler.getInstance());
-        MinecraftForge.EVENT_BUS.register(new LootTableUtil());
-        MinecraftForge.EVENT_BUS.register(BlockDropCaptureAssist.instance);
-        MinecraftForge.EVENT_BUS.register(ChunkVersionController.instance);
-        MinecraftForge.EVENT_BUS.register(CelestialGatewaySystem.instance);
-        MinecraftForge.EVENT_BUS.register(EventHandlerCapeEffects.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(TimeStopController.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(FluidRarityRegistry.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(RockCrystalHandler.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(PlayerAmuletHandler.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(PerkEffectHelper.EVENT_INSTANCE);
-        MinecraftForge.EVENT_BUS.register(AttributeTypeLimiter.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(PlayerActivityManager.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(StructureIntegrityObserver.INSTANCE);
-
-        GameRegistry.registerWorldGenerator(worldGenerator.setupAttributes(), 50);
-        if(Config.enableRetroGen) {
-            MinecraftForge.EVENT_BUS.register(new RetroGenController());
-        }
-
-        TickManager manager = TickManager.getInstance();
-        registerTickHandlers(manager);
+        this.serverLifecycleListeners.add(ResearchIOThread.startup());
+        this.serverLifecycleListeners.add(ServerLifecycleListener.wrap(EventHandlerCache::onServerStart, EventHandlerCache::onServerStop));
+        this.serverLifecycleListeners.add(ServerLifecycleListener.start(CelestialGatewayHandler.INSTANCE::onServerStart));
+        this.serverLifecycleListeners.add(ServerLifecycleListener.stop(BlockBreakHelper::clearServerCache));
 
         SyncDataHolder.initialize();
-        TileAccelerationBlacklist.init();
-        HerdableAnimal.init();
-        TreeTypes.init();
+
+        this.commonConfig.buildConfiguration();
     }
 
-    protected void registerTickHandlers(TickManager manager) {
-        manager.register(ConstellationSkyHandler.getInstance());
-        manager.register(StarlightTransmissionHandler.getInstance());
-        manager.register(StarlightUpdateHandler.getInstance());
-        manager.register(WorldCacheManager.getInstance());
-        manager.register(new LinkHandler()); //Only used as PERK_TREE for tick handling
-        manager.register(SyncDataHolder.getTickInstance());
-        manager.register(commonScheduler);
-        manager.register(PlayerChargeHandler.INSTANCE);
-        manager.register(EventHandlerCapeEffects.INSTANCE);
-        manager.register(TimeStopController.INSTANCE);
-        manager.register(PlayerAmuletHandler.INSTANCE);
-        //manager.register(SpellCastingManager.PERK_TREE);
-        manager.register(PatreonFlareManager.INSTANCE);
-        manager.register(PerkEffectHelper.EVENT_INSTANCE);
-        manager.register(ShootingStarHandler.getInstance());
-        manager.register(ParticleEffectWatcher.INSTANCE);
-        manager.register(PlayerActivityManager.INSTANCE);
+    public void attachLifecycle(IEventBus modEventBus) {
+        modEventBus.addListener(this::onCommonSetup);
+        modEventBus.addListener(this::onEnqueueIMC);
 
-        //TickTokenizedMaps
-        manager.register(EventHandlerEntity.spawnDenyRegions);
-        manager.register(EventHandlerEntity.invulnerabilityCooldown);
-        manager.register(EventHandlerEntity.ritualFlight);
-        manager.register(PerkEffectHelper.perkCooldowns);
-        manager.register(PerkEffectHelper.perkCooldownsClient); //Doesn't matter being registered on servers aswell. And prevent fckery in integrated.
+        modEventBus.addListener(RegistryRegistries::buildRegistries);
+        registryEventHandler.attachEventHandlers(modEventBus);
     }
 
-    public void postInit() {
-        AltarRecipeEffectRecovery.attemptRecipeRecovery();
-        RegistryPerks.postProcessPerks();
+    public void attachEventHandlers(IEventBus eventBus) {
+        eventBus.addListener(this::onClientInitialized);
 
-        AstralSorcery.log.info("Post compile recipes");
+        eventBus.addListener(this::onServerStop);
+        eventBus.addListener(this::onServerStopping);
+        eventBus.addListener(this::onServerStarting);
+        eventBus.addListener(this::onServerStarted);
+        eventBus.addListener(this::onServerAboutToStart);
 
-        CraftingAccessManager.compile();
-        ResearchIOThread.startIOThread();
+        EventHandlerInteract.attachListeners(eventBus);
+        EventHandlerCache.attachListeners(eventBus);
+        EventHandlerBlockStorage.attachListeners(eventBus);
+        EventHandlerMisc.attachListeners(eventBus);
+        EventHelperSpawnDeny.attachListeners(eventBus);
+        EventHelperInvulnerability.attachListeners(eventBus);
+        PerkAttributeLimiter.attachListeners(eventBus);
+
+        eventBus.addListener(PlayerAmuletHandler::onEnchantmentAdd);
+        eventBus.addListener(BlockDropCaptureAssist.INSTANCE::onDrop);
+        eventBus.addListener(CelestialGatewayHandler.INSTANCE::onWorldInit);
+
+        tickManager.attachListeners(eventBus);
+        TransmissionChunkTracker.INSTANCE.attachListeners(eventBus);
+
+        BlockChangeNotifier.addListener(new EventHandlerAutoLink());
     }
 
-    public void clientFinishedLoading() {
-        ItemHandle.ignoreGatingRequirement = false;
+    public void attachTickListeners(Consumer<ITickHandler> registrar) {
+        registrar.accept(this.commonScheduler);
+        registrar.accept(StarlightTransmissionHandler.getInstance());
+        registrar.accept(StarlightUpdateHandler.getInstance());
+        registrar.accept(SyncDataHolder.getTickInstance());
+        registrar.accept(LinkHandler.getInstance());
+        registrar.accept(SkyHandler.getInstance());
+        registrar.accept(PlayerAmuletHandler.INSTANCE);
+        registrar.accept(PerkTickHelper.INSTANCE);
+        registrar.accept(PatreonManager.INSTANCE);
+        registrar.accept(TimeStopController.INSTANCE);
+        registrar.accept(AlignmentChargeHandler.INSTANCE);
+        registrar.accept(ModifierManager.INSTANCE);
+        registrar.accept(EventHelperEnchantmentTick.INSTANCE);
+
+        EventHelperTemporaryFlight.attachTickListener(registrar);
+        EventHelperSpawnDeny.attachTickListener(registrar);
+        EventHelperInvulnerability.attachTickListener(registrar);
+        PerkCooldownHelper.attachTickListeners(registrar);
     }
 
-    public FakePlayer getASFakePlayerServer(WorldServer world) {
-        return FakePlayerFactory.get(world, new GameProfile(AS_FAKEPLAYER_UUID, "AS-FakePlayer"));
+    protected void initializeConfigurations() {
+        ConfigRegistries.getRegistries().addDataRegistry(FluidRarityRegistry.INSTANCE);
+        ConfigRegistries.getRegistries().addDataRegistry(TechnicalEntityRegistry.INSTANCE);
+        ConfigRegistries.getRegistries().addDataRegistry(AmuletEnchantmentRegistry.INSTANCE);
+        ConfigRegistries.getRegistries().addDataRegistry(WeightedPerkAttributeRegistry.INSTANCE);
+        ConfigRegistries.getRegistries().addDataRegistry(OreItemRarityRegistry.VOID_TRASH_REWARD);
+        ConfigRegistries.getRegistries().addDataRegistry(OreBlockRarityRegistry.STONE_ENRICHMENT);
+        ConfigRegistries.getRegistries().addDataRegistry(OreBlockRarityRegistry.MINERALIS_RITUAL);
+        ConfigRegistries.getRegistries().addDataRegistry(EntityTransmutationRegistry.INSTANCE);
+
+        ToolsConfig.CONFIG.newSubSection(WandsConfig.CONFIG);
+
+        this.serverConfig.addConfigEntry(GeneralConfig.CONFIG);
+        this.serverConfig.addConfigEntry(ToolsConfig.CONFIG);
+        this.serverConfig.addConfigEntry(EntityConfig.CONFIG);
+        this.serverConfig.addConfigEntry(CraftingConfig.CONFIG);
+        this.serverConfig.addConfigEntry(LightNetworkConfig.CONFIG);
+        this.serverConfig.addConfigEntry(LogConfig.CONFIG);
+        this.serverConfig.addConfigEntry(PerkConfig.CONFIG);
+        this.serverConfig.addConfigEntry(AmuletRandomizeHelper.CONFIG);
+
+        RegistryPerks.initConfig(PerkConfig.CONFIG::newSubSection);
+
+        this.commonConfig.addConfigEntry(CommonGeneralConfig.CONFIG);
+
+        ConstellationEffectRegistry.addConfigEntries(this.serverConfig);
+        MantleEffectRegistry.addConfigEntries(this.serverConfig);
+        RegistryWorldGeneration.registerFeatureConfigurations(this.serverConfig);
     }
 
-    public void registerVariantName(Item item, String name) {}
+    public InternalRegistryPrimer getRegistryPrimer() {
+        return registryPrimer;
+    }
 
-    public void registerBlockRender(Block block, int metadata, String name) {}
+    public TickManager getTickManager() {
+        return tickManager;
+    }
 
-    public void registerItemRender(Item item, int metadata, String name) {}
+    // Utils
 
-    public <T extends Item> void registerItemRender(T item, int metadata, String name, boolean variant) {}
+    public FakePlayer getASFakePlayerServer(ServerWorld world) {
+        return FakePlayerFactory.get(world, new GameProfile(FAKEPLAYER_UUID, "AS-FakePlayer"));
+    }
 
-    public void registerFromSubItems(Item item, String name) {}
+    public File getASServerDataDirectory() {
+        MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+        if (server == null) {
+            return null;
+        }
+        File asDataDir = server.getActiveAnvilConverter().getFile(server.getFolderName(), AstralSorcery.MODID);
+        if (!asDataDir.exists()) {
+            asDataDir.mkdirs();
+        }
+        return asDataDir;
+    }
 
     public void scheduleClientside(Runnable r, int tickDelay) {}
 
     public void scheduleClientside(Runnable r) {
-        scheduleClientside(r, 0);
+        this.scheduleClientside(r, 0);
     }
 
     public void scheduleDelayed(Runnable r, int tickDelay) {
-        commonScheduler.addRunnable(r, tickDelay);
+        this.commonScheduler.addRunnable(r, tickDelay);
     }
 
     public void scheduleDelayed(Runnable r) {
-        scheduleDelayed(r, 0);
+        this.scheduleDelayed(r, 0);
     }
 
-    public void fireLightning(World world, Vector3 from, Vector3 to) {
-        fireLightning(world, from, to, null);
+    // GUI stuff
+
+    public void openGuiClient(GuiType type, CompoundNBT data) {
+        //No-Op
     }
 
-    public void fireLightning(World world, Vector3 from, Vector3 to, Color overlay) {
-        PktLightningEffect effect = new PktLightningEffect(from, to);
-        if(overlay != null) {
-            effect.setColorOverlay(overlay);
+    public void openGui(PlayerEntity player, GuiType type, Object... data) {
+        if (player instanceof ServerPlayerEntity && !(player instanceof FakePlayer)) {
+            PktOpenGui pkt = new PktOpenGui(type, type.serializeArguments(data));
+            PacketChannel.CHANNEL.sendToPlayer(player, pkt);
         }
-        PacketChannel.CHANNEL.sendToAllAround(effect, PacketChannel.pointFromPos(world, from.toBlockPos(), 40));
     }
 
-    @Override
-    public Object getServerGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {
-        if(id < 0 || id >= EnumGuiId.values().length) return null; //Out of range.
-        EnumGuiId guiType = EnumGuiId.values()[id];
+    // Mod events
 
-        TileEntity t = null;
-        if(guiType.getTileClass() != null) {
-            t = MiscUtils.getTileAt(world, new BlockPos(x, y, z), guiType.getTileClass(), true);
-            if(t == null) {
-                return null;
-            }
-        }
+    private void onCommonSetup(FMLCommonSetupEvent event) {
+        this.serverConfig.buildConfiguration();
 
-        switch (guiType) {
-            case ALTAR_DISCOVERY:
-                return new ContainerAltarDiscovery(player.inventory, (TileAltar) t);
-            case ALTAR_ATTUNEMENT:
-                return new ContainerAltarAttunement(player.inventory, (TileAltar) t);
-            case ALTAR_CONSTELLATION:
-                return new ContainerAltarConstellation(player.inventory, (TileAltar) t);
-            case ALTAR_TRAIT:
-                return new ContainerAltarTrait(player.inventory, (TileAltar) t);
-            case JOURNAL_STORAGE: {
-                ItemStack held = player.getHeldItem(EnumHand.MAIN_HAND);
-                if(!held.isEmpty()) {
-                    if(held.getItem() instanceof ItemJournal) {
-                        return new ContainerJournal(player.inventory, held, player.inventory.currentItem);
-                    }
-                }
-            }
-            case OBSERVATORY:
-                return new ContainerObservatory();
-            default:
-                break;
-        }
-        return null;
+        RegistryCapabilities.init(MinecraftForge.EVENT_BUS);
+        StarlightNetworkRegistry.setupRegistry();
+
+        RegistryWorldGeneration.addFeaturesToBiomes();
+
+        PatreonDataManager.loadPatreonEffects();
     }
 
-    @Override
-    public Object getClientGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
-        return null;
+    private void onEnqueueIMC(InterModEnqueueEvent event) {
+        Mods.CURIOS.executeIfPresent(() -> IntegrationCurios::initIMC);
     }
 
-    public void openGui(EnumGuiId guiId, EntityPlayer player, World world, int x, int y, int z) {
-        player.openGui(AstralSorcery.instance, guiId.ordinal(), world, x, y, z);
-    }
+    // Generic events
 
-    public static enum EnumGuiId {
-
-        TELESCOPE(TileTelescope.class),
-        HAND_TELESCOPE,
-        CONSTELLATION_PAPER,
-        ALTAR_DISCOVERY(TileAltar.class),
-        ALTAR_ATTUNEMENT(TileAltar.class),
-        ALTAR_CONSTELLATION(TileAltar.class),
-        ALTAR_TRAIT(TileAltar.class),
-        MAP_DRAWING(TileMapDrawingTable.class),
-        JOURNAL,
-        JOURNAL_STORAGE,
-        OBSERVATORY(TileObservatory.class),
-        SEXTANT,
-        KNOWLEDGE_CONSTELLATION;
-
-        private final Class<? extends TileEntity> tileClass;
-
-        private EnumGuiId() {
-            this(null);
-        }
-
-        private EnumGuiId(Class<? extends TileEntity> tileClass) {
-            this.tileClass = tileClass;
-        }
-
-        public Class<? extends TileEntity> getTileClass() {
-            return tileClass;
-        }
+    private void onClientInitialized(ClientInitializedEvent event) {
 
     }
 
+    private void onServerAboutToStart(FMLServerAboutToStartEvent event) {
+        IReloadableResourceManager mgr = event.getServer().getResourceManager();
+
+        mgr.addReloadListener(PerkTreeLoader.INSTANCE);
+    }
+
+    private void onServerStarted(FMLServerStartedEvent event) {
+        this.serverLifecycleListeners.forEach(ServerLifecycleListener::onServerStart);
+    }
+
+    private void onServerStarting(FMLServerStartingEvent event) {
+        CommandAstralSorcery.register(event.getCommandDispatcher());
+    }
+
+    private void onServerStopping(FMLServerStoppingEvent event) {
+        this.serverLifecycleListeners.forEach(ServerLifecycleListener::onServerStop);
+    }
+
+    private void onServerStop(FMLServerStoppedEvent event) {
+    }
 }

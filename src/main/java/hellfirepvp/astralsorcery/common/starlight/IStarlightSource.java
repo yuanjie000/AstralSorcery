@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,7 +8,6 @@
 
 package hellfirepvp.astralsorcery.common.starlight;
 
-import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
 import hellfirepvp.astralsorcery.common.starlight.transmission.ITransmissionSource;
 import net.minecraft.util.math.BlockPos;
 
@@ -21,21 +20,21 @@ import javax.annotation.Nonnull;
  * Created by HellFirePvP
  * Date: 01.08.2016 / 12:23
  */
-public interface IStarlightSource extends IStarlightTransmission {
+public interface IStarlightSource<T extends ITransmissionSource> extends IStarlightTransmission {
 
     @Nonnull
     public IIndependentStarlightSource provideNewSourceNode();
 
     @Nonnull
-    public ITransmissionSource provideSourceNode(BlockPos at);
+    public T provideSourceNode(BlockPos at);
 
-    public boolean needToUpdateStarlightSource();
+    public boolean needsToRefreshNetworkChain();
 
-    public void markUpdated();
+    public void markChainRebuilt();
 
     @Override
     @Nonnull
-    default public IPrismTransmissionNode provideTransmissionNode(BlockPos at) {
+    default public T provideTransmissionNode(BlockPos at) {
         return provideSourceNode(at);
     }
 

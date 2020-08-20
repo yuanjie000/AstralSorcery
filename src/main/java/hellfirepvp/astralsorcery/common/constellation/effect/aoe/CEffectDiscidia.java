@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,137 +8,133 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
+import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXMotionController;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.effect.CEffectEntityCollect;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
-import hellfirepvp.astralsorcery.common.entities.EntityTechnicalAmbient;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
-import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktParticleEvent;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.ConstellationEffectEntityCollect;
+import hellfirepvp.astralsorcery.common.data.config.registry.TechnicalEntityRegistry;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.util.DamageSourceUtil;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
+import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.EntityLiving;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.monster.EntityMob;
-import net.minecraft.entity.monster.IMob;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.MobEffects;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ForgeConfigSpec;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.awt.*;
 import java.util.List;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
- * Class: CEffectOrion
+ * Class: CEffectDiscidia
  * Created by HellFirePvP
- * Date: 07.11.2016 / 22:30
+ * Date: 23.11.2019 / 21:35
  */
-public class CEffectDiscidia extends CEffectEntityCollect<EntityLiving> {
+public class CEffectDiscidia extends ConstellationEffectEntityCollect<LivingEntity> {
 
-    public static double potencyMultiplier = 1;
-    public static float damage = 6.5F;
+    public static DiscidiaConfig CONFIG = new DiscidiaConfig();
 
-    public CEffectDiscidia(@Nullable ILocatable origin) {
-        super(origin, Constellations.discidia, "discidia", 16D, EntityLiving.class,
-                (entity) -> !entity.isDead && !(entity instanceof EntityTechnicalAmbient) && entity instanceof IMob);
+    public CEffectDiscidia(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.discidia, LivingEntity.class,
+                entity -> entity.isAlive() && !TechnicalEntityRegistry.INSTANCE.canAffect(entity));
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float percEffectVisibility, boolean extendedEffects) {
-        EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                pos.getX() + 0.5,
-                pos.getY() + 0.5,
-                pos.getZ() + 0.5);
-        p.motion((rand.nextFloat() * 0.1F) * (rand.nextBoolean() ? 1 : -1),
-                 (rand.nextFloat() * 0.1F) * (rand.nextBoolean() ? 1 : -1),
-                 (rand.nextFloat() * 0.1F) * (rand.nextBoolean() ? 1 : -1));
-        p.scale(0.25F).setColor(Color.DARK_GRAY);
-    }
-
-    @Override
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(world.getTotalWorldTime() % 20 != 0) return false;
-
-        percStrength *= potencyMultiplier;
-        if(percStrength < 1) {
-            if(world.rand.nextFloat() > percStrength) return false;
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        Vector3 playAt = new Vector3(pos).add(0.5, 0.5, 0.5);
+        if (pos.equals(pedestal.getPos())) {
+            playAt.add(
+                    rand.nextFloat() * 0.1 * (rand.nextBoolean() ? 1 : -1),
+                    rand.nextFloat() * 5,
+                    rand.nextFloat() * 0.1 * (rand.nextBoolean() ? 1 : -1));
         }
-        boolean did = false;
-        float actDamageDealt = percStrength * damage;
-        List<EntityLiving> entities = collectEntities(world, pos, modified);
-        if(!entities.isEmpty()) {
-            EntityPlayer owner = getOwningPlayerInWorld(world, pos);
-            DamageSource dmgSource = owner == null ? CommonProxy.dmgSourceStellar : DamageSourceUtil.withEntityDirect(CommonProxy.dmgSourceStellar, owner);
-            if(modified.isCorrupted() && owner != null && owner.getDistanceSq(pos) <= (modified.getSize() * modified.getSize())) {
-                DamageUtil.attackEntityFrom(owner, CommonProxy.dmgSourceStellar, 1.2F * percStrength);
-                did = true;
-            }
-            for (EntityLiving entity : entities) {
-                if(modified.isCorrupted()) {
-                    entity.heal(actDamageDealt);
-                    entity.addPotionEffect(new PotionEffect(MobEffects.RESISTANCE, 30, 2));
-                    did = true;
-                } else {
-                    int hrTime = entity.hurtResistantTime;
-                    entity.hurtResistantTime = 0;
-                    try {
-                        if(DamageUtil.attackEntityFrom(entity, dmgSource, actDamageDealt)) {
-                            PktParticleEvent ev = new PktParticleEvent(PktParticleEvent.ParticleEventType.CE_DMG_ENTITY, entity.posX, entity.posY + entity.height / 2, entity.posZ);
-                            PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, pos, 16));
-                        }
-                    } finally {
-                        entity.hurtResistantTime = hrTime;
-                    }
+        Vector3 motion = Vector3.random().setY(0).multiply(0.05);
+
+        EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                .spawn(playAt)
+                .alpha(VFXAlphaFunction.FADE_OUT)
+                .motion(VFXMotionController.decelerate(() -> motion))
+                .color(VFXColorFunction.constant(ColorsAS.CONSTELLATION_DISCIDIA))
+                .setScaleMultiplier(0.4F)
+                .setMaxAge(35);
+    }
+
+    @Override
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        if ((world.getGameTime() % 20) != 0) { // Run once per second.
+            return false;
+        }
+
+        boolean didEffect = false;
+
+        float damage = CONFIG.damage.get().floatValue(); //Randomize?..
+        PlayerEntity owner = this.getOwningPlayerInWorld(world, pos);
+        DamageSource src = owner == null ? CommonProxy.DAMAGE_SOURCE_STELLAR :
+                DamageSourceUtil.withEntityDirect(CommonProxy.DAMAGE_SOURCE_STELLAR, owner);
+        List<LivingEntity> entities = this.collectEntities(world, pos, properties);
+        for (LivingEntity entity : entities) {
+            if (properties.isCorrupted()) {
+                entity.heal(damage);
+                entity.addPotionEffect(new EffectInstance(Effects.RESISTANCE, 30, 1));
+                didEffect = true;
+
+            } else {
+                if (entity instanceof PlayerEntity &&
+                        !MiscUtils.canPlayerAttackServer(null, entity)) {
+                    continue;
                 }
+
+                DamageUtil.shotgunAttack(entity, e -> DamageUtil.attackEntityFrom(entity, src, damage));
+                didEffect = true;
             }
+
         }
-        return did;
+
+        return didEffect;
     }
 
     @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(this.range);
+    public Config getConfig() {
+        return CONFIG;
     }
 
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        super.loadFromConfig(cfg);
+    private static class DiscidiaConfig extends Config {
 
-        damage = cfg.getFloat(getKey() + "DamageDealt", getConfigurationSection(), damage, 0.1F, 400F, "Defines the max. possible damage dealt per damage tick.");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), 1.0F, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
-    }
+        private final double defaultDamage = 5D;
 
-    @SideOnly(Side.CLIENT)
-    public static void playParticles(PktParticleEvent event) {
-        if(!Minecraft.isFancyGraphicsEnabled()) return;
-        Vector3 pos = event.getVec();
-        EntityFXFacingParticle p;
-        for (int i = 0; i < 6; i++) {
-            p = EffectHelper.genericFlareParticle(
-                    pos.getX(),
-                    pos.getY(),
-                    pos.getZ());
-            p.motion((rand.nextFloat() * 0.05F) * (rand.nextBoolean() ? 1 : -1),
-                     (rand.nextFloat() * 0.05F) * (rand.nextBoolean() ? 1 : -1),
-                     (rand.nextFloat() * 0.05F) * (rand.nextBoolean() ? 1 : -1));
-            p.scale(0.25F).setColor(Color.RED);
+        public ForgeConfigSpec.DoubleValue damage;
+
+        public DiscidiaConfig() {
+            super("discidia", 10D, 2D);
+        }
+
+        @Override
+        public void createEntries(ForgeConfigSpec.Builder cfgBuilder) {
+            super.createEntries(cfgBuilder);
+
+            this.damage = cfgBuilder
+                    .comment("Defines the max. possible damage dealt per damage tick.")
+                    .translation(translationKey("damage"))
+                    .defineInRange("damage", this.defaultDamage, 0.1, 128.0D);
         }
     }
 }

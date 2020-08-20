@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -7,6 +7,10 @@
  ******************************************************************************/
 
 package hellfirepvp.astralsorcery.common.constellation;
+
+import hellfirepvp.astralsorcery.common.base.MoonPhase;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 import java.util.List;
 
@@ -21,4 +25,7 @@ public interface IMinorConstellation extends IConstellation {
 
     public List<MoonPhase> getShowupMoonPhases(long rSeed);
 
+    default public ITextComponent getInfoTraitEffect() {
+        return new TranslationTextComponent(this.getTranslationKey() + ".trait");
+    }
 }

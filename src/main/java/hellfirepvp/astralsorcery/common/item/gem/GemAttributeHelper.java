@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,53 +8,32 @@
 
 package hellfirepvp.astralsorcery.common.item.gem;
 
-import com.google.common.collect.Maps;
-import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.common.constellation.perk.attribute.AttributeTypeRegistry;
-import hellfirepvp.astralsorcery.common.constellation.perk.attribute.GemAttributeModifier;
-import hellfirepvp.astralsorcery.common.constellation.perk.attribute.PerkAttributeModifier;
-import hellfirepvp.astralsorcery.common.data.config.entry.ConfigEntry;
+import hellfirepvp.astralsorcery.common.data.config.registry.WeightedPerkAttributeRegistry;
+import hellfirepvp.astralsorcery.common.data.config.registry.sets.PerkAttributeEntry;
+import hellfirepvp.astralsorcery.common.perk.DynamicModifierHelper;
+import hellfirepvp.astralsorcery.common.perk.modifier.DynamicAttributeModifier;
+import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
+import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.common.config.Configuration;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: GemAttributeHelper
  * Created by HellFirePvP
- * Date: 18.11.2018 / 10:00
+ * Date: 09.08.2019 / 07:41
  */
 public class GemAttributeHelper {
 
     private static final Random rand = new Random();
-
-    private static Map<String, Integer> weightedModifiers = new HashMap<String, Integer>() {
-        {
-            put(AttributeTypeRegistry.ATTR_TYPE_HEALTH,                    12);
-            put(AttributeTypeRegistry.ATTR_TYPE_MOVESPEED,                 8);
-            put(AttributeTypeRegistry.ATTR_TYPE_ARMOR,                     8);
-            put(AttributeTypeRegistry.ATTR_TYPE_REACH,                     4);
-            put(AttributeTypeRegistry.ATTR_TYPE_ATTACK_SPEED,              2);
-            put(AttributeTypeRegistry.ATTR_TYPE_MELEE_DAMAGE,              8);
-            put(AttributeTypeRegistry.ATTR_TYPE_PROJ_DAMAGE,               8);
-            put(AttributeTypeRegistry.ATTR_TYPE_LIFE_RECOVERY,             2);
-            put(AttributeTypeRegistry.ATTR_TYPE_INC_HARVEST_SPEED,         2);
-            put(AttributeTypeRegistry.ATTR_TYPE_INC_CRIT_CHANCE,           4);
-            put(AttributeTypeRegistry.ATTR_TYPE_INC_CRIT_MULTIPLIER,       4);
-            put(AttributeTypeRegistry.ATTR_TYPE_INC_ALL_ELEMENTAL_RESIST,  2);
-            put(AttributeTypeRegistry.ATTR_TYPE_INC_DODGE,                 2);
-            put(AttributeTypeRegistry.ATTR_TYPE_INC_PERK_EXP,              1);
-
-            //TC runic shielding
-            put(AstralSorcery.MODID + ".compat.thaumcraft.runicshield", 2);
-        }
-    };
-    private static Map<String, Integer> configuredModifiers = Maps.newHashMap();
 
     private static float chance3Modifiers = 0.2F;
     private static float chance4Modifiers = 0.05F;
@@ -80,41 +59,44 @@ public class GemAttributeHelper {
     }
 
     public static boolean rollGem(ItemStack gem, Random random) {
-        if (!ItemPerkGem.getModifiers(gem).isEmpty()) {
+        if (!DynamicModifierHelper.getStaticModifiers(gem).isEmpty()) {
             return false;
         }
-        ItemPerkGem.GemType gemType = ItemPerkGem.getGemType(gem);
+        GemType gemType = ItemPerkGem.getGemType(gem);
         if (gemType == null) {
             return false;
         }
 
         int rolls = getPotentialMods(random, gemType.countModifier);
-        List<GemAttributeModifier> mods = new ArrayList<>();
+        List<DynamicAttributeModifier> mods = new ArrayList<>();
+        List<PerkAttributeEntry> configuredModifiers = WeightedPerkAttributeRegistry.INSTANCE.getConfiguredValues();
+
         for (int i = 0; i < rolls; i++) {
-            String type = null;
+            PerkAttributeEntry entry = null;
             if (allowDuplicateTypes) {
-                type = MiscUtils.getWeightedRandomEntry(configuredModifiers.keySet(),
-                        random, s -> configuredModifiers.getOrDefault(s, 1));
+                entry = MiscUtils.getWeightedRandomEntry(configuredModifiers, random, PerkAttributeEntry::getWeight);
             } else {
-                List<String> keys = new ArrayList<>(configuredModifiers.keySet());
-                while (!keys.isEmpty() && type == null) {
-                    String item = getWeightedResultAndRemove(keys, random);
+                List<PerkAttributeEntry> keys = new ArrayList<>(configuredModifiers);
+                while (!keys.isEmpty() && entry == null) {
+                    PerkAttributeEntry item = getWeightedResultAndRemove(keys, random);
                     if (item != null) {
                         boolean foundType = false;
-                        for (GemAttributeModifier m : mods) {
-                            if (m.getAttributeType().equals(item)) {
+                        for (DynamicAttributeModifier m : mods) {
+                            if (m.getAttributeType().equals(item.getType())) {
                                 foundType = true;
+                                break;
                             }
                         }
+
                         if (foundType) {
                             continue;
                         }
-                        type = item;
+                        entry = item;
                     }
                 }
             }
 
-            if (type == null) {
+            if (entry == null) {
                 continue;
             }
 
@@ -131,42 +113,42 @@ public class GemAttributeHelper {
                 value = lower + (MathHelper.clamp(random.nextFloat() * gemType.amplifierModifier, 0F, 1F) * (higher - lower));
             }
 
-            PerkAttributeModifier.Mode mode = isMultiplicative ? PerkAttributeModifier.Mode.STACKING_MULTIPLY : PerkAttributeModifier.Mode.ADDED_MULTIPLY;
+            ModifierType mode = isMultiplicative ? ModifierType.STACKING_MULTIPLY : ModifierType.ADDED_MULTIPLY;
             float rValue = isMultiplicative ? 1F + value : value;
 
+            PerkAttributeType type = entry.getType();
             if (allowDuplicateTypes) {
-                String fType = type;
-                GemAttributeModifier existing = MiscUtils.iterativeSearch(mods,
-                        mod -> mod.getAttributeType().equals(fType) && mod.getMode().equals(mode));
+                DynamicAttributeModifier existing = MiscUtils.iterativeSearch(mods,
+                        mod -> mod.getAttributeType().equals(type) && mod.getMode().equals(mode));
                 if (existing != null) {
                     mods.remove(existing);
                     float combinedValue;
                     if (isMultiplicative) {
-                        combinedValue = (existing.getFlatValue() - 1F) + (rValue - 1F);
+                        combinedValue = (existing.getRawValue() - 1F) + (rValue - 1F);
                     } else {
-                        combinedValue = existing.getFlatValue() + rValue;
+                        combinedValue = existing.getRawValue() + rValue;
                     }
                     if (combinedValue != 0F) {
-                        mods.add(new GemAttributeModifier(UUID.randomUUID(), type, mode, isMultiplicative ? combinedValue + 1 : combinedValue));
+                        mods.add(new DynamicAttributeModifier(UUID.randomUUID(), type, mode, isMultiplicative ? combinedValue + 1 : combinedValue));
                     } //If == 0 -> don't re-add anything.
                 } else {
-                    mods.add(new GemAttributeModifier(UUID.randomUUID(), type, mode, rValue));
+                    mods.add(new DynamicAttributeModifier(UUID.randomUUID(), type, mode, rValue));
                 }
             } else {
-                mods.add(new GemAttributeModifier(UUID.randomUUID(), type, mode, rValue));
+                mods.add(new DynamicAttributeModifier(UUID.randomUUID(), type, mode, rValue));
             }
         }
 
-        ItemPerkGem.setModifiers(gem, mods);
+        DynamicModifierHelper.addModifiers(gem, mods);
         return true;
     }
 
     @Nullable
-    private static String getWeightedResultAndRemove(List<String> list, Random random) {
+    private static PerkAttributeEntry getWeightedResultAndRemove(List<PerkAttributeEntry> list, Random random) {
         if (list.isEmpty()) {
             return null;
         }
-        String result = MiscUtils.getWeightedRandomEntry(list, random, s -> configuredModifiers.getOrDefault(s, 1));
+        PerkAttributeEntry result = MiscUtils.getWeightedRandomEntry(list, random, PerkAttributeEntry::getWeight);
         if (result != null) {
             list.remove(result);
         }
@@ -182,86 +164,6 @@ public class GemAttributeHelper {
             }
         }
         return mods;
-    }
-
-    public static class CfgEntry extends ConfigEntry {
-
-        public CfgEntry() {
-            super(Section.PERKS, "gem");
-        }
-
-        @Override
-        public void loadFromConfig(Configuration cfg) {
-            configuredModifiers.clear();
-
-            List<String> flattened = MiscUtils.flatten(weightedModifiers, (key, weight) -> key + "=" + weight);
-            String[] arr = flattened.toArray(new String[flattened.size()]);
-            String[] configuredList = cfg.getStringList(getKey() + "WeightedModifiers", getConfigurationSection(),
-                    arr, "List of weighted modifiers the gem may roll. Format: 'modifier=weight'");
-            fillModifiers(configuredList);
-
-            allowDuplicateTypes = cfg.getBoolean(getKey() + "AllowDuplicateTypes", getConfigurationSection(), allowDuplicateTypes,
-                    "If this is set to true, the same type of modifier (e.g. maxhealth) can roll multiple times");
-            chance3Modifiers = cfg.getFloat(getKey() + "Chance3Modifiers", getConfigurationSection(), chance3Modifiers, 0F, 1F,
-                    "Defines the chance the gem can roll a 3rd modifier. The lower this chance, the rarer.");
-            chance4Modifiers = cfg.getFloat(getKey() + "Chance4Modifiers", getConfigurationSection(), chance4Modifiers, 0F, 1F,
-                    "Defines the chance the gem can roll a 4th modifier. A 3rd modifier MUST be rolled before and the chances are independent of each other. The lower this chance, the rarer.");
-
-            allowNegativeModifiers = cfg.getBoolean(getKey() + "AllowNegativeModifier", getConfigurationSection(), allowNegativeModifiers,
-                    "If this is set to true, a modifier may roll negative instead of positive, depending on the configured chance (see ChanceNegativeModifier)");
-            chanceNegative = cfg.getFloat(getKey() + "ChanceNegativeModifier", getConfigurationSection(), chanceNegative, 0F, 1F,
-                    "If 'AllowNegativeModifier' is set to true, this defines the chance a given modifier may be negative instead of positive.");
-
-            allowMoreLessModifiers = cfg.getBoolean(getKey() + "AllowMoreLessModifier", getConfigurationSection(), allowMoreLessModifiers,
-                    "If this is set to true, a modifier may roll to be 'more'/'less' instead of 'increased'/'decreased', depending on the configured chance (see ChanceMoreLessModifier)");
-            chanceMultiplicative = cfg.getFloat(getKey() + "ChanceMoreLessModifier", getConfigurationSection(), chanceMultiplicative, 0F, 1F,
-                    "If 'AllowMoreLessModifier' is set to true, this defines the chance a given modifier may be 'more'/'less' instead of 'increased'/'decreased'.");
-
-            String section = getConfigurationSection() + ".ranges";
-
-            incModifierLower = cfg.getFloat("Increased_Lower_Bound", section, incModifierLower, 0F, 1F,
-                    "Defines the lower bound an 'increased' modifier can roll. Value is in percent (0.01 means 1%, 0.1 means 10%, ...)");
-            incModifierHigher = cfg.getFloat("Increased_Higher_Bound", section, incModifierHigher, 0F, 1F,
-                    "Defines the lower bound an 'increased' modifier can roll. Value is in percent (0.01 means 1%, 0.1 means 10%, ...)");
-
-            decModifierLower = cfg.getFloat("Decreased_Lower_Bound", section, decModifierLower, -1F, 0F,
-                    "Defines the lower bound an 'decreased' modifier can roll. Value is in percent (-0.01 means 1% decreased, -0.1 means 10% decreased, ...)");
-            decModifierHigher = cfg.getFloat("Decreased_Higher_Bound", section, decModifierHigher, -1F, 0F,
-                    "Defines the lower bound an 'decreased' modifier can roll. Value is in percent (-0.01 means 1% decreased, -0.1 means 10% decreased, ...)");
-
-            moreModifierLower = cfg.getFloat("More_Lower_Bound", section, moreModifierLower, 0F, 1F,
-                    "Defines the lower bound an 'more' modifier can roll. Value is in percent (0.01 means 1%, 0.1 means 10%, ...)");
-            moreModifierHigher = cfg.getFloat("More_Higher_Bound", section, moreModifierHigher, 0F, 1F,
-                    "Defines the lower bound an 'more' modifier can roll. Value is in percent (0.01 means 1%, 0.1 means 10%, ...)");
-
-            lessModifierLower = cfg.getFloat("Less_Lower_Bound", section, lessModifierLower, -1F, 0F,
-                    "Defines the lower bound an 'less' modifier can roll. Value is in percent (-0.01 means 1% less, -0.1 means 10% less, ...)");
-            lessModifierHigher = cfg.getFloat("Less_Higher_Bound", section, lessModifierHigher, -1F, 0F,
-                    "Defines the lower bound an 'less' modifier can roll. Value is in percent (-0.01 means 1% less, -0.1 means 10% less, ...)");
-        }
-
-        private void fillModifiers(String[] configuredList) {
-            for (String s : configuredList) {
-                String[] spl = s.split("=");
-                if (spl.length != 2) {
-                    AstralSorcery.log.info("Ignoring wrong format for gem attribute modifier: " + s + " (Too many/not enough '=' found!)");
-                    continue;
-                }
-
-                String key = spl[0];
-                String strWeight = spl[1];
-                int weight;
-                try {
-                    weight = Integer.parseInt(strWeight);
-                } catch (NumberFormatException exc) {
-                    AstralSorcery.log.info("Ignoring wrong format for gem attribute modifier: " + s + " (The weight '" + strWeight + "' is not an integer number!)");
-                    continue;
-                }
-
-                configuredModifiers.put(key, weight);
-            }
-        }
-
     }
 
 }

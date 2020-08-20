@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,245 +8,163 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
-import hellfirepvp.astralsorcery.common.base.OreTypes;
-import hellfirepvp.astralsorcery.common.block.BlockRitualLink;
+import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.effect.CEffectPositionListGen;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
-import hellfirepvp.astralsorcery.common.lib.MultiBlockArrays;
-import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktParticleEvent;
-import hellfirepvp.astralsorcery.common.tile.TileRitualLink;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.CEffectAbstractList;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.ListEntries;
+import hellfirepvp.astralsorcery.common.lib.BlocksAS;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
-import hellfirepvp.astralsorcery.common.util.*;
+import hellfirepvp.astralsorcery.common.util.BlockDropCaptureAssist;
+import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import hellfirepvp.astralsorcery.common.util.block.iterator.BlockPositionGenerator;
+import hellfirepvp.astralsorcery.common.util.block.iterator.BlockSpherePositionGenerator;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import hellfirepvp.astralsorcery.common.structure.array.BlockArray;
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
+import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.util.Constants;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.awt.*;
+import java.util.Collection;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: CEffectEvorsio
  * Created by HellFirePvP
- * Date: 26.07.2017 / 16:15
+ * Date: 24.11.2019 / 10:03
  */
-public class CEffectEvorsio extends CEffectPositionListGen<BlockBreakAssist.BreakEntry> {
+public class CEffectEvorsio extends CEffectAbstractList<ListEntries.PosEntry> {
 
-    private static BlockArray copyResizedPedestal = null;
+    public static EvorsioConfig CONFIG = new EvorsioConfig();
 
-    public static boolean enabled = true;
-    public static float potencyMultiplier = 1F;
-    public static int searchRange = 13;
-
-    public CEffectEvorsio(@Nullable ILocatable origin) {
-        super(origin, Constellations.evorsio, "evorsio", 2, (w, pos) -> isAllowedToBreak(origin, w, pos), (pos) -> null);
+    public CEffectEvorsio(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.evorsio, 1, (world, pos, state) -> true);
+        this.excludeRitualPositions();
     }
 
-    private static boolean isAllowedToBreak(@Nullable ILocatable origin, World world, BlockPos pos) {
-        if(!MiscUtils.isChunkLoaded(world, pos)) return false;
-        float hardness = world.getBlockState(pos).getBlockHardness(world, pos);
-        if(world.isAirBlock(pos) || world.getBlockState(pos).getBlock() instanceof BlockRitualLink || hardness < 0 || hardness > 75) {
+    @Nonnull
+    @Override
+    protected BlockPositionGenerator createPositionStrategy() {
+        return new BlockSpherePositionGenerator();
+    }
+
+    @Nullable
+    @Override
+    public ListEntries.PosEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+        return new ListEntries.PosEntry(pos);
+    }
+
+    @Nullable
+    @Override
+    public ListEntries.PosEntry createElement(World world, BlockPos pos) {
+        return new ListEntries.PosEntry(pos);
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        Vector3 motion = Vector3.random().multiply(0.1);
+        EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                .spawn(new Vector3(pos).add(0.5, 1.5, 0.5))
+                .alpha(VFXAlphaFunction.FADE_OUT)
+                .setMotion(motion)
+                .color(VFXColorFunction.constant(ColorsAS.CONSTELLATION_EVORSIO))
+                .setScaleMultiplier(0.3F + rand.nextFloat() * 0.4F)
+                .setMaxAge(50);
+    }
+
+    @Override
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        if (!(world instanceof ServerWorld)) {
             return false;
         }
-        if(origin != null && MiscUtils.isChunkLoaded(world, origin.getLocationPos())) {
-            BlockPos originPedestal = origin.getLocationPos();
-            TileRitualLink link = MiscUtils.getTileAt(world, originPedestal, TileRitualLink.class, true);
-            if(link != null && link.getLinkedTo() != null && MiscUtils.isChunkLoaded(world, link.getLinkedTo())) {
-                originPedestal = link.getLinkedTo();
-            }
-            TileRitualPedestal pedestal = MiscUtils.getTileAt(world, originPedestal, TileRitualPedestal.class, true);
-            if(pedestal != null) {
-                if(copyResizedPedestal == null) {
-                    if(MultiBlockArrays.patternRitualPedestalWithLink != null) {
-                        copyResizedPedestal = new BlockArray();
-                        for (int i = 0; i < 5; i++) {
-                            int finalI = i;
-                            copyResizedPedestal.addAll(MultiBlockArrays.patternRitualPedestalWithLink, (p) -> p.add(0, finalI, 0));
-                        }
+
+        ListEntries.PosEntry newEntry = this.peekNewPosition(world, pos, properties);
+        if (newEntry != null) {
+            BlockPos at = newEntry.getPos();
+
+            if (properties.isCorrupted()) {
+                if (at.getY() < pos.getY() && world.isAirBlock(at)) {
+                    double distance = pos.distanceSq(at) / (properties.getSize() * properties.getSize());
+                    BlockState state = Blocks.COBBLESTONE.getDefaultState();
+                    if (distance >= 0.85F && rand.nextInt(4) == 0) {
+                        state = Blocks.DIRT.getDefaultState();
                     }
-                }
-                if(copyResizedPedestal != null) {
-                    if(copyResizedPedestal.hasBlockAt(pos.subtract(originPedestal))) {
-                        return false;
+                    if (distance <= 0.25F) {
+                        state = Blocks.STONE.getDefaultState();
+                    } else if (distance <= 0.1F && rand.nextInt(5) == 0) {
+                        state = Blocks.OBSIDIAN.getDefaultState();
                     }
+                    world.setBlockState(at, state, Constants.BlockFlags.DEFAULT_AND_RERENDER);
                 }
-                return true;
-            }
-            // Critical state: Has a link leading into a nonexistent pedestal OR
-            // is an unlinked anchor casting a ritual...
-            return true;
-        }
-        return true;
-    }
-
-    @Override
-    public BlockBreakAssist.BreakEntry newElement(World world, BlockPos at) {
-        return new BlockBreakAssist.BreakEntry(0F, world, at, world.getBlockState(at));
-    }
-
-    @Override
-    @SideOnly(Side.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float percEffectVisibility, boolean extendedEffects) {
-        if(rand.nextInt(4) == 0) {
-            Vector3 at = new Vector3(
-                    pos.getX() + rand.nextFloat() * 5 * (rand.nextBoolean() ? 1 : -1) + 0.5,
-                    pos.getY() + rand.nextFloat() * 2 + 0.5,
-                    pos.getZ() + rand.nextFloat() * 5 * (rand.nextBoolean() ? 1 : -1) + 0.5);
-            for (int i = 0; i < 15; i++) {
-                EntityFXFacingParticle p = EffectHelper.genericFlareParticle(at.getX(), at.getY(), at.getZ());
-                p.gravity(0.004);
-                p.scale(0.25F).setMaxAge(35 + rand.nextInt(10));
-                Vector3 mot = new Vector3();
-                MiscUtils.applyRandomOffset(mot, rand, 0.01F * rand.nextFloat() + 0.01F);
-                p.motion(mot.getX(), mot.getY(), mot.getZ());
-                switch (rand.nextInt(3)) {
-                    case 0:
-                    case 1:
-                        p.setColor(Constellations.evorsio.getConstellationColor());
-                        break;
-                    case 2:
-                        p.setColor(Constellations.armara.getConstellationColor());
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-    }
-
-    @Override
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(!enabled) return false;
-        percStrength *= potencyMultiplier;
-        if(percStrength < 1) {
-            if(world.rand.nextFloat() > percStrength) return false;
-        }
-
-        if(modified.isCorrupted()) {
-            double searchRange = modified.getSize();
-            double offX = -searchRange + world.rand.nextFloat() * (2 * searchRange + 1);
-            double offY = -searchRange + world.rand.nextFloat() * (2 * searchRange + 1);
-            double offZ = -searchRange + world.rand.nextFloat() * (2 * searchRange + 1);
-            BlockPos at = pos.add(offX, offY, offZ);
-            if(!world.isAirBlock(at) && !world.getBlockState(at).getBlock().isReplaceable(world, at)) {
                 return false;
             }
-            IBlockState toSet = rand.nextBoolean() ? Blocks.DIRT.getDefaultState() : Blocks.STONE.getDefaultState();
-            if(rand.nextInt(20) == 0) {
-                ItemStack randOre = OreTypes.RITUAL_MINERALIS.getNonWeightedOre(rand);
-                if(!randOre.isEmpty()) {
-                    IBlockState state = ItemUtils.createBlockState(randOre);
-                    if(state != null) {
-                        toSet = state;
-                    }
-                }
-            }
-            TileRitualLink link = MiscUtils.getTileAt(world, pos, TileRitualLink.class, false);
-            if(link != null) {
-                if(!at.equals(pos)) {
-                    if(world.setBlockState(at, toSet, 2)) {
-                        world.playEvent(2001, at, Block.getStateId(toSet));
-                        return true;
-                    }
-                }
-            } else {
-                TileRitualPedestal ped = MiscUtils.getTileAt(world, pos, TileRitualPedestal.class, false);
-                if(ped != null) {
-                    if(at.getZ() == pos.getZ() && at.getX() == pos.getX()) {
-                        return false;
-                    }
-                    BlockArray ba = new BlockArray();
-                    if(MultiBlockArrays.patternRitualPedestalWithLink != null) {
-                        for (int i = 0; i < 5; i++) {
-                            int finalI = i;
-                            ba.addAll(MultiBlockArrays.patternRitualPedestalWithLink, (p) -> p.add(pos).add(0, finalI, 0));
-                        }
-                        if(!ba.hasBlockAt(at)) {
-                            if(world.setBlockState(at, toSet, 2)) {
-                                world.playEvent(2001, at, Block.getStateId(toSet));
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
 
-        } else {
-            if(world instanceof WorldServer && findNewPosition(world, pos, modified)) {
-                BlockBreakAssist.BreakEntry be = getRandomElement(world.rand);
-                if(be != null) {
-                    removeElement(be);
-
-                    boolean broken = false;
+            TileRitualPedestal pedestal = getPedestal(world, pos);
+            if (pedestal != null) {
+                BlockState state = world.getBlockState(at);
+                Collection<BlockState> blacklist = pedestal.getConfiguredBlockStates();
+                this.addDefaultBreakBlacklist(blacklist);
+                if (this.canBreakBlock(world, at, state, blacklist)) {
                     BlockDropCaptureAssist.startCapturing();
                     try {
-                        broken = MiscUtils.breakBlockWithoutPlayer((WorldServer) world, be.getPos(), world.getBlockState(be.getPos()), true, true, true);
+                        BlockUtils.breakBlockWithoutPlayer((ServerWorld) world, at, state,
+                                ItemStack.EMPTY, true, true, true);
                     } finally {
                         NonNullList<ItemStack> captured = BlockDropCaptureAssist.getCapturedStacksAndStop();
-                        captured.forEach((stack) -> ItemUtils.dropItem(world, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, stack));
+                        captured.forEach((stack) -> ItemUtils.dropItemNaturally(world, pos.getX() + 0.5, pos.getY() + 1.5, pos.getZ() + 0.5, stack));
                     }
-                    if (broken) {
-                        PktParticleEvent ev = new PktParticleEvent(PktParticleEvent.ParticleEventType.CE_BREAK_BLOCK, be.getPos());
-                        PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, be.getPos(), 16));
-                    }
+                    return true;
                 }
             }
         }
         return false;
     }
 
-    @SideOnly(Side.CLIENT)
-    public static void playBreakEffects(PktParticleEvent pktParticleEvent) {
-        Vector3 at = pktParticleEvent.getVec().add(0.5, 0.5, 0.5);
-        for (int i = 0; i < 15; i++) {
-            EntityFXFacingParticle p = EffectHelper.genericFlareParticle(at.getX(), at.getY(), at.getZ());
-            p.gravity(0.004);
-            p.scale(0.25F).setMaxAge(35 + rand.nextInt(10));
-            Vector3 mot = new Vector3();
-            MiscUtils.applyRandomOffset(mot, rand, 0.01F * rand.nextFloat() + 0.01F);
-            p.motion(mot.getX(), mot.getY(), mot.getZ());
-            switch (rand.nextInt(3)) {
-                case 0:
-                    p.setColor(Color.WHITE);
-                    break;
-                case 1:
-                    p.setColor(Constellations.evorsio.getConstellationColor());
-                    break;
-                case 2:
-                    p.setColor(Constellations.armara.getConstellationColor());
-                    break;
-                default:
-                    break;
-            }
+    private boolean canBreakBlock(World world, BlockPos pos, BlockState state, Collection<BlockState> blacklist) {
+        if (blacklist.contains(state)) {
+            return false;
+        }
+        float hardness = state.getBlockHardness(world, pos);
+        if (hardness < 0 || hardness >= 75) {
+            return false;
+        }
+        return !state.isAir(world, pos);
+    }
+
+    private void addDefaultBreakBlacklist(Collection<BlockState> blacklist) {
+        blacklist.add(BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL.getDefaultState());
+        blacklist.add(BlocksAS.ROCK_COLLECTOR_CRYSTAL.getDefaultState());
+        blacklist.add(BlocksAS.LENS.getDefaultState());
+        blacklist.add(BlocksAS.PRISM.getDefaultState());
+    }
+
+    @Override
+    public Config getConfig() {
+        return CONFIG;
+    }
+
+    private static class EvorsioConfig extends Config {
+
+        public EvorsioConfig() {
+            super("evorsio", 6D, 1D);
         }
     }
-
-    @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(CEffectEvorsio.searchRange);
-    }
-
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        searchRange = cfg.getInt(getKey() + "Range", getConfigurationSection(), searchRange, 1, 32, "Defines the radius (in blocks) in which the ritual will search for blocks to break.");
-        enabled = cfg.getBoolean(getKey() + "Enabled", getConfigurationSection(), enabled, "Set to false to disable this ConstellationEffect.");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), potencyMultiplier, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
-    }
-
 }

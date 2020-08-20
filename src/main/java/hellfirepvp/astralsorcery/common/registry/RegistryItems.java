@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,46 +8,37 @@
 
 package hellfirepvp.astralsorcery.common.registry;
 
+import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.CommonProxy;
+import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
+import hellfirepvp.astralsorcery.common.block.base.CustomItemBlockProperties;
 import hellfirepvp.astralsorcery.common.item.*;
-import hellfirepvp.astralsorcery.common.item.base.IItemVariants;
+import hellfirepvp.astralsorcery.common.item.armor.ItemMantle;
 import hellfirepvp.astralsorcery.common.item.base.render.ItemDynamicColor;
-import hellfirepvp.astralsorcery.common.item.block.ItemBlockAltar;
-import hellfirepvp.astralsorcery.common.item.block.ItemBlockCustomName;
-import hellfirepvp.astralsorcery.common.item.block.ItemBlockRitualPedestal;
-import hellfirepvp.astralsorcery.common.item.block.ItemCollectorCrystal;
+import hellfirepvp.astralsorcery.common.item.crystal.ItemAttunedCelestialCrystal;
+import hellfirepvp.astralsorcery.common.item.crystal.ItemAttunedRockCrystal;
 import hellfirepvp.astralsorcery.common.item.crystal.ItemCelestialCrystal;
-import hellfirepvp.astralsorcery.common.item.crystal.ItemRockCrystalSimple;
-import hellfirepvp.astralsorcery.common.item.crystal.ItemTunedCelestialCrystal;
-import hellfirepvp.astralsorcery.common.item.crystal.ItemTunedRockCrystal;
-import hellfirepvp.astralsorcery.common.item.gem.ItemPerkGem;
-import hellfirepvp.astralsorcery.common.item.knowledge.ItemFragmentCapsule;
-import hellfirepvp.astralsorcery.common.item.knowledge.ItemKnowledgeFragment;
+import hellfirepvp.astralsorcery.common.item.crystal.ItemRockCrystal;
+import hellfirepvp.astralsorcery.common.item.dust.ItemIlluminationPowder;
+import hellfirepvp.astralsorcery.common.item.dust.ItemNocturnalPowder;
+import hellfirepvp.astralsorcery.common.item.gem.ItemPerkGemDay;
+import hellfirepvp.astralsorcery.common.item.gem.ItemPerkGemNight;
+import hellfirepvp.astralsorcery.common.item.gem.ItemPerkGemSky;
+import hellfirepvp.astralsorcery.common.item.lens.*;
 import hellfirepvp.astralsorcery.common.item.tool.*;
-import hellfirepvp.astralsorcery.common.item.tool.sextant.ItemSextant;
-import hellfirepvp.astralsorcery.common.item.tool.wand.ItemWand;
-import hellfirepvp.astralsorcery.common.item.useables.ItemPerkSeal;
-import hellfirepvp.astralsorcery.common.item.useables.ItemShiftingStar;
-import hellfirepvp.astralsorcery.common.item.useables.ItemUsableDust;
-import hellfirepvp.astralsorcery.common.item.wand.ItemArchitectWand;
-import hellfirepvp.astralsorcery.common.item.wand.ItemExchangeWand;
-import hellfirepvp.astralsorcery.common.item.wand.ItemGrappleWand;
-import hellfirepvp.astralsorcery.common.item.wand.ItemIlluminationWand;
-import hellfirepvp.astralsorcery.common.item.wearable.ItemCape;
-import hellfirepvp.astralsorcery.common.item.wearable.ItemEnchantmentAmulet;
-import hellfirepvp.astralsorcery.common.lib.BlocksAS;
+import hellfirepvp.astralsorcery.common.item.useables.*;
+import hellfirepvp.astralsorcery.common.item.wand.*;
+import hellfirepvp.astralsorcery.common.util.NameUtil;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockDispenser;
-import net.minecraft.block.material.Material;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.init.SoundEvents;
-import net.minecraft.item.*;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.common.util.EnumHelper;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.ColorHandlerEvent;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import static hellfirepvp.astralsorcery.common.lib.ItemsAS.*;
@@ -57,196 +48,126 @@ import static hellfirepvp.astralsorcery.common.lib.ItemsAS.*;
  * The complete source code for this mod can be found on github.
  * Class: RegistryItems
  * Created by HellFirePvP
- * Date: 07.05.2016 / 15:03
+ * Date: 01.06.2019 / 13:57
  */
 public class RegistryItems {
 
-    public static List<ItemDynamicColor> pendingDynamicColorItems = new LinkedList<>();
+    private static List<ItemDynamicColor> colorItems = Lists.newArrayList();
 
-    public static Item.ToolMaterial crystalToolMaterial;
-    public static EnumRarity rarityCelestial, rarityRelic;
-    public static ItemArmor.ArmorMaterial imbuedLeatherMaterial;
+    private RegistryItems() {}
 
-    public static CreativeTabs creativeTabAstralSorcery,
-            creativeTabAstralSorceryPapers,
-            creativeTabAstralSorceryTunedCrystals;
+    public static void registerItems() {
+        AQUAMARINE = registerItem(new ItemAquamarine());
+        RESONATING_GEM = registerItem(new ItemResonatingGem());
+        GLASS_LENS = registerItem(new ItemGlassLens());
+        PARCHMENT = registerItem(new ItemParchment());
+        STARMETAL_INGOT = registerItem(new ItemStarmetalIngot());
+        STARDUST = registerItem(new ItemStardust());
 
-    public static void setupDefaults() {
-        creativeTabAstralSorcery = new CreativeTabs(AstralSorcery.MODID) {
-            @Override
-            public ItemStack getTabIconItem() {
-                return new ItemStack(journal);
-            }
-        };
-        creativeTabAstralSorceryPapers = new CreativeTabs(AstralSorcery.MODID + ".papers") {
-            @Override
-            public ItemStack getTabIconItem() {
-                return new ItemStack(constellationPaper);
-            }
-        };
-        creativeTabAstralSorceryTunedCrystals = new CreativeTabs(AstralSorcery.MODID + ".crystals") {
-            @Override
-            public ItemStack getTabIconItem() {
-                return new ItemStack(tunedRockCrystal);
-            }
-        };
+        PERK_GEM_SKY = registerItem(new ItemPerkGemSky());
+        PERK_GEM_DAY = registerItem(new ItemPerkGemDay());
+        PERK_GEM_NIGHT = registerItem(new ItemPerkGemNight());
+        CRYSTAL_AXE = registerItem(new ItemCrystalAxe());
+        CRYSTAL_PICKAXE = registerItem(new ItemCrystalPickaxe());
+        CRYSTAL_SHOVEL = registerItem(new ItemCrystalShovel());
+        CRYSTAL_SWORD = registerItem(new ItemCrystalSword());
+        INFUSED_CRYSTAL_AXE = registerItem(new ItemInfusedCrystalAxe());
+        INFUSED_CRYSTAL_PICKAXE = registerItem(new ItemInfusedCrystalPickaxe());
+        INFUSED_CRYSTAL_SHOVEL = registerItem(new ItemInfusedCrystalShovel());
+        INFUSED_CRYSTAL_SWORD = registerItem(new ItemInfusedCrystalSword());
 
-        crystalToolMaterial = EnumHelper.addToolMaterial("CRYSTAL", 3, 1000, 20.0F, 5.5F, 40);
-        crystalToolMaterial.setRepairItem(ItemStack.EMPTY);
+        TOME = registerItem(new ItemTome());
+        CONSTELLATION_PAPER = registerItem(new ItemConstellationPaper());
+        ENCHANTMENT_AMULET = registerItem(new ItemEnchantmentAmulet());
+        KNOWLEDGE_SHARE = registerItem(new ItemKnowledgeShare());
+        WAND = registerItem(new ItemWand());
+        CHISEL = registerItem(new ItemChisel());
+        RESONATOR = registerItem(new ItemResonator());
+        LINKING_TOOL = registerItem(new ItemLinkingTool());
+        ILLUMINATION_WAND = registerItem(new ItemIlluminationWand());
+        ARCHITECT_WAND = registerItem(new ItemArchitectWand());
+        EXCHANGE_WAND = registerItem(new ItemExchangeWand());
+        GRAPPLE_WAND = registerItem(new ItemGrappleWand());
+        BLINK_WAND = registerItem(new ItemBlinkWand());
+        HAND_TELESCOPE = registerItem(new ItemHandTelescope());
+        INFUSED_GLASS = registerItem(new ItemInfusedGlass());
 
-        rarityCelestial = EnumHelper.addRarity("CELESTIAL", TextFormatting.BLUE, "Celestial");
-        rarityRelic = EnumHelper.addRarity("AS_RELIC", TextFormatting.GOLD, "Relic");
+        MANTLE = registerItem(new ItemMantle());
 
-        imbuedLeatherMaterial = EnumHelper.addArmorMaterial("AS_IMBUEDLEATHER",
-                "as.imbuedleather", 26, new int[] { 0, 0, 7, 0}, 30, SoundEvents.ITEM_ARMOR_EQUIP_LEATHER, 2);
-        imbuedLeatherMaterial.setRepairItem(ItemCraftingComponent.MetaType.STARDUST.asStack());
+        PERK_SEAL = registerItem(new ItemPerkSeal());
+        NOCTURNAL_POWDER = registerItem(new ItemNocturnalPowder());
+        ILLUMINATION_POWDER = registerItem(new ItemIlluminationPowder());
+        SHIFTING_STAR = registerItem(new ItemShiftingStar());
+        SHIFTING_STAR_AEVITAS = registerItem(new ItemShiftingStarAevitas());
+        SHIFTING_STAR_ARMARA = registerItem(new ItemShiftingStarArmara());
+        SHIFTING_STAR_DISCIDIA = registerItem(new ItemShiftingStarDiscidia());
+        SHIFTING_STAR_EVORSIO = registerItem(new ItemShiftingStarEvorsio());
+        SHIFTING_STAR_VICIO = registerItem(new ItemShiftingStarVicio());
+
+        COLORED_LENS_FIRE = registerItem(new ItemColoredLensFire());
+        COLORED_LENS_BREAK = registerItem(new ItemColoredLensBreak());
+        COLORED_LENS_GROWTH = registerItem(new ItemColoredLensGrowth());
+        COLORED_LENS_DAMAGE = registerItem(new ItemColoredLensDamage());
+        COLORED_LENS_REGENERATION = registerItem(new ItemColoredLensRegeneration());
+        COLORED_LENS_PUSH = registerItem(new ItemColoredLensPush());
+        COLORED_LENS_SPECTRAL = registerItem(new ItemColoredLensSpectral());
+
+        ROCK_CRYSTAL = registerItem(new ItemRockCrystal());
+        ATTUNED_ROCK_CRYSTAL = registerItem(new ItemAttunedRockCrystal());
+        CELESTIAL_CRYSTAL = registerItem(new ItemCelestialCrystal());
+        ATTUNED_CELESTIAL_CRYSTAL = registerItem(new ItemAttunedCelestialCrystal());
     }
 
-    public static void init() {
-        registerItems();
-
-        registerBlockItems();
-
-        registerDispenseBehavior();
+    public static void registerItemBlocks() {
+        RegistryBlocks.ITEM_BLOCKS.forEach(RegistryItems::registerItemBlock);
     }
 
-    //"Normal" items
-    private static void registerItems() {
-        craftingComponent = registerItem(new ItemCraftingComponent());
-        constellationPaper = registerItem(new ItemConstellationPaper());
-        infusedGlass = registerItem(new ItemInfusedGlass());
-
-        rockCrystal = registerItem(new ItemRockCrystalSimple());
-        tunedRockCrystal = registerItem(new ItemTunedRockCrystal());
-
-        celestialCrystal = registerItem(new ItemCelestialCrystal());
-        tunedCelestialCrystal = registerItem(new ItemTunedCelestialCrystal());
-
-        journal = registerItem(new ItemJournal());
-        handTelescope = registerItem(new ItemHandTelescope());
-        linkingTool = registerItem(new ItemLinkingTool());
-        wand = registerItem(new ItemWand());
-        sextant = registerItem(new ItemSextant());
-        illuminationWand = registerItem(new ItemIlluminationWand());
-        coloredLens = registerItem(new ItemColoredLens());
-        skyResonator = registerItem(new ItemSkyResonator());
-        shiftingStar = registerItem(new ItemShiftingStar());
-        //roseBranchBow = registerItem(new ItemRoseBranchBow());
-        architectWand = registerItem(new ItemArchitectWand());
-        exchangeWand = registerItem(new ItemExchangeWand());
-        grapplingWand = registerItem(new ItemGrappleWand());
-        useableDust = registerItem(new ItemUsableDust());
-        knowledgeShare = registerItem(new ItemKnowledgeShare());
-        perkSeal = registerItem(new ItemPerkSeal());
-        knowledgeFragment = registerItem(new ItemKnowledgeFragment());
-        fragmentCapsule = registerItem(new ItemFragmentCapsule());
-        perkGem = registerItem(new ItemPerkGem());
-
-        crystalPickaxe = registerItem(new ItemCrystalPickaxe());
-        crystalShovel = registerItem(new ItemCrystalShovel());
-        crystalAxe = registerItem(new ItemCrystalAxe());
-        crystalSword = registerItem(new ItemCrystalSword());
-        chargedCrystalAxe = registerItem(new ItemChargedCrystalAxe());
-        chargedCrystalSword = registerItem(new ItemChargedCrystalSword());
-        chargedCrystalPickaxe = registerItem(new ItemChargedCrystalPickaxe());
-        chargedCrystalShovel = registerItem(new ItemChargedCrystalShovel());
-
-        armorImbuedCape = registerItem(new ItemCape());
-        enchantmentAmulet = registerItem(new ItemEnchantmentAmulet());
+    public static void registerFluidContainerItems() {
+        RegistryFluids.FLUID_HOLDER_ITEMS.forEach(RegistryItems::registerItem);
     }
 
-    //Items associated to blocks/itemblocks
-    private static void registerBlockItems() {
-        RegistryBlocks.defaultItemBlocksToRegister.forEach(RegistryItems::registerDefaultItemBlock);
-        registerItem(new ItemSlab(BlocksAS.blockMarbleSlab, BlocksAS.blockMarbleSlab, BlocksAS.blockMarbleDoubleSlab));
-        RegistryBlocks.customNameItemBlocksToRegister.forEach(RegistryItems::registerCustomNameItemBlock);
-
-        registerItem(new ItemBlockRitualPedestal());
-        registerItem(new ItemBlockAltar());
-
-        registerItem(new ItemCollectorCrystal(BlocksAS.collectorCrystal));
-        registerItem(new ItemCollectorCrystal(BlocksAS.celestialCollectorCrystal));
+    @OnlyIn(Dist.CLIENT)
+    public static void registerColors(ColorHandlerEvent.Item itemColorEvent) {
+        colorItems.forEach(item -> itemColorEvent.getItemColors().register(item::getColor, (Item) item));
     }
 
-    private static void registerDispenseBehavior() {
-        BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(useableDust, useableDust);
-    }
-
-    private static <T extends Block> void registerCustomNameItemBlock(T block) {
-        registerItem(new ItemBlockCustomName(block), block.getClass().getSimpleName().toLowerCase());
-    }
-
-    private static <T extends Block> void registerDefaultItemBlock(T block) {
-        registerDefaultItemBlock(block, block.getClass().getSimpleName().toLowerCase());
-    }
-
-    private static <T extends Block> void registerDefaultItemBlock(T block, String name) {
-        registerItem(new ItemBlock(block), name);
-    }
-
-    private static <T extends Item> T registerItem(T item, String name) {
-        item.setUnlocalizedName(name);
-        item.setRegistryName(name);
-        register(item, name);
-        return item;
+    private static void registerItemBlock(CustomItemBlock block) {
+        BlockItem itemBlock = block.createItemBlock(buildItemBlockProperties((Block) block));
+        itemBlock.setRegistryName(itemBlock.getBlock().getRegistryName());
+        AstralSorcery.getProxy().getRegistryPrimer().register(itemBlock);
     }
 
     private static <T extends Item> T registerItem(T item) {
-        String simpleName = item.getClass().getSimpleName().toLowerCase();
-        if (item instanceof ItemBlock) {
-            simpleName = ((ItemBlock) item).getBlock().getClass().getSimpleName().toLowerCase();
+        ResourceLocation name = NameUtil.fromClass(item, "Item");
+        item.setRegistryName(name);
+        AstralSorcery.getProxy().getRegistryPrimer().register(item);
+        if (item instanceof ItemDynamicColor) {
+            colorItems.add((ItemDynamicColor) item);
         }
-        return registerItem(item, simpleName);
+        return item;
     }
 
-    /*private static <T extends IForgeRegistryEntry> T registerItem(String modId, T item) {
-        return registerItem(modId, item, item.getClass().getSimpleName());
-    }
-
-
-    private static <T extends IForgeRegistryEntry> T registerItem(String modId, T item, String name) {
-        try {
-            LoadController modController = (LoadController) Loader.class.getField("modController").get(Loader.PERK_TREE());
-            Object oldMod = modController.getClass().getField("activeContainer").get(modController);
-            modController.getClass().getField("activeContainer").set(modController, Loader.PERK_TREE().getIndexedModList().get(modId));
-
-            register(item, name);
-
-            modController.getClass().getField("activeContainer").set(modController, oldMod);
-            return item;
-        } catch (Exception exc) {
-            AstralSorcery.log.error("Could not register item with name " + name);
-            return null;
-        }
-    }*/
-
-    private static <T extends IForgeRegistryEntry<T>> void register(T item, String name) {
-        CommonProxy.registryPrimer.register(item);
-
-        if (item instanceof Item) {
-            registerItemInformations((Item) item, name);
-            if(item instanceof ItemDynamicColor) {
-                pendingDynamicColorItems.add((ItemDynamicColor) item);
+    private static Item.Properties buildItemBlockProperties(Block block) {
+        Item.Properties props = new Item.Properties();
+        props.group(CommonProxy.ITEM_GROUP_AS);
+        if (block instanceof CustomItemBlockProperties) {
+            ItemGroup group = ((CustomItemBlockProperties) block).getItemGroup();
+            if (group != null) {
+                props.group(group);
             }
-        }
-    }
-
-    private static <T extends Item> void registerItemInformations(T item, String name) {
-        if (item instanceof IItemVariants) {
-            for (int i = 0; i < ((IItemVariants) item).getVariants().length; i++) {
-                int m = i;
-                if (((IItemVariants) item).getVariantMetadatas() != null) {
-                    m = ((IItemVariants) item).getVariantMetadatas()[i];
-                }
-                String vName = name + "_" + ((IItemVariants) item).getVariants()[i];
-                if (((IItemVariants) item).getVariants()[i].equals("*")) {
-                    vName = name;
-                }
-                AstralSorcery.proxy.registerItemRender(item, m, vName, true);
+            if (!((CustomItemBlockProperties) block).canItemBeRepaired()) {
+                props.setNoRepair();
             }
-        } else if(!(item instanceof ItemBlockCustomName)) {
-            AstralSorcery.proxy.registerFromSubItems(item, name);
+
+            props.rarity(((CustomItemBlockProperties) block).getItemRarity());
+            props.maxStackSize(((CustomItemBlockProperties) block).getItemMaxStackSize());
+            props.defaultMaxDamage(((CustomItemBlockProperties) block).getItemMaxDamage());
+            props.containerItem(((CustomItemBlockProperties) block).getContainerItem());
+            props.setISTER(((CustomItemBlockProperties) block).getItemTEISR());
+
+            ((CustomItemBlockProperties) block).getItemToolLevels().forEach(props::addToolType);
         }
+        return props;
     }
 
 }

@@ -1,50 +1,291 @@
 {
-    "attunement": {
+	"attunement_altar_idle_loop": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:attunement/altar_idle_loop",
+				"stream": false
+			}
+		]
+	},
+	"attunement_altar_item_finish": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:attunement/altar_item_finish1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:attunement/altar_item_finish2",
+				"stream": false
+			}
+		]
+	},
+	"attunement_altar_item_loop": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:attunement/altar_item_loop",
+				"stream": false
+			}
+		]
+	},
+	"attunement_altar_item_start": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:attunement/altar_item_start1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:attunement/altar_item_start2",
+				"stream": false
+			}
+		]
+	},
+	"attunement_altar_player_attune": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:attunement/altar_player_attune",
+				"stream": false
+			}
+		]
+	},
+	"infuser_craft_start": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:infuser/craft_start_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:infuser/craft_start_2",
+				"stream": false
+			}
+		]
+	},
+	"infuser_craft_loop": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:infuser/craft_loop_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:infuser/craft_loop_2",
+				"stream": false
+			}
+		]
+	},
+	"infuser_craft_finish": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:infuser/craft_finish_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:infuser/craft_finish_2",
+				"stream": false
+			}
+		]
+	},
+	"perk_seal": {
+		"category": "player",
+		"sounds": [
+			{
+				"name": "astralsorcery:perk/perk_seal_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:perk/perk_seal_2",
+				"stream": false
+			}
+		]
+	},
+	"perk_unseal": {
+		"category": "player",
+		"sounds": [
+			{
+				"name": "astralsorcery:perk/perk_unseal_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:perk/perk_unseal_2",
+				"stream": false
+			}
+		]
+	},
+	"perk_unlock": {
+		"category": "player",
+		"sounds": [
+			{
+				"name": "astralsorcery:perk/perk_unlock_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:perk/perk_unlock_2",
+				"stream": false
+			}
+		]
+	},
+	"illumination_wand_highlight": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:wand/illumination_wand_highlight_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:wand/illumination_wand_highlight_2",
+				"stream": false
+			}
+		]
+	},
+	"illumination_wand_unhighlight": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:wand/illumination_wand_unhighlight_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:wand/illumination_wand_unhighlight_2",
+				"stream": false
+			}
+		]
+	},
+	"illumination_wand_light": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:wand/illumination_wand_light_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:wand/illumination_wand_light_2",
+				"stream": false
+			}
+		]
+	},
+	"altar_craft_start": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:altar/craft_start_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:altar/craft_start_2",
+				"stream": false
+			}
+		]
+	},
+	"altar_craft_finish": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:altar/craft_finish_1",
+				"stream": false
+			},
+			{
+				"name": "astralsorcery:altar/craft_finish_2",
+				"stream": false
+			}
+		]
+	},
+	"altar_craft_loop_t1": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:altar/craft_loop_t1",
+				"stream": false
+			}
+		]
+	},
+	"altar_craft_loop_t2": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:altar/craft_loop_t2",
+				"stream": false
+			}
+		]
+	},
+	"altar_craft_loop_t3": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:altar/craft_loop_t3",
+				"stream": false
+			}
+		]
+	},
+	"altar_craft_loop_t4": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:altar/craft_loop_t4",
+				"stream": false
+			}
+		]
+	},
+	"altar_craft_loop_t4_waiting": {
+		"category": "block",
+		"sounds": [
+			{
+				"name": "astralsorcery:altar/craft_loop_t4_waiting",
+				"stream": false
+			}
+		]
+	},
+    "craft_attunement": {
         "category": "master",
         "sounds": [
             {
-                "name": "astralsorcery:attunementaltar",
+                "name": "astralsorcery:craft_attunement",
                 "stream": false
             }
         ]
     },
-    "clipSwitch": {
+    "block_coloredlens_attach": {
         "category": "master",
         "sounds": [
             {
-                "name": "astralsorcery:clip",
+                "name": "astralsorcery:block_coloredlens_attach",
                 "stream": false
             }
         ]
     },
-	"craftFinish": {
+	"craft_finish": {
 	    "category": "master",
 	    "sounds": [
 	        {
-	            "name": "astralsorcery:finish",
+	            "name": "astralsorcery:craft_finish",
 	            "stream": false
 	        }
 	    ]
 	},
-	"bookClose": {
+	"gui_journal_close": {
 	    "category": "master",
 	    "sounds": [
 	        {
-	            "name": "astralsorcery:book_close",
+	            "name": "astralsorcery:gui_journal_close",
 	            "stream": false
 	        }
 	    ]
 	},
-	"bookFlip": {
+	"gui_journal_page": {
 	    "category": "master",
 	    "sounds": [
 	        {
-	            "name": "astralsorcery:book_turn1",
+	            "name": "astralsorcery:gui_journal_page_1",
 	            "weight": 1,
 	            "stream": false
 	        },
 	        {
-	            "name": "astralsorcery:book_turn2",
+	            "name": "astralsorcery:gui_journal_page_2",
 	            "weight": 3,
 	            "stream": false
 	        }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,96 +8,94 @@
 
 package hellfirepvp.astralsorcery.common.container;
 
-import hellfirepvp.astralsorcery.common.item.base.ItemConstellationFocus;
 import hellfirepvp.astralsorcery.common.tile.TileAltar;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.Slot;
+import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.container.ContainerType;
+import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.items.ItemStackHandler;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: ContainerAltarBase
  * Created by HellFirePvP
- * Date: 16.10.2016 / 19:26
+ * Date: 15.08.2019 / 15:54
  */
-public abstract class ContainerAltarBase extends Container {
+public abstract class ContainerAltarBase extends ContainerTileEntity<TileAltar> {
 
-    public final InventoryPlayer playerInv;
-    public final TileAltar tileAltar;
-    public final ItemStackHandler invHandler;
-    public final int altarGridSlotSize;
+    private final PlayerInventory playerInv;
+    private final TileInventory invHandler;
 
-    public ContainerAltarBase(InventoryPlayer playerInv, TileAltar tileAltar, int altarGridSlotSize) {
-        this.playerInv = playerInv;
-        this.tileAltar = tileAltar;
-        this.invHandler = tileAltar.getInventoryHandler();
-        this.altarGridSlotSize = altarGridSlotSize;
+    protected ContainerAltarBase(TileAltar altar, @Nullable ContainerType<?> type, PlayerInventory inv, int windowId) {
+        super(altar, type, windowId);
+        this.playerInv = inv;
+        this.invHandler = altar.getInventory();
 
-        bindPlayerInventory();
-        bindAltarInventory();
+        bindPlayerInventory(this.playerInv);
+        bindAltarInventory(this.invHandler);
     }
 
-    abstract void bindPlayerInventory();
+    abstract void bindPlayerInventory(PlayerInventory plInventory);
 
-    abstract void bindAltarInventory();
+    abstract void bindAltarInventory(TileInventory altarInventory);
+
+    abstract Optional<ItemStack> handleCustomTransfer(PlayerEntity player, int index);
 
     @Override
-    public ItemStack transferStackInSlot(EntityPlayer playerIn, int index) {
+    public ItemStack transferStackInSlot(PlayerEntity playerIn, int index) {
         ItemStack itemstack = ItemStack.EMPTY;
         Slot slot = this.inventorySlots.get(index);
 
         if (slot != null && slot.getHasStack()) {
-            ItemStack itemstack1 = slot.getStack();
-            itemstack = itemstack1.copy();
+            ItemStack slotStack = slot.getStack();
+            itemstack = slotStack.copy();
 
-            if (this instanceof ContainerAltarTrait && index >= 0 && index < 36 &&
-                    itemstack1.getItem() instanceof ItemConstellationFocus &&
-                    ((ItemConstellationFocus) itemstack1.getItem()).getFocusConstellation(itemstack1) != null) {
-                if (this.mergeItemStack(itemstack1, ((ContainerAltarTrait) this).focusSlot.slotNumber, ((ContainerAltarTrait) this).focusSlot.slotNumber + 1, false)) {
-                    return itemstack;
-                }
+            Optional<ItemStack> stackOpt = this.handleCustomTransfer(playerIn, index);
+            if (stackOpt.isPresent()) {
+                return stackOpt.get();
             }
+
             if (index >= 0 && index < 27) {
-                if (!this.mergeItemStack(itemstack1, 27, 36, false)) {
+                if (!this.mergeItemStack(slotStack, 27, 36, false)) {
                     return ItemStack.EMPTY;
                 }
             } else if (index >= 27 && index < 36) {
-                if (!this.mergeItemStack(itemstack1, 0, 27, false)) {
+                if (!this.mergeItemStack(slotStack, 0, 27, false)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (!this.mergeItemStack(itemstack1, 0, 36, false)) {
+            } else if (!this.mergeItemStack(slotStack, 0, 36, false)) {
                 return ItemStack.EMPTY;
             }
 
-            if (itemstack1.getCount() == 0) {
+            if (slotStack.getCount() == 0) {
                 slot.putStack(ItemStack.EMPTY);
             } else {
                 slot.onSlotChanged();
             }
 
-            if (itemstack1.getCount() == itemstack.getCount()) {
+            if (slotStack.getCount() == itemstack.getCount()) {
                 return ItemStack.EMPTY;
             }
 
-            slot.onTake(playerIn, itemstack1);
+            slot.onTake(playerIn, slotStack);
         }
 
         return itemstack;
     }
 
     @Override
-    public boolean canInteractWith(EntityPlayer player) {
-        BlockPos pos = this.tileAltar.getPos();
-        if (this.tileAltar.getWorld().getTileEntity(pos) != this.tileAltar) {
+    public boolean canInteractWith(PlayerEntity player) {
+        BlockPos pos = this.getTileEntity().getPos();
+        if (this.getTileEntity().getWorld().getTileEntity(pos) != this.getTileEntity()) {
             return false;
         } else {
             return player.getDistanceSq(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= 64.0D;
         }
     }
-
 }

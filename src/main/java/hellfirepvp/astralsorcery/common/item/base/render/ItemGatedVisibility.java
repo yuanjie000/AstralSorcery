@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -9,25 +9,25 @@
 package hellfirepvp.astralsorcery.common.item.base.render;
 
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
-import hellfirepvp.astralsorcery.common.data.research.ResearchManager;
+import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: ItemGatedVisibility
  * Created by HellFirePvP
- * Date: 13.01.2017 / 00:06
+ * Date: 30.05.2019 / 18:33
  */
 public interface ItemGatedVisibility {
 
     default public PlayerProgress getClientProgress() {
-        return ResearchManager.clientProgress;
+        return ResearchHelper.getClientProgress();
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean isSupposedToSeeInRender(ItemStack stack);
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,35 +8,39 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
+import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.effect.CEffectPositionListGen;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
-import hellfirepvp.astralsorcery.common.constellation.effect.GenListEntries;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
-import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktParticleEvent;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
-import hellfirepvp.astralsorcery.common.util.ItemUtils;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.CEffectAbstractList;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.ListEntries;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
+import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockLiquid;
+import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.init.Blocks;
+import net.minecraft.enchantment.Enchantments;
+import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.storage.loot.LootContext;
-import net.minecraft.world.storage.loot.LootTableList;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fluids.BlockFluidBase;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.storage.loot.*;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ForgeConfigSpec;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
 
@@ -45,138 +49,175 @@ import java.awt.*;
  * The complete source code for this mod can be found on github.
  * Class: CEffectOctans
  * Created by HellFirePvP
- * Date: 10.01.2017 / 18:34
+ * Date: 01.02.2020 / 15:45
  */
-public class CEffectOctans extends CEffectPositionListGen<GenListEntries.CounterMaxListEntry> {
+public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEntry> {
 
-    public static boolean enabled = true;
-    public static double potencyMultiplier = 1;
+    public static OctansConfig CONFIG = new OctansConfig();
 
-    public static int searchRange = 12;
-    public static int maxFishingGrounds = 20;
+    private static boolean corruptedSkipWaterCheck = false;
 
-    public static int minFishTickTime = 1000;
-    public static int maxFishTickTime = 5000;
+    public CEffectOctans(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.octans, CONFIG.maxAmount.get(), (world, pos, state) -> {
+            return corruptedSkipWaterCheck || (
+                    state.getBlock() instanceof FlowingFluidBlock &&
+                            state.getMaterial() == Material.WATER &&
+                            state.get(FlowingFluidBlock.LEVEL) == 0 &&
+                            world.isAirBlock(pos.up())
+                    );
+        });
+        this.excludeRitualColumn();
+    }
 
-    public CEffectOctans(@Nullable ILocatable origin) {
-        super(origin, Constellations.octans, "octans", maxFishingGrounds, (world, pos) -> {
-            IBlockState at = world.getBlockState(pos);
-            return at.getBlock() instanceof BlockLiquid && at.getBlock().getMaterial(at).equals(Material.WATER) && at.getValue(BlockLiquid.LEVEL) == 0 && world.isAirBlock(pos.up());
-        }, (pos) -> new GenListEntries.CounterMaxListEntry(pos, minFishTickTime + rand.nextInt(maxFishTickTime - minFishTickTime + 1)));
+    @Nullable
+    @Override
+    public ListEntries.CounterMaxEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public ListEntries.CounterMaxEntry createElement(World world, BlockPos pos) {
+        return null;
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(!enabled) return false;
-        percStrength *= potencyMultiplier;
-        if(percStrength < 1) {
-            if(world.rand.nextFloat() > percStrength) return false;
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
+
+        Vector3 at = new Vector3(pos).add(0.5, 0.5, 0.5);
+        at.addY(prop.getSize() * 0.75F);
+        at.add(Vector3.random().setY(0).multiply(rand.nextFloat() * prop.getSize()));
+
+        Color c = MiscUtils.eitherOf(rand,
+                () -> ColorsAS.CONSTELLATION_OCTANS,
+                () -> ColorsAS.CONSTELLATION_OCTANS.darker(),
+                () -> ColorsAS.CONSTELLATION_OCTANS.darker().darker());
+        EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                .spawn(at)
+                .alpha(VFXAlphaFunction.FADE_OUT)
+                .color(VFXColorFunction.constant(c))
+                .setScaleMultiplier(0.5F + rand.nextFloat() * 0.2F)
+                .setGravityStrength(0.0025F)
+                .setMaxAge(50 + rand.nextInt(20));
+    }
+
+    @Override
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        if (!(world instanceof ServerWorld)) {
+            return false;
         }
 
-        if(modified.isCorrupted()) {
-            boolean did = false;
-            double searchRange = modified.getSize();
-            double offX = -searchRange + world.rand.nextFloat() * (2 * searchRange + 1);
-            double offY = -searchRange + world.rand.nextFloat() * (2 * searchRange + 1);
-            double offZ = -searchRange + world.rand.nextFloat() * (2 * searchRange + 1);
-            BlockPos at = pos.add(offX, offY, offZ);
-            IBlockState state = world.getBlockState(at);
-            if((world.isAirBlock(at) || state.getBlock().isReplaceable(world, at)) &&
-                    ((Math.abs(offX) > 5 || Math.abs(offZ) > 5) || offY < 0)) {
-                if(world.setBlockState(at, Blocks.WATER.getDefaultState())) {
-                    for (int i = 0; i < 3; i++) {
-                        spawnFishDropsAt(at, world);
+        boolean update = false;
+        if (properties.isCorrupted()) {
+            corruptedSkipWaterCheck = true;
+            ListEntries.CounterMaxEntry entry = this.peekNewPosition(world, pos, properties);
+            corruptedSkipWaterCheck = false;
+            if (entry != null) {
+                BlockState state = world.getBlockState(entry.getPos());
+                BlockPos offset = entry.getPos().subtract(pos);
+                if (world.isAirBlock(entry.getPos()) &&
+                        (this.isLinkedRitual || Math.abs(offset.getX()) > 5 || Math.abs(offset.getZ()) > 5 || offset.getY() < 0)) {
+                    if (world.setBlockState(entry.getPos(), Blocks.WATER.getDefaultState())) {
+                        for (int i = 0; i < 3; i++) {
+                            spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                        }
+                        world.neighborChanged(entry.getPos(), Blocks.WATER, entry.getPos());
                     }
-                    world.neighborChanged(at, Blocks.WATER, at);
-                    did = true;
-                }
-            } else if((state.getBlock() instanceof BlockLiquid ||
-                    state.getBlock() instanceof BlockFluidBase) &&
-                    !state.getBlock().equals(Blocks.WATER) &&
-                    !state.getBlock().equals(Blocks.FLOWING_WATER)) {
-                if(rand.nextBoolean()) {
-                    if(world.setBlockState(at, Blocks.SAND.getDefaultState())) {
-                        world.neighborChanged(at, Blocks.SAND, at);
-                        did = true;
-                    }
-                } else {
-                    if(world.setBlockToAir(at)) {
-                        did = true;
+                } else if (state.getBlock() instanceof FlowingFluidBlock) {
+                    if (state.getBlock() == Blocks.WATER) {
+                        if (rand.nextInt(100) == 0) {
+                            spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                        }
+                    } else {
+                        world.setBlockState(entry.getPos(), Blocks.SAND.getDefaultState());
                     }
                 }
+                update = true;
             }
-            return did;
+            return update;
         }
 
-        boolean changed = false;
-        GenListEntries.CounterMaxListEntry entry = getRandomElementByChance(rand);
-        if(entry != null) {
-            if(MiscUtils.canEntityTickAt(world, entry.getPos())) {
-                if(!verifier.isValid(world, entry.getPos())) {
+        ListEntries.CounterMaxEntry entry = getRandomElementChanced();
+        if (entry != null) {
+            if (MiscUtils.canEntityTickAt(world, entry.getPos())) {
+                if (!verifier.test(world, entry.getPos(), world.getBlockState(entry.getPos()))) {
                     removeElement(entry);
-                    changed = true;
                 } else {
-                    do {
-                        entry.counter++;
-                        percStrength -= 0.1;
-                    } while (rand.nextFloat() < percStrength);
-                    changed = true;
-                    if(entry.counter >= entry.maxCount) {
-                        entry.maxCount = minFishTickTime + rand.nextInt(maxFishTickTime - minFishTickTime + 1);
-                        entry.counter = 0;
+                    int count = entry.getCounter();
+                    count++;
+                    entry.setCounter(count);
 
-                        spawnFishDropsAt(entry.getPos(), world);
+                    if (count >= entry.getMaxCount()) {
+                        int min = Math.min(CONFIG.minFishTickTime.get(), CONFIG.maxFishTickTime.get());
+                        int max = Math.max(CONFIG.minFishTickTime.get(), CONFIG.maxFishTickTime.get());
+
+                        entry.setMaxCount(min + rand.nextInt(max - min + 1));
+                        entry.setCounter(0);
+
+                        spawnFishingDropsAt((ServerWorld) world, entry.getPos());
                     }
-                    PktParticleEvent ev = new PktParticleEvent(PktParticleEvent.ParticleEventType.CE_WATER_FISH, entry.getPos());
-                    PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, entry.getPos(), 8));
                 }
+                update = true;
             }
         }
 
-        if(findNewPosition(world, pos, modified)) changed = true;
-
-        return changed;
+        if (findNewPosition(world, pos, properties) != null) {
+            update = true;
+        }
+        return update;
     }
 
-    private void spawnFishDropsAt(BlockPos pos, World world) {
+    private void spawnFishingDropsAt(ServerWorld world, BlockPos pos) {
         Vector3 dropLoc = new Vector3(pos).add(0.5, 0.85, 0.5);
-        LootContext.Builder builder = new LootContext.Builder((WorldServer) world);
+        ItemStack tool = new ItemStack(Items.FISHING_ROD);
+        tool.addEnchantment(Enchantments.LUCK_OF_THE_SEA, 2);
+
+        LootContext.Builder builder = new LootContext.Builder(world);
         builder.withLuck(rand.nextInt(2) * rand.nextFloat());
-        for(ItemStack loot : world.getLootTableManager().getLootTableFromLocation(LootTableList.GAMEPLAY_FISHING).generateLootForPools(rand, builder.build())) {
-            EntityItem ei = ItemUtils.dropItemNaturally(world, dropLoc.getX(), dropLoc.getY(), dropLoc.getZ(), loot);
-            ei.motionY = Math.abs(ei.motionY);
+        builder.withRandom(rand);
+        builder.withParameter(LootParameters.TOOL, tool);
+        builder.withParameter(LootParameters.POSITION, pos);
+        LootTable table = world.getServer().getLootTableManager().getLootTableFromLocation(LootTables.GAMEPLAY_FISHING);
+        for (ItemStack loot : table.generate(builder.build(LootParameterSets.FISHING))) {
+            ItemEntity ei = ItemUtils.dropItemNaturally(world, dropLoc.getX(), dropLoc.getY(), dropLoc.getZ(), loot);
+            Vector3 motion = new Vector3(ei.getMotion());
+            motion.setY(Math.abs(motion.getY()));
+            ei.setMotion(motion.toVec3d());
         }
     }
 
     @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(CEffectOctans.searchRange);
+    public Config getConfig() {
+        return CONFIG;
     }
 
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        searchRange = cfg.getInt(getKey() + "Range", getConfigurationSection(), 12, 1, 32, "Defines the radius (in blocks) in which the ritual will search for water ");
-        maxFishingGrounds = cfg.getInt(getKey() + "Count", getConfigurationSection(), 20, 1, 4000, "Defines the amount of crops the ritual can cache at max. count");
-        enabled = cfg.getBoolean(getKey() + "Enabled", getConfigurationSection(), true, "Set to false to disable this ConstellationEffect.");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), 1.0F, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
-        minFishTickTime = cfg.getInt(getKey() + "MinFishTickTime", getConfigurationSection(), 100, 20, Integer.MAX_VALUE, "Defines the minimum default tick-time until a fish may be fished by the ritual. gets reduced internally the more starlight was provided at the ritual.");
-        maxFishTickTime = cfg.getInt(getKey() + "MaxFishTickTime", getConfigurationSection(), 500, 20, Integer.MAX_VALUE, "Defines the maximum default tick-time until a fish may be fished by the ritual. gets reduced internally the more starlight was provided at the ritual. Has to be bigger as the minimum time; if it isn't it'll be set to the minimum.");
+    private static class OctansConfig extends CountConfig {
 
-        if(maxFishTickTime < minFishTickTime) {
-            maxFishTickTime = minFishTickTime;
+        private final int defaultMinFishTickTime = 100;
+        private final int defaultMaxFishTickTime = 500;
+
+        public ForgeConfigSpec.IntValue minFishTickTime;
+        public ForgeConfigSpec.IntValue maxFishTickTime;
+
+        public OctansConfig() {
+            super("octans", 12D, 2D, 5);
         }
 
-    }
+        @Override
+        public void createEntries(ForgeConfigSpec.Builder cfgBuilder) {
+            super.createEntries(cfgBuilder);
 
-    @SideOnly(Side.CLIENT)
-    public static void playParticles(PktParticleEvent event) {
-        Vector3 at = event.getVec();
-        EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                at.getX() + rand.nextFloat(),
-                at.getY() + rand.nextFloat(),
-                at.getZ() + rand.nextFloat());
-        p.motion(0, 0.03 + rand.nextFloat() * 0.01, 0).setMaxAge(5 + rand.nextInt(5));
-        p.scale(0.2F).setColor(Color.CYAN).gravity(-0.03);
-    }
+            this.maxFishTickTime = cfgBuilder
+                    .comment("Defines the maximum default tick-time until a fish may be fished by the ritual. Gets reduced internally the more starlight was provided at the ritual. Has to be bigger as the minimum time; if it isn't it'll be set to the minimum.")
+                    .translation(translationKey("maxFishTickTime"))
+                    .defineInRange("maxFishTickTime", this.defaultMaxFishTickTime, 20, Integer.MAX_VALUE);
 
+            this.minFishTickTime = cfgBuilder
+                    .comment("Defines the minimum default tick-time until a fish may be fished by the ritual. Gets reduced internally the more starlight was provided at the ritual.")
+                    .translation(translationKey("minFishTickTime"))
+                    .defineInRange("minFishTickTime", this.defaultMinFishTickTime, 20, Integer.MAX_VALUE);
+        }
+    }
 }

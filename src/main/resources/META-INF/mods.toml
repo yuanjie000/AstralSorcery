@@ -1,0 +1,36 @@
+modLoader="javafml"
+loaderVersion="[28,)"
+issueTrackerURL="https://github.com/HellFirePvP/AstralSorcery/issues"
+[[mods]]
+modId="astralsorcery"
+version="${file.jarVersion}"
+displayName="Astral Sorcery"
+displayURL="https://minecraft.curseforge.com/projects/astral-sorcery"
+logoFile="logo.png"
+credits="HellFirePvP (code), wiiv (models & textures), VulpTheHorseDog (models & textures)"
+authors="HellFirePvP, wiiv, VulpTheHorseDog"
+description='''Magic mod that draws power from stars and their constellations'''
+[[dependencies.astralsorcery]]
+    modId="forge"
+    mandatory=true
+    versionRange="[28,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.astralsorcery]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.15.2]"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.astralsorcery]]
+    modId="observerlib"
+    mandatory=true
+    versionRange="[1.15.2-1,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.astralsorcery]]
+    modId="curios"
+    mandatory=true
+    versionRange="[FORGE-1.15.2-,)"
+    ordering="NONE"
+    side="BOTH"

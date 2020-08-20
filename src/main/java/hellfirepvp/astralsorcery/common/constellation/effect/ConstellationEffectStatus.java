@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -19,11 +19,10 @@ import javax.annotation.Nullable;
  * The complete source code for this mod can be found on github.
  * Class: ConstellationEffectStatus
  * Created by HellFirePvP
- * Date: 14.01.2018 / 21:23
+ * Date: 11.06.2019 / 20:46
  */
-//Interface for constellation effects that don't care how strong the starlight influx is, they just provide a certain status
 public interface ConstellationEffectStatus {
 
-    public abstract boolean runEffect(World world, BlockPos pos, int mirrorAmount, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect);
+    public abstract boolean runStatusEffect(World world, BlockPos pos, int mirrorAmount, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect);
 
 }

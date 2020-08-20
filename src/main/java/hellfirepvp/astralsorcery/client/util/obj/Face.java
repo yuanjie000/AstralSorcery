@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,10 +8,10 @@
 
 package hellfirepvp.astralsorcery.client.util.obj;
 
+import com.mojang.blaze3d.vertex.IVertexBuilder;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 /**
  * HellFirePvP@Admin
@@ -20,63 +20,50 @@ import net.minecraftforge.fml.relauncher.SideOnly;
  * Face
  */
 public class Face {
-    public Vertex[] vertices;
-    public Vertex[] vertexNormals;
-    //public Vertex faceNormal;
-    public TextureCoordinate[] textureCoordinates;
 
-    @SideOnly(Side.CLIENT)
-    public void addFaceForRender(BufferBuilder vb) {
-        addFaceForRender(vb, 0.0005F);
+    Vertex[] vertices;
+    Vertex[] vertexNormals;
+    Vertex faceNormal;
+    TextureCoordinate[] textureCoordinates;
+
+    @OnlyIn(Dist.CLIENT)
+    void addFaceForRender(IVertexBuilder vb) {
+        addFaceForRender(vb, 0.0004F);
     }
 
-    @SideOnly(Side.CLIENT)
-    public void addFaceForRender(BufferBuilder vb, float textureOffset) {
-        /*if (faceNormal == null) {
-            faceNormal = this.calculateFaceNormal();
-        }
-
-        vb.normal(faceNormal.x, faceNormal.y, faceNormal.z);*/
-
+    @OnlyIn(Dist.CLIENT)
+    void addFaceForRender(IVertexBuilder vb, float textureOffset) {
         float averageU = 0F;
         float averageV = 0F;
 
-        if ((textureCoordinates != null) && (textureCoordinates.length > 0)) {
-            for (int i = 0; i < textureCoordinates.length; ++i) {
-                averageU += textureCoordinates[i].u;
-                averageV += textureCoordinates[i].v;
-            }
-
-            averageU = averageU / textureCoordinates.length;
-            averageV = averageV / textureCoordinates.length;
+        for (TextureCoordinate textureCoordinate : textureCoordinates) {
+            averageU += textureCoordinate.u;
+            averageV += textureCoordinate.v;
         }
 
-        float offsetU, offsetV;
+        averageU = averageU / textureCoordinates.length;
+        averageV = averageV / textureCoordinates.length;
 
         for (int i = 0; i < vertices.length; ++i) {
+            float offsetU = textureOffset;
+            float offsetV = textureOffset;
 
-            if ((textureCoordinates != null) && (textureCoordinates.length > 0)) {
-                offsetU = textureOffset;
-                offsetV = textureOffset;
-
-                if (textureCoordinates[i].u > averageU) {
-                    offsetU = -offsetU;
-                }
-                if (textureCoordinates[i].v > averageV) {
-                    offsetV = -offsetV;
-                }
-
-                vb.pos(vertices[i].x, vertices[i].y, vertices[i].z).tex(textureCoordinates[i].u + offsetU, textureCoordinates[i].v + offsetV).endVertex();
-                //tessellator.addVertexWithUV(vertices[i].x, vertices[i].y, vertices[i].z, textureCoordinates[i].u + offsetU, textureCoordinates[i].v + offsetV);
-            } else {
-                vb.pos(vertices[i].x, vertices[i].y, vertices[i].z).endVertex();
-                //tessellator.addVertex(vertices[i].x, vertices[i].y, vertices[i].z);
+            if (textureCoordinates[i].u > averageU) {
+                offsetU = -offsetU;
+            }
+            if (textureCoordinates[i].v > averageV) {
+                offsetV = -offsetV;
             }
 
+            vb.pos(vertices[i].x, vertices[i].y, vertices[i].z)
+                    .color(255, 255, 255, 255)
+                    .tex(textureCoordinates[i].u + offsetU, textureCoordinates[i].v + offsetV)
+                    .normal(faceNormal.x, faceNormal.y, faceNormal.z)
+                    .endVertex();
         }
     }
 
-    public Vertex calculateFaceNormal() {
+    Vertex calculateFaceNormal() {
         Vector3 v1 = new Vector3(vertices[1].x - vertices[0].x, vertices[1].y - vertices[0].y, vertices[1].z - vertices[0].z);
         Vector3 v2 = new Vector3(vertices[2].x - vertices[0].x, vertices[2].y - vertices[0].y, vertices[2].z - vertices[0].z);
         Vector3 normalVector = v1.crossProduct(v2).normalize();

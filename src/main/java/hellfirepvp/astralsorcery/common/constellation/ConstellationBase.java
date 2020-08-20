@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,65 +8,65 @@
 
 package hellfirepvp.astralsorcery.common.constellation;
 
-import hellfirepvp.astralsorcery.common.base.Mods;
-import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffect;
-import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectRegistry;
+import hellfirepvp.astralsorcery.AstralSorcery;
+import hellfirepvp.astralsorcery.common.base.MoonPhase;
 import hellfirepvp.astralsorcery.common.constellation.star.StarConnection;
 import hellfirepvp.astralsorcery.common.constellation.star.StarLocation;
-import hellfirepvp.astralsorcery.common.crafting.ItemHandle;
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ProgressionTier;
-import hellfirepvp.astralsorcery.common.integrations.mods.crafttweaker.tweaks.GameStageTweaks;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
-import net.darkhax.gamestages.GameStageHelper;
-import net.darkhax.gamestages.data.IStageData;
-import net.minecraft.entity.player.EntityPlayer;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
-import net.minecraftforge.fml.common.Optional;
+import net.minecraftforge.fml.ModContainer;
+import net.minecraftforge.registries.ForgeRegistryEntry;
 
-import javax.annotation.Nullable;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.*;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: ConstellationBase
  * Created by HellFirePvP
- * Date: 16.11.2016 / 23:07
+ * Date: 01.06.2019 / 15:59
  */
-public abstract class ConstellationBase implements IConstellation {
+public abstract class ConstellationBase extends ForgeRegistryEntry<IConstellation> implements IConstellation {
+
+    private static int counter = 0;
 
     private List<StarLocation> starLocations = new ArrayList<>(); //31x31 locations are valid. 0-indexed.
     private List<StarConnection> connections = new ArrayList<>(); //The connections between 2 tuples/stars in the constellation.
-    private List<ItemHandle> signatureItems = new LinkedList<>();
+    private List<Ingredient> signatureItems = new LinkedList<>();
 
     private final String name, simpleName;
     private final Color color;
+    private final int id;
 
     public ConstellationBase(String name) {
-        this(name, IConstellation.major);
+        this(name, ColorsAS.CONSTELLATION_TYPE_MAJOR);
     }
 
     public ConstellationBase(String name, Color color) {
+        this.id = counter++;
         this.simpleName = name;
-        ModContainer mod = Loader.instance().activeModContainer();
-        if(mod != null) {
+        ModContainer mod = MiscUtils.getCurrentlyActiveMod();
+        if (mod != null) {
+            this.setRegistryName(new ResourceLocation(mod.getModId(), name));
             this.name = mod.getModId() + ".constellation." + name;
         } else {
+            this.setRegistryName(AstralSorcery.key(name));
             this.name = "unknown.constellation." + name;
         }
         this.color = color;
     }
 
     public StarLocation addStar(int x, int y) {
-        x %= (STAR_GRID_SIZE - 1); //31x31
-        y %= (STAR_GRID_SIZE - 1);
+        x %= (STAR_GRID_INDEX - 1); //31x31
+        y %= (STAR_GRID_INDEX - 1);
         StarLocation star = new StarLocation(x, y);
         if (!starLocations.contains(star)) {
             starLocations.add(star);
@@ -85,30 +85,31 @@ public abstract class ConstellationBase implements IConstellation {
         return null;
     }
 
-    public ConstellationBase addSignatureItem(ItemHandle handle) {
+    public ConstellationBase addSignatureItem(Ingredient handle) {
         this.signatureItems.add(handle);
         return this;
     }
 
     @Override
-    public List<ItemHandle> getConstellationSignatureItems() {
+    public List<Ingredient> getConstellationSignatureItems() {
         return Collections.unmodifiableList(this.signatureItems);
     }
 
-    public boolean canDiscover(EntityPlayer player, PlayerProgress progress) {
-        return !Mods.GAMESTAGES.isPresent() ||
-                (player != null && canDiscoverGameStages(player, progress));
+    public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
+        return true;
+        //return !Mods.GAMESTAGES.isPresent() ||
+        //        (player != null && canDiscoverGameStages(player, progress));
     }
 
     //Guess we can only config one at a time...
+    /*
     @Optional.Method(modid = "gamestages")
-    final boolean canDiscoverGameStages(EntityPlayer player, PlayerProgress progress) {
-        return !Mods.CRAFTTWEAKER.isPresent() ||
-                canDiscoverGameStagesCraftTweaker(player, progress);
+    final boolean canDiscoverGameStages(PlayerEntity player, PlayerProgress progress) {
+        return !Mods.CRAFTTWEAKER.isPresent() || canDiscoverGameStagesCraftTweaker(player, progress);
     }
 
     @Optional.Method(modid = "crafttweaker")
-    private boolean canDiscoverGameStagesCraftTweaker(EntityPlayer player, PlayerProgress progress) {
+    private boolean canDiscoverGameStagesCraftTweaker(PlayerEntity player, PlayerProgress progress) {
         if (player == null) {
             return false;
         }
@@ -117,6 +118,12 @@ public abstract class ConstellationBase implements IConstellation {
             return false;
         }
         return GameStageTweaks.canDiscover(data.getStages(), name);
+    }
+    */
+
+    @Override
+    public int getSortingId() {
+        return this.id;
     }
 
     @Override
@@ -135,8 +142,8 @@ public abstract class ConstellationBase implements IConstellation {
     }
 
     @Override
-    public String getUnlocalizedName() {
-        return name;
+    public String getTranslationKey() {
+        return this.name;
     }
 
     @Override
@@ -146,7 +153,7 @@ public abstract class ConstellationBase implements IConstellation {
 
     @Override
     public String toString() {
-        return "Constellation={name:" + getUnlocalizedName() + "}";
+        return "Constellation={name:" + this.name + "}";
     }
 
     @Override
@@ -154,12 +161,17 @@ public abstract class ConstellationBase implements IConstellation {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ConstellationBase that = (ConstellationBase) o;
-        return name.equals(that.name);
+        return Objects.equals(getRegistryName(), that.getRegistryName());
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return Objects.hash(getRegistryName());
+    }
+
+    @Override
+    public int compareTo(IConstellation o) {
+        return Integer.compare(this.getSortingId(), o.getSortingId());
     }
 
     public static class Major extends Weak implements IMajorConstellation {
@@ -173,10 +185,15 @@ public abstract class ConstellationBase implements IConstellation {
         }
 
         @Override
-        public boolean canDiscover(EntityPlayer player, PlayerProgress progress) {
-            return !Mods.GAMESTAGES.isPresent() ||
-                    (player != null && canDiscoverGameStages(player, progress));
+        public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
+            return true;
         }
+
+        //@Override
+        //public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
+        //    return !Mods.GAMESTAGES.isPresent() ||
+        //            (player != null && canDiscoverGameStages(player, progress));
+        //}
     }
 
     public static class Weak extends ConstellationBase implements IWeakConstellation {
@@ -189,14 +206,8 @@ public abstract class ConstellationBase implements IConstellation {
             super(name, color);
         }
 
-        @Nullable
         @Override
-        public ConstellationEffect getRitualEffect(ILocatable origin) {
-            return ConstellationEffectRegistry.getEffect(this, origin);
-        }
-
-        @Override
-        public boolean canDiscover(EntityPlayer player, PlayerProgress progress) {
+        public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
             return super.canDiscover(player, progress) &&
                     progress.getTierReached().isThisLaterOrEqual(ProgressionTier.ATTUNEMENT) &&
                     progress.wasOnceAttuned();
@@ -222,7 +233,7 @@ public abstract class ConstellationBase implements IConstellation {
             super(name);
             phases = new ArrayList<>(applicablePhases.length);
             for (MoonPhase ph : applicablePhases) {
-                if(ph == null) {
+                if (ph == null) {
                     throw new IllegalArgumentException("null MoonPhase passed to Minor constellation registration for " + name);
                 }
                 phases.add(ph);
@@ -233,7 +244,7 @@ public abstract class ConstellationBase implements IConstellation {
             super(name, color);
             phases = new ArrayList<>(applicablePhases.length);
             for (MoonPhase ph : applicablePhases) {
-                if(ph == null) {
+                if (ph == null) {
                     throw new IllegalArgumentException("null MoonPhase passed to Minor constellation registration for " + name);
                 }
                 phases.add(ph);
@@ -250,7 +261,7 @@ public abstract class ConstellationBase implements IConstellation {
                 }
                 index = MathHelper.clamp(index, 0, MoonPhase.values().length - 1);
                 MoonPhase offset = MoonPhase.values()[index];
-                if(!shifted.contains(offset)) {
+                if (!shifted.contains(offset)) {
                     shifted.add(offset);
                 }
             }
@@ -258,11 +269,11 @@ public abstract class ConstellationBase implements IConstellation {
         }
 
         @Override
-        public boolean canDiscover(EntityPlayer player, PlayerProgress progress) {
+        public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
             return super.canDiscover(player, progress) &&
                     progress.wasOnceAttuned() &&
                     progress.getTierReached().isThisLaterOrEqual(ProgressionTier.TRAIT_CRAFT);
         }
     }
-
 }
+

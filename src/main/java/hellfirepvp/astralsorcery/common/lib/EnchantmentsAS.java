@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,19 +8,20 @@
 
 package hellfirepvp.astralsorcery.common.lib;
 
-import hellfirepvp.astralsorcery.common.enchantment.EnchantmentNightVision;
-import hellfirepvp.astralsorcery.common.enchantment.EnchantmentScorchingHeat;
+import net.minecraft.enchantment.Enchantment;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: EnchantmentsAS
  * Created by HellFirePvP
- * Date: 18.03.2017 / 19:56
+ * Date: 02.05.2020 / 12:42
  */
 public class EnchantmentsAS {
 
-    public static EnchantmentNightVision enchantmentNightVision;
-    public static EnchantmentScorchingHeat enchantmentScorchingHeat;
+    private EnchantmentsAS() {}
+
+    public static Enchantment NIGHT_VISION;
+    public static Enchantment SCORCHING_HEAT;
 
 }

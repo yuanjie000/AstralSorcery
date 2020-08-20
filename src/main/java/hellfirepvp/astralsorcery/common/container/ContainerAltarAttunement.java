@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,55 +8,61 @@
 
 package hellfirepvp.astralsorcery.common.container;
 
+import hellfirepvp.astralsorcery.common.lib.ContainerTypesAS;
 import hellfirepvp.astralsorcery.common.tile.TileAltar;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.Slot;
+import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.container.Slot;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.SlotItemHandler;
+
+import java.util.Optional;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: ContainerAltarAttunement
  * Created by HellFirePvP
- * Date: 16.10.2016 / 17:18
+ * Date: 15.08.2019 / 16:04
  */
 public class ContainerAltarAttunement extends ContainerAltarBase {
 
-    protected ContainerAltarAttunement(InventoryPlayer playerInv, TileAltar tileAltar, int altarGridSlotSize) {
-        super(playerInv, tileAltar, altarGridSlotSize);
-    }
-
-    public ContainerAltarAttunement(InventoryPlayer playerInv, TileAltar tileAltar) {
-        super(playerInv, tileAltar, 133);
+    public ContainerAltarAttunement(TileAltar altar, PlayerInventory inv, int windowId) {
+        super(altar, ContainerTypesAS.ALTAR_ATTUNEMENT, inv, windowId);
     }
 
     @Override
-    void bindAltarInventory() {
-        for (int xx = 0; xx < 3; xx++) {
-            addSlotToContainer(new SlotItemHandler(invHandler,     xx, 102 + xx * 18, 29));
-        }
-        for (int xx = 0; xx < 3; xx++) {
-            addSlotToContainer(new SlotItemHandler(invHandler, 3 + xx, 102 + xx * 18, 47));
-        }
-        for (int xx = 0; xx < 3; xx++) {
-            addSlotToContainer(new SlotItemHandler(invHandler, 6 + xx, 102 + xx * 18, 65));
-        }
-        addSlotToContainer(new SlotItemHandler(invHandler,  9, 84,  11));
-        addSlotToContainer(new SlotItemHandler(invHandler, 10, 156, 11));
-        addSlotToContainer(new SlotItemHandler(invHandler, 11, 84,  83));
-        addSlotToContainer(new SlotItemHandler(invHandler, 12, 156, 83));
-    }
-
-    @Override
-    void bindPlayerInventory() {
+    void bindPlayerInventory(PlayerInventory plInventory) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 9; j++) {
-                addSlotToContainer(new Slot(this.playerInv, j + i * 9 + 9, 48 + j * 18, 120 + i * 18));
+                addSlot(new Slot(plInventory, j + i * 9 + 9, 48 + j * 18, 120 + i * 18));
             }
         }
         for (int i = 0; i < 9; i++) {
-            addSlotToContainer(new Slot(this.playerInv, i, 48 + i * 18, 178));
+            addSlot(new Slot(plInventory, i, 48 + i * 18, 178));
         }
     }
 
+    @Override
+    void bindAltarInventory(TileInventory altarInventory) {
+        for (int xx = 0; xx < 3; xx++) {
+            addSlot(new SlotItemHandler(altarInventory,  6 + xx, 102 + xx * 18, 29));
+        }
+        for (int xx = 0; xx < 3; xx++) {
+            addSlot(new SlotItemHandler(altarInventory, 11 + xx, 102 + xx * 18, 47));
+        }
+        for (int xx = 0; xx < 3; xx++) {
+            addSlot(new SlotItemHandler(altarInventory, 16 + xx, 102 + xx * 18, 65));
+        }
+        addSlot(new SlotItemHandler(altarInventory,  0, 84,  11));
+        addSlot(new SlotItemHandler(altarInventory,  4, 156, 11));
+        addSlot(new SlotItemHandler(altarInventory, 20, 84,  83));
+        addSlot(new SlotItemHandler(altarInventory, 24, 156, 83));
+    }
+
+    @Override
+    Optional<ItemStack> handleCustomTransfer(PlayerEntity player, int index) {
+        return Optional.empty();
+    }
 }

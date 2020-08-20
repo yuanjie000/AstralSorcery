@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -9,47 +9,152 @@
 package hellfirepvp.astralsorcery.common.registry;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.common.entities.*;
+import hellfirepvp.astralsorcery.client.render.entity.RenderEntityEmpty;
+import hellfirepvp.astralsorcery.client.render.entity.RenderEntityGrapplingHook;
+import hellfirepvp.astralsorcery.client.render.entity.RenderEntityItemHighlighted;
+import hellfirepvp.astralsorcery.client.render.entity.RenderEntitySpectralTool;
+import hellfirepvp.astralsorcery.common.entity.EntityFlare;
+import hellfirepvp.astralsorcery.common.entity.EntityIlluminationSpark;
+import hellfirepvp.astralsorcery.common.entity.EntityNocturnalSpark;
+import hellfirepvp.astralsorcery.common.entity.EntitySpectralTool;
+import hellfirepvp.astralsorcery.common.entity.item.EntityCrystal;
+import hellfirepvp.astralsorcery.common.entity.item.EntityItemExplosionResistant;
+import hellfirepvp.astralsorcery.common.entity.item.EntityItemHighlighted;
+import hellfirepvp.astralsorcery.common.entity.item.EntityStarmetal;
+import hellfirepvp.astralsorcery.common.entity.technical.EntityGrapplingHook;
+import hellfirepvp.astralsorcery.common.entity.technical.EntityObservatoryHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.registry.EntityRegistry;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityType;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.client.registry.RenderingRegistry;
+
+import static hellfirepvp.astralsorcery.common.lib.EntityTypesAS.*;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: RegistryEntities
  * Created by HellFirePvP
- * Date: 08.05.2016 / 23:19
+ * Date: 17.08.2019 / 08:47
  */
 public class RegistryEntities {
 
+    private RegistryEntities() {}
+
     public static void init() {
-        registerEntities();
+        NOCTURNAL_SPARK = register("nocturnal_spark",
+                EntityType.Builder.create(EntityNocturnalSpark.factory(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .immuneToFire()
+                        .setUpdateInterval(1)
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(32)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityNocturnalSpark(world))
+                        .size(0.1F, 0.1F));
+        ILLUMINATION_SPARK = register("illumination_spark",
+                EntityType.Builder.create(EntityIlluminationSpark.factory(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .immuneToFire()
+                        .setUpdateInterval(1)
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(32)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityIlluminationSpark(world))
+                        .size(0.1F, 0.1F));
+        FLARE = register("flare",
+                EntityType.Builder.create(EntityFlare.factory(), EntityClassification.MISC)
+                        .immuneToFire()
+                        .setUpdateInterval(1)
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(64)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityFlare(world))
+                        .size(0.4F, 0.4F));
+        SPECTRAL_TOOL = register("spectral_tool",
+                EntityType.Builder.create(EntitySpectralTool.factory(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .immuneToFire()
+                        .setUpdateInterval(1)
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(32)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntitySpectralTool(world))
+                        .size(0.6F, 0.8F));
+
+        ITEM_HIGHLIGHT = register("item_highlighted",
+                EntityType.Builder.create(EntityItemHighlighted.factoryHighlighted(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .setUpdateInterval(1)
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(16)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityItemHighlighted(ITEM_HIGHLIGHT, world))
+                        .size(0.25F, 0.25F));
+        ITEM_EXPLOSION_RESISTANT = register("item_explosion_resistant",
+                EntityType.Builder.create(EntityItemExplosionResistant.factoryExplosionResistant(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .setUpdateInterval(1)
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(16)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityItemExplosionResistant(ITEM_EXPLOSION_RESISTANT, world))
+                        .size(0.25F, 0.25F));
+        ITEM_CRYSTAL = register("item_crystal",
+                EntityType.Builder.create(EntityCrystal.factoryCrystal(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .setUpdateInterval(1)
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(16)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityCrystal(ITEM_CRYSTAL, world))
+                        .size(0.5F, 0.5F));
+        ITEM_STARMETAL_INGOT = register("item_starmetal",
+                EntityType.Builder.create(EntityStarmetal.factoryStarmetalIngot(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .setUpdateInterval(1)
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(16)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityStarmetal(ITEM_STARMETAL_INGOT, world))
+                        .size(0.5F, 0.5F));
+        OBSERVATORY_HELPER = register("observatory_helper",
+                EntityType.Builder.create(EntityObservatoryHelper.factory(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .setUpdateInterval(1)
+                        .immuneToFire()
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(64)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityObservatoryHelper(world))
+                        .size(0, 0));
+        GRAPPLING_HOOK = register("grappling_hook",
+                EntityType.Builder.create(EntityGrapplingHook.factory(), EntityClassification.MISC)
+                        .disableSummoning()
+                        .setUpdateInterval(1)
+                        .immuneToFire()
+                        .setShouldReceiveVelocityUpdates(true)
+                        .setTrackingRange(64)
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityGrapplingHook(world))
+                        .size(0.1F, 0.1F));
     }
 
-    private static void registerEntities() {
-        int modEid = 0;
+    @OnlyIn(Dist.CLIENT)
+    public static void initClient() {
+        RenderingRegistry.registerEntityRenderingHandler(NOCTURNAL_SPARK, new RenderEntityEmpty.Factory());
+        RenderingRegistry.registerEntityRenderingHandler(ILLUMINATION_SPARK, new RenderEntityEmpty.Factory());
+        RenderingRegistry.registerEntityRenderingHandler(FLARE, new RenderEntityEmpty.Factory());
+        RenderingRegistry.registerEntityRenderingHandler(SPECTRAL_TOOL, new RenderEntitySpectralTool.Factory());
 
-        registerEntity(EntityItemHighlighted.class, "EntityHighlighted", modEid++, 64, 20, true);
-        registerEntity(EntityItemStardust.class, "EntityStardust", modEid++, 64, 20, true);
-        registerEntity(EntityCrystal.class, "EntityCrystal", modEid++, 64, 20, true);
-        registerEntity(EntityFlare.class, "EntityFlare", modEid++, 64, 2, true);
-        registerEntity(EntityStarburst.class, "EntityStarBurst", modEid++, 32, 1, true);
-        registerEntity(EntityIlluminationSpark.class, "EntityIlluminationSpark", modEid++, 32, 1, true);
-        registerEntity(EntityNocturnalSpark.class, "EntityNocturnalSpark", modEid++, 32, 1, true);
-        registerEntity(EntityCrystalTool.class, "EntityCrystalTool", modEid++, 64, 20, true);
-        registerEntity(EntityGrapplingHook.class, "EntityGrapplingHook", modEid++, 128, 1, true);
-        registerEntity(EntitySpectralTool.class, "EntitySpectralTool", modEid++, 128, 1, true);
-        registerEntity(EntityLiquidSpark.class, "EntityLiquidSpark", modEid++, 64, 1, true);
-        registerEntity(EntityObservatoryHelper.class, "EntityObservatoryHelper", modEid++, 64, 1, true);
-        //registerEntity(SpellProjectile.class, "EntitySpellProjectile", modEid++, 128, 1, true);
-        registerEntity(EntityShootingStar.class, "EntityShootingStar", modEid++, 128, 1, true);
-        registerEntity(EntityItemExplosionResistant.class, "EntityItemDamageResistant", modEid++, 64, 1, true);
+        RenderingRegistry.registerEntityRenderingHandler(ITEM_HIGHLIGHT, new RenderEntityItemHighlighted.Factory());
+        RenderingRegistry.registerEntityRenderingHandler(ITEM_EXPLOSION_RESISTANT, new RenderEntityItemHighlighted.Factory());
+        RenderingRegistry.registerEntityRenderingHandler(ITEM_CRYSTAL, new RenderEntityItemHighlighted.Factory());
+        RenderingRegistry.registerEntityRenderingHandler(ITEM_STARMETAL_INGOT, manager -> new ItemRenderer(manager, Minecraft.getInstance().getItemRenderer()));
+
+        RenderingRegistry.registerEntityRenderingHandler(OBSERVATORY_HELPER, new RenderEntityEmpty.Factory());
+        RenderingRegistry.registerEntityRenderingHandler(GRAPPLING_HOOK, new RenderEntityGrapplingHook.Factory());
     }
 
-    // trackingRange refers x/z distance, not y.
-    private static void registerEntity(Class<? extends Entity> entityClass, String name, int id, int trackingRange, int updateFreq, boolean sendVelUpdates) {
-        EntityRegistry.registerModEntity(new ResourceLocation(AstralSorcery.MODID, name.toLowerCase()), entityClass, name, id, AstralSorcery.instance, trackingRange, updateFreq, sendVelUpdates);
+    private static <E extends Entity> EntityType<E> register(String name, EntityType.Builder<E> typeBuilder) {
+        EntityType<E> type = typeBuilder.build(AstralSorcery.key(name).toString());
+        type.setRegistryName(AstralSorcery.key(name));
+        AstralSorcery.getProxy().getRegistryPrimer().register(type);
+        return type;
     }
 
 }

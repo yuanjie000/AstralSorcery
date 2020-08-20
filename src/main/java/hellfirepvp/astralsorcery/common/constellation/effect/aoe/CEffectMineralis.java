@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,157 +8,157 @@
 
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
-import hellfirepvp.astralsorcery.common.base.OreTypes;
-import hellfirepvp.astralsorcery.common.block.BlockCustomOre;
+import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.effect.CEffectPositionList;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
-import hellfirepvp.astralsorcery.common.constellation.effect.GenListEntries;
-import hellfirepvp.astralsorcery.common.lib.BlocksAS;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.CEffectAbstractList;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.ListEntries;
+import hellfirepvp.astralsorcery.common.data.config.base.ConfiguredBlockStateList;
+import hellfirepvp.astralsorcery.common.data.config.registry.OreBlockRarityRegistry;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
-import hellfirepvp.astralsorcery.common.util.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.BlockStone;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.EntityFlying;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.AxisAlignedBB;
+import hellfirepvp.astralsorcery.common.util.block.BlockStateList;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import hellfirepvp.astralsorcery.common.util.block.iterator.BlockLayerPositionGenerator;
+import hellfirepvp.astralsorcery.common.util.block.iterator.BlockPositionGenerator;
+import hellfirepvp.astralsorcery.common.util.block.iterator.BlockRandomPositionGenerator;
+import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ForgeConfigSpec;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
-import java.util.List;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: CEffectMineralis
  * Created by HellFirePvP
- * Date: 07.01.2017 / 19:12
+ * Date: 01.02.2020 / 10:54
  */
-public class CEffectMineralis extends CEffectPositionList {
+public class CEffectMineralis extends CEffectAbstractList<ListEntries.PosEntry> {
 
-    public static boolean enabled = true;
-    public static double potencyMultiplier = 1;
+    public static MineralisConfig CONFIG = new MineralisConfig(new BlockStateList().add(Blocks.STONE));
 
-    public static int searchRange = 8;
-    public static int maxCount = 2;
+    public CEffectMineralis(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.mineralis, CONFIG.maxAmount.get(), (world, pos, state) -> true);
+        this.excludeRitualColumn();
+        this.selectSphericalPositions();
+    }
 
-    public CEffectMineralis(@Nullable ILocatable origin) {
-        super(origin, Constellations.mineralis, "mineralis", maxCount, (world, pos) -> {
-            IBlockState state = world.getBlockState(pos);
-            return state.getBlock() == Blocks.STONE && state.getValue(BlockStone.VARIANT).equals(BlockStone.EnumType.STONE);
-        });
+    @Nonnull
+    @Override
+    protected BlockPositionGenerator createPositionStrategy() {
+        return new BlockLayerPositionGenerator();
+    }
+
+    @Nonnull
+    @Override
+    protected BlockPositionGenerator selectPositionStrategy(BlockPositionGenerator defaultGenerator, ConstellationEffectProperties properties) {
+        if (!properties.isCorrupted()) {
+            return new BlockRandomPositionGenerator();
+        }
+        return defaultGenerator;
+    }
+
+    @Nullable
+    @Override
+    public ListEntries.PosEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+        return new ListEntries.PosEntry(pos);
+    }
+
+    @Nullable
+    @Override
+    public ListEntries.PosEntry createElement(World world, BlockPos pos) {
+        return new ListEntries.PosEntry(pos);
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float percEffectVisibility, boolean extendedEffects) {
-        if(rand.nextBoolean()) {
-            EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                    pos.getX() + rand.nextFloat() * 5 * (rand.nextBoolean() ? 1 : -1) + 0.5,
-                    pos.getY() + rand.nextFloat() * 2 + 0.5,
-                    pos.getZ() + rand.nextFloat() * 5 * (rand.nextBoolean() ? 1 : -1) + 0.5);
-            p.motion(0, 0, 0).gravity(-0.01);
-            p.scale(0.45F).setColor(new Color(188, 188, 188)).setMaxAge(55);
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
+
+        if (rand.nextFloat() < 0.6F) {
+            Color c = MiscUtils.eitherOf(rand,
+                    () -> ColorsAS.CONSTELLATION_MINERALIS,
+                    () -> ColorsAS.CONSTELLATION_MINERALIS.brighter());
+            Vector3 at = Vector3.random().normalize().multiply(rand.nextFloat() * prop.getSize()).add(pos).add(0.5, 0.5, 0.5);
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(at)
+                    .alpha(VFXAlphaFunction.FADE_OUT)
+                    .color(VFXColorFunction.constant(c))
+                    .setScaleMultiplier(0.5F + rand.nextFloat() * 0.25F)
+                    .setMaxAge(50 + rand.nextInt(40));
         }
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(!enabled) return false;
-        percStrength *= potencyMultiplier;
-        if(percStrength < 1) {
-            if(world.rand.nextFloat() > percStrength) return false;
-        }
-
-        boolean changed = false;
-        if(modified.isCorrupted()) {
-            List<EntityLivingBase> entities = world.getEntitiesWithinAABB(EntityLivingBase.class, new AxisAlignedBB(0, 0, 0, 1, 1, 1).offset(pos).grow(modified.getSize()));
-            for (EntityLivingBase entity : entities) {
-                if(entity instanceof EntityFlying || entity.isDead) continue;
-                BlockPos center = entity.getPosition().down();
-                for (int xx = -1; xx <= 1; xx++) {
-                    for (int zz = -1; zz <= 1; zz++) {
-                        BlockPos at = center.add(xx, 0, zz);
-                        IBlockState state = world.getBlockState(at);
-                        if(world.isAirBlock(at) || state.getBlock().isReplaceable(world, at)) {
-                            if(rand.nextInt(25) == 0) {
-                                ItemStack blockStack = OreTypes.RITUAL_MINERALIS.getRandomOre(rand);
-                                if(!blockStack.isEmpty()) {
-                                    state = ItemUtils.createBlockState(blockStack);
-                                    if(state != null) {
-                                        if(world.setBlockState(at, state)) {
-                                            changed = true;
-                                        }
-                                    } else {
-                                        if(world.setBlockState(at, Blocks.STONE.getDefaultState())) {
-                                            changed = true;
-                                        }
-                                    }
-                                } else {
-                                    if(world.setBlockState(at, Blocks.STONE.getDefaultState())) {
-                                        changed = true;
-                                    }
-                                }
-                            } else {
-                                if(world.setBlockState(at, Blocks.STONE.getDefaultState())) {
-                                    changed = true;
-                                }
-                            }
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        ListEntries.PosEntry entry = this.peekNewPosition(world, pos, properties);
+        if (entry != null) {
+            BlockState atState = world.getBlockState(entry.getPos());
+            if (properties.isCorrupted()) {
+                if (world.isAirBlock(entry.getPos())) {
+                    if (rand.nextInt(25) == 0) {
+                        Block ore = OreBlockRarityRegistry.MINERALIS_RITUAL.getRandomBlock(rand);
+                        if (ore != null) {
+                            return world.setBlockState(entry.getPos(), ore.getDefaultState());
+                        } else {
+                            return world.setBlockState(entry.getPos(), Blocks.STONE.getDefaultState());
                         }
+                    } else {
+                        return world.setBlockState(entry.getPos(), Blocks.STONE.getDefaultState());
+                    }
+                }
+            } else {
+                if (CONFIG.replaceableStates.test(atState)) {
+                    Block ore = OreBlockRarityRegistry.MINERALIS_RITUAL.getRandomBlock(rand);
+                    if (ore != null) {
+                        return world.setBlockState(entry.getPos(), ore.getDefaultState());
                     }
                 }
             }
         }
+        return false;
+    }
 
-        GenListEntries.SimpleBlockPosEntry entry = getRandomElementByChance(rand);
-        if(entry != null) {
-            BlockPos sel = entry.getPos();
-            if(MiscUtils.isChunkLoaded(world, new ChunkPos(sel))) {
-                if(verifier.isValid(world, sel)) {
-                    ItemStack blockStack = OreTypes.RITUAL_MINERALIS.getRandomOre(rand);
-                    if(rand.nextInt(2_000_000) == 0) blockStack = new ItemStack(BlocksAS.customOre, 1, BlockCustomOre.OreType.STARMETAL.ordinal());
-                    if(!blockStack.isEmpty()) {
-                        IBlockState state = ItemUtils.createBlockState(blockStack);
-                        if(state != null) {
-                            world.setBlockState(sel, state);
-                        }
-                    }
-                } else {
-                    removeElement(entry);
-                    changed = true;
-                }
-            }
+    @Override
+    public Config getConfig() {
+        return CONFIG;
+    }
+
+    private static class MineralisConfig extends CountConfig {
+
+        private final BlockStateList defaultReplaceableStates;
+
+        private ConfiguredBlockStateList replaceableStates;
+
+        public MineralisConfig(BlockStateList defaultReplaceableStates) {
+            super("mineralis", 6D, 4D, 1);
+            this.defaultReplaceableStates = defaultReplaceableStates;
         }
 
-        if(findNewPosition(world, pos, modified)) changed = true;
+        @Override
+        public void createEntries(ForgeConfigSpec.Builder cfgBuilder) {
+            super.createEntries(cfgBuilder);
 
-        return changed;
+            this.replaceableStates = this.defaultReplaceableStates.getAsConfig(
+                    cfgBuilder, "replaceableStates", translationKey("replaceableStates"),
+                    "Defines the blockstates that may be replaced by generated ore from the ritual."
+            );
+        }
     }
-
-    @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(CEffectMineralis.searchRange);
-    }
-
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        searchRange = cfg.getInt(getKey() + "Range", getConfigurationSection(), searchRange, 1, 32, "Defines the radius (in blocks) in which the ritual will search for cleanStone to generate ores into.");
-        maxCount = cfg.getInt(getKey() + "Count", getConfigurationSection(), maxCount, 1, 4000, "Defines the amount of block-positions the ritual can cache at max count");
-        enabled = cfg.getBoolean(getKey() + "Enabled", getConfigurationSection(), true, "Set to false to disable this ConstellationEffect.");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), 1.0F, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
-    }
-
 }

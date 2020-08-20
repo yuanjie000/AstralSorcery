@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,148 +8,159 @@
 
 package hellfirepvp.astralsorcery.common.tile;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHandler;
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXCrystalBurst;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
-import hellfirepvp.astralsorcery.common.block.BlockCelestialCrystals;
-import hellfirepvp.astralsorcery.common.block.BlockCustomOre;
-import hellfirepvp.astralsorcery.common.constellation.IConstellation;
-import hellfirepvp.astralsorcery.common.constellation.distribution.ConstellationSkyHandler;
-import hellfirepvp.astralsorcery.common.constellation.distribution.WorldSkyHandler;
-import hellfirepvp.astralsorcery.common.data.DataActiveCelestials;
-import hellfirepvp.astralsorcery.common.data.SyncDataHolder;
+import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
+import hellfirepvp.astralsorcery.common.block.ore.BlockStarmetalOre;
+import hellfirepvp.astralsorcery.common.block.tile.BlockCelestialCrystalCluster;
+import hellfirepvp.astralsorcery.common.constellation.world.DayTimeHelper;
+import hellfirepvp.astralsorcery.common.crystal.CrystalAttributeTile;
+import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktParticleEvent;
-import hellfirepvp.astralsorcery.common.tile.base.TileSkybound;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
+import hellfirepvp.astralsorcery.common.tile.base.TileEntityTick;
+import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-import java.awt.*;
-import java.util.Collection;
-import java.util.Random;
+import javax.annotation.Nullable;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
  * Class: TileCelestialCrystals
  * Created by HellFirePvP
- * Date: 15.09.2016 / 00:13
+ * Date: 30.09.2019 / 18:17
  */
-public class TileCelestialCrystals extends TileSkybound {
-    //Just in case you wonder. i do have a reason to control growth in the TileEntity other than just in the block itself.
+public class TileCelestialCrystals extends TileEntityTick implements CrystalAttributeTile {
 
-    private static final Random rand = new Random();
+    public static final int TICK_GROWTH_CHANCE = 24_000;
+
+    private CrystalAttributes attributes = null;
+
+    public TileCelestialCrystals() {
+        super(TileEntityTypesAS.CELESTIAL_CRYSTAL_CLUSTER);
+    }
 
     @Override
-    public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newSate) {
-        return oldState.getBlock() != newSate.getBlock();
+    public void tick() {
+        super.tick();
+
+        if (!getWorld().isRemote()) {
+            if (getGrowth() < 4 && doesSeeSky()) {
+                this.tryGrowWithChance(TICK_GROWTH_CHANCE);
+            }
+        } else {
+            BlockState downState = getWorld().getBlockState(getPos().down());
+            if (downState.getBlock() instanceof BlockStarmetalOre) {
+                playStarmetalParticles();
+            }
+            if (getGrowth() == 4) {
+                playFullyGrownParticles();
+            }
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void playStarmetalParticles() {
+        if (rand.nextInt(9) == 0) {
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(new Vector3(this)
+                            .add(0.1, 0, 0.1)
+                            .add(rand.nextFloat() * 0.8, 0, rand.nextFloat() * 0.8))
+                    .color(VFXColorFunction.constant(ColorsAS.DEFAULT_GENERIC_PARTICLE))
+                    .setMotion(new Vector3(0, 0.02 + rand.nextFloat() * 0.05F, 0))
+                    .setScaleMultiplier(0.1F + rand.nextFloat() * 0.15F);
+        }
+
+        if (rand.nextInt(4) == 0) {
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(new Vector3(this)
+                            .addY(0.05)
+                            .add(rand.nextFloat(), 0, rand.nextFloat()))
+                    .color(VFXColorFunction.constant(ColorsAS.DEFAULT_GENERIC_PARTICLE))
+                    .alpha(VFXAlphaFunction.FADE_OUT)
+                    .setScaleMultiplier(0.06F + rand.nextFloat() * 0.05F);
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void playFullyGrownParticles() {
+        if (rand.nextInt(4) == 0) {
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(new Vector3(this)
+                            .add(rand.nextFloat(), rand.nextFloat(), rand.nextFloat()))
+                    .alpha(VFXAlphaFunction.FADE_OUT)
+                    .color(VFXColorFunction.WHITE)
+                    .setScaleMultiplier(0.1F + rand.nextFloat() * 0.15F);
+        }
+    }
+
+    public void tryGrowWithChance(int growthChance) {
+        BlockState downState = getWorld().getBlockState(getPos().down());
+        if (downState.getBlock() instanceof BlockStarmetalOre) {
+            growthChance *= 0.6;
+
+            if (rand.nextInt(400) == 0) {
+                getWorld().setBlockState(getPos().down(), Blocks.IRON_ORE.getDefaultState());
+            }
+        }
+        float distribution = DayTimeHelper.getCurrentDaytimeDistribution(getWorld());
+        growthChance *= (1F - (0.5F * distribution));
+
+        this.grow(growthChance);
+    }
+
+    public void grow(int chance) {
+        if (rand.nextInt(Math.max(chance, 1)) == 0) {
+            int stage = getGrowth();
+            if (stage < 4) {
+                setGrowth(stage + 1);
+            }
+        }
     }
 
     public int getGrowth() {
-        IBlockState state = world.getBlockState(getPos());
-        if(!(state.getBlock() instanceof BlockCelestialCrystals)) return 0;
-        return state.getValue(BlockCelestialCrystals.STAGE);
+        BlockState current = getWorld().getBlockState(getPos());
+        return current.get(BlockCelestialCrystalCluster.STAGE);
+    }
+
+    public void setGrowth(int stage) {
+        BlockState next = BlocksAS.CELESTIAL_CRYSTAL_CLUSTER.getDefaultState().with(BlockCelestialCrystalCluster.STAGE, stage);
+        getWorld().setBlockState(getPos(), next);
     }
 
     @Override
-    public void update() {
-        super.update();
+    public void writeCustomNBT(CompoundNBT compound) {
+        super.writeCustomNBT(compound);
 
-        if(!world.isRemote) {
-            double mul = 1;
-            IBlockState downState = world.getBlockState(getPos().down());
-            if(downState.getBlock() == BlocksAS.customOre &&
-                    downState.getValue(BlockCustomOre.ORE_TYPE) == BlockCustomOre.OreType.STARMETAL) {
-                mul *= 0.3;
-
-                if(rand.nextInt(300) == 0) {
-                    world.setBlockState(getPos().down(), Blocks.IRON_ORE.getDefaultState());
-                }
-            }
-            tryGrowth(mul);
+        if (this.attributes != null) {
+            this.attributes.store(compound);
         } else {
-            IBlockState downState = world.getBlockState(getPos().down());
-            if(downState.getBlock() == BlocksAS.customOre &&
-                    downState.getValue(BlockCustomOre.ORE_TYPE) == BlockCustomOre.OreType.STARMETAL) {
-                playStarmetalOreParticles();
-            }
-            int stage = getGrowth();
-            if(stage == 4) {
-                playHarvestEffects();
-            }
+            CrystalAttributes.storeNull(compound);
         }
-    }
-
-    @SideOnly(Side.CLIENT)
-    private void playHarvestEffects() {
-        if(rand.nextInt(15) == 0) {
-            EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                    pos.getX() + 0.3 + rand.nextFloat() * 0.4,
-                    pos.getY()       + rand.nextFloat() * 0.1,
-                    pos.getZ() + 0.3 + rand.nextFloat() * 0.4);
-            p.motion(0, rand.nextFloat() * 0.05, 0);
-            p.setColor(Color.WHITE);
-            p.scale(0.2F);
-        }
-    }
-
-    @SideOnly(Side.CLIENT)
-    private void playStarmetalOreParticles() {
-        if(rand.nextInt(5) == 0) {
-            EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                    pos.getX()        + rand.nextFloat(),
-                    pos.down().getY() + rand.nextFloat(),
-                    pos.getZ()        + rand.nextFloat());
-            p.motion(0, rand.nextFloat() * 0.05, 0);
-            p.scale(0.2F);
-        }
-    }
-
-    @SideOnly(Side.CLIENT)
-    public static void breakParticles(PktParticleEvent event) {
-        BlockPos at = event.getVec().toBlockPos();
-        int id = 19;
-        id ^= at.getX();
-        id ^= at.getY();
-        id ^= at.getZ();
-        EffectHandler.getInstance().registerFX(new EntityFXCrystalBurst(id, at.getX() + 0.5, at.getY() + 0.2, at.getZ() + 0.5, 1.5F));
     }
 
     @Override
-    protected void onFirstTick() {}
+    public void readCustomNBT(CompoundNBT compound) {
+        super.readCustomNBT(compound);
 
-    public void grow() {
-        IBlockState current = world.getBlockState(getPos());
-        int stage = current.getValue(BlockCelestialCrystals.STAGE);
-        if(stage < 4) {
-            IBlockState next = BlocksAS.celestialCrystals.getStateFromMeta(stage + 1);
-            world.setBlockState(getPos(), next);
-        }
+        this.attributes = CrystalAttributes.getCrystalAttributes(compound);
     }
 
-    public void tryGrowth(double mul) {
-        int r = 24000;
-        WorldSkyHandler handle = ConstellationSkyHandler.getInstance().getWorldHandler(world);
-        if(doesSeeSky() && handle != null) {
-            double dstr = ConstellationSkyHandler.getInstance().getCurrentDaytimeDistribution(world);
-            if(dstr > 0) {
-                Collection<IConstellation> activeConstellations =
-                        ((DataActiveCelestials) SyncDataHolder.getDataClient(SyncDataHolder.DATA_CONSTELLATIONS)).getActiveConstellations(world.provider.getDimension());
-                if(activeConstellations != null) {
-                    r = 9500; //If this dim has sky handling active.
-                }
-                r *= (0.5 + ((1 - dstr) * 0.5));
-            }
-        }
-        r *= Math.abs(mul);
+    @Nullable
+    @Override
+    public CrystalAttributes getAttributes() {
+        return this.attributes;
+    }
 
-        if(world.rand.nextInt(Math.max(r, 1)) == 0) {
-            grow();
-        }
+    @Override
+    public void setAttributes(@Nullable CrystalAttributes attributes) {
+        this.attributes = attributes;
     }
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -9,8 +9,9 @@
 package hellfirepvp.astralsorcery.common.util;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.Teleporter;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -21,24 +22,17 @@ import net.minecraft.world.WorldServer;
  */
 public class NoOpTeleporter extends Teleporter {
 
-    public NoOpTeleporter(WorldServer worldIn) {
+    private final BlockPos targetPos;
+
+    public NoOpTeleporter(ServerWorld worldIn, BlockPos targetPos) {
         super(worldIn);
+        this.targetPos = targetPos;
     }
 
     @Override
-    public void placeInPortal(Entity entityIn, float rotationYaw) {}
-
-    @Override
-    public boolean placeInExistingPortal(Entity entityIn, float rotationYaw) {
+    public boolean placeInPortal(Entity entity, float yaw) {
+        entity.moveToBlockPosAndAngles(targetPos, yaw, entity.rotationPitch);
         return true;
     }
-
-    @Override
-    public boolean makePortal(Entity entityIn) {
-        return true;
-    }
-
-    @Override
-    public void removeStalePortalLocations(long worldTime) {}
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,22 +8,21 @@
 
 package hellfirepvp.astralsorcery.common.starlight.transmission.base;
 
-import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.starlight.WorldNetworkHandler;
 import hellfirepvp.astralsorcery.common.starlight.network.StarlightTransmissionHandler;
 import hellfirepvp.astralsorcery.common.starlight.network.TransmissionWorldHandler;
 import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
 import hellfirepvp.astralsorcery.common.starlight.transmission.NodeConnection;
-import hellfirepvp.astralsorcery.common.starlight.transmission.registry.TransmissionClassRegistry;
+import hellfirepvp.astralsorcery.common.starlight.transmission.registry.TransmissionProvider;
 import hellfirepvp.astralsorcery.common.util.RaytraceAssist;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -54,16 +53,16 @@ public class SimplePrismTransmissionNode implements IPrismTransmissionNode {
     public void updateIgnoreBlockCollisionState(World world, boolean ignoreBlockCollision) {
         this.ignoreBlockCollision = ignoreBlockCollision;
         TransmissionWorldHandler handle = StarlightTransmissionHandler.getInstance().getWorldHandler(world);
-        if(handle != null) {
+        if (handle != null) {
             boolean anyChange = false;
             for (PrismNext next : nextNodes.values()) {
                 boolean oldState = next.reachable;
                 next.reachable = ignoreBlockCollision || next.rayAssist.isClear(world);
-                if(next.reachable != oldState) {
+                if (next.reachable != oldState) {
                     anyChange = true;
                 }
             }
-            if(anyChange) {
+            if (anyChange) {
                 handle.notifyTransmissionNodeChange(this);
             }
         }
@@ -92,14 +91,14 @@ public class SimplePrismTransmissionNode implements IPrismTransmissionNode {
     public boolean notifyBlockChange(World world, BlockPos at) {
         boolean anyChange = false;
         for (PrismNext next : nextNodes.values()) {
-            if(next.notifyBlockPlace(world, thisPos, at)) anyChange = true;
+            if (next.notifyBlockPlace(world, thisPos, at)) anyChange = true;
         }
         return anyChange;
     }
 
     @Override
     public void notifySourceLink(World world, BlockPos source) {
-        if(!sourcesToThis.contains(source)) sourcesToThis.add(source);
+        if (!sourcesToThis.contains(source)) sourcesToThis.add(source);
     }
 
     @Override
@@ -118,28 +117,28 @@ public class SimplePrismTransmissionNode implements IPrismTransmissionNode {
 
     @Override
     public List<BlockPos> getSources() {
-        return sourcesToThis.stream().collect(Collectors.toCollection(LinkedList::new));
+        return new LinkedList<>(sourcesToThis);
     }
 
     @Override
-    public TransmissionClassRegistry.TransmissionProvider getProvider() {
+    public TransmissionProvider getProvider() {
         return new Provider();
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound compound) {
+    public void readFromNBT(CompoundNBT compound) {
         this.thisPos = NBTHelper.readBlockPosFromNBT(compound);
         this.sourcesToThis.clear();
         this.ignoreBlockCollision = compound.getBoolean("ignoreBlockCollision");
 
-        NBTTagList list = compound.getTagList("sources", 10);
-        for (int i = 0; i < list.tagCount(); i++) {
-            sourcesToThis.add(NBTHelper.readBlockPosFromNBT(list.getCompoundTagAt(i)));
+        ListNBT list = compound.getList("sources", Constants.NBT.TAG_COMPOUND);
+        for (int i = 0; i < list.size(); i++) {
+            sourcesToThis.add(NBTHelper.readBlockPosFromNBT(list.getCompound(i)));
         }
 
-        NBTTagList nextList = compound.getTagList("nextList", 10);
-        for (int i = 0; i < nextList.tagCount(); i++) {
-            NBTTagCompound tag = nextList.getCompoundTagAt(i);
+        ListNBT nextList = compound.getList("nextList", Constants.NBT.TAG_COMPOUND);
+        for (int i = 0; i < nextList.size(); i++) {
+            CompoundNBT tag = nextList.getCompound(i);
             BlockPos next = NBTHelper.readBlockPosFromNBT(tag);
             boolean oldState = tag.getBoolean("rayState");
             addLink(null, next, false, oldState); //Rebuild link.
@@ -147,27 +146,27 @@ public class SimplePrismTransmissionNode implements IPrismTransmissionNode {
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound compound) {
+    public void writeToNBT(CompoundNBT compound) {
         NBTHelper.writeBlockPosToNBT(thisPos, compound);
-        compound.setBoolean("ignoreBlockCollision", this.ignoreBlockCollision);
+        compound.putBoolean("ignoreBlockCollision", this.ignoreBlockCollision);
 
-        NBTTagList sources = new NBTTagList();
+        ListNBT sources = new ListNBT();
         for (BlockPos source : sourcesToThis) {
-            NBTTagCompound comp = new NBTTagCompound();
+            CompoundNBT comp = new CompoundNBT();
             NBTHelper.writeBlockPosToNBT(source, comp);
-            sources.appendTag(comp);
+            sources.add(comp);
         }
-        compound.setTag("sources", sources);
+        compound.put("sources", sources);
 
-        NBTTagList nextList = new NBTTagList();
+        ListNBT nextList = new ListNBT();
         for (BlockPos next : nextNodes.keySet()) {
             PrismNext prism = nextNodes.get(next);
-            NBTTagCompound pos = new NBTTagCompound();
+            CompoundNBT pos = new CompoundNBT();
             NBTHelper.writeBlockPosToNBT(next, pos);
-            pos.setBoolean("rayState", prism.reachable);
-            nextList.appendTag(pos);
+            pos.putBoolean("rayState", prism.reachable);
+            nextList.add(pos);
         }
-        compound.setTag("nextList", nextList);
+        compound.put("nextList", nextList);
     }
 
     private static class PrismNext {
@@ -182,18 +181,18 @@ public class SimplePrismTransmissionNode implements IPrismTransmissionNode {
             this.parent = parent;
             this.pos = end;
             this.rayAssist = new RaytraceAssist(start, end);
-            if(doRayTest) {
+            if (doRayTest) {
                 this.reachable = parent.ignoreBlockCollision || rayAssist.isClear(world);
             } else {
                 this.reachable = oldRayState;
             }
-            this.distanceSq = end.distanceSq(start.getX(), start.getY(), start.getZ());
+            this.distanceSq = end.distanceSq(start);
         }
 
         private boolean notifyBlockPlace(World world, BlockPos connect, BlockPos at) {
-            double dstStart = connect.distanceSq(at.getX(), at.getY(), at.getZ());
-            double dstEnd = pos.distanceSq(at.getX(), at.getY(), at.getZ());
-            if(dstStart > distanceSq || dstEnd > distanceSq) return false;
+            double dstStart = connect.distanceSq(at);
+            double dstEnd = pos.distanceSq(at);
+            if (dstStart > distanceSq || dstEnd > distanceSq) return false;
             boolean oldState = this.reachable;
             this.reachable = parent.ignoreBlockCollision || rayAssist.isClear(world);
             return this.reachable != oldState;
@@ -207,7 +206,7 @@ public class SimplePrismTransmissionNode implements IPrismTransmissionNode {
         if (o == null || getClass() != o.getClass()) return false;
 
         SimplePrismTransmissionNode that = (SimplePrismTransmissionNode) o;
-        return !(thisPos != null ? !thisPos.equals(that.thisPos) : that.thisPos != null);
+        return Objects.equals(thisPos, that.thisPos);
 
     }
 
@@ -216,16 +215,11 @@ public class SimplePrismTransmissionNode implements IPrismTransmissionNode {
         return thisPos != null ? thisPos.hashCode() : 0;
     }
 
-    public static class Provider implements TransmissionClassRegistry.TransmissionProvider {
+    public static class Provider extends TransmissionProvider {
 
         @Override
-        public IPrismTransmissionNode provideEmptyNode() {
+        public IPrismTransmissionNode get() {
             return new SimplePrismTransmissionNode(null);
-        }
-
-        @Override
-        public String getIdentifier() {
-            return AstralSorcery.MODID + ":SimplePrismTransmissionNode";
         }
 
     }

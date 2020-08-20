@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -27,7 +27,7 @@ public interface ITransmissionNode extends IPrismTransmissionNode {
     default public List<NodeConnection<IPrismTransmissionNode>> queryNext(WorldNetworkHandler handler) {
         List<NodeConnection<IPrismTransmissionNode>> nodes = new LinkedList<>();
         NodeConnection<IPrismTransmissionNode> next = queryNextNode(handler);
-        if(next != null) {
+        if (next != null) {
             nodes.add(next);
         }
         return nodes;

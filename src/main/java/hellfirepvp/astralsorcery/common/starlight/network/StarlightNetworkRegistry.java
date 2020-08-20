@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,11 +8,11 @@
 
 package hellfirepvp.astralsorcery.common.starlight.network;
 
-import hellfirepvp.astralsorcery.common.block.network.IBlockStarlightRecipient;
+import hellfirepvp.astralsorcery.common.block.base.BlockStarlightRecipient;
 import hellfirepvp.astralsorcery.common.constellation.IWeakConstellation;
-import hellfirepvp.astralsorcery.common.starlight.network.handlers.BlockTransmutationHandler;
+import hellfirepvp.astralsorcery.common.starlight.network.handler.BlockTransmutationHandler;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -30,42 +30,37 @@ import java.util.Random;
  */
 public class StarlightNetworkRegistry {
 
-    //private static Map<Block, Map<Integer, IStarlightBlockHandler>> validEndpoints = new HashMap<>();
-    private static List<IStarlightBlockHandler> dynamicBlockHandlers = new LinkedList<>();
+    private static List<IStarlightBlockHandler> blockHandlers = new LinkedList<>();
 
     @Nullable
-    public static IStarlightBlockHandler getStarlightHandler(World world, BlockPos pos, IBlockState state, IWeakConstellation cst) {
+    public static IStarlightBlockHandler getStarlightHandler(World world, BlockPos pos, BlockState state, IWeakConstellation cst) {
         Block b = state.getBlock();
-        if(b instanceof IBlockStarlightRecipient) return null;
-        for (IStarlightBlockHandler handler : dynamicBlockHandlers) {
-            if(handler.isApplicable(world, pos, state, cst)) return handler;
+        if (b instanceof BlockStarlightRecipient) {
+            return null;
+        }
+        for (IStarlightBlockHandler handler : blockHandlers) {
+            if (handler.isApplicable(world, pos, state, cst)) {
+                return handler;
+            }
         }
         return null;
     }
 
-    public static void registerEndpoint(IStarlightBlockHandler handler) {
-        dynamicBlockHandlers.add(handler);
+    public static void registerBlockHandler(IStarlightBlockHandler handler) {
+        blockHandlers.add(handler);
     }
 
     public static void setupRegistry() {
-        registerEndpoint(new BlockTransmutationHandler());
+        registerBlockHandler(new BlockTransmutationHandler());
     }
 
     //1 instance is/should be created for 1 type of block+meta pair
-    //This is NOT suggested as "first choice" - please implement IBlockStarlightRecipient instead if possible.
+    //This is NOT suggested as "first choice" - please implement BlockStarlightRecipient instead if possible.
     public static interface IStarlightBlockHandler {
 
-        /**
-         * See Constellation-dependent method.
-         */
-        @Deprecated
-        public boolean isApplicable(World world, BlockPos pos, IBlockState state);
+        public boolean isApplicable(World world, BlockPos pos, BlockState state, IWeakConstellation starlightType);
 
-        default public boolean isApplicable(World world, BlockPos pos, IBlockState state, @Nullable IWeakConstellation starlightType) {
-            return isApplicable(world, pos, state);
-        }
-
-        public void receiveStarlight(World world, Random rand, BlockPos pos, @Nullable IWeakConstellation starlightType, double amount);
+        public void receiveStarlight(World world, Random rand, BlockPos pos, BlockState state, IWeakConstellation starlightType, double amount);
 
     }
 

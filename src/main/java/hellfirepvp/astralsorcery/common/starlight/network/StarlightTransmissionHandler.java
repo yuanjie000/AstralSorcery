@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,9 +8,11 @@
 
 package hellfirepvp.astralsorcery.common.starlight.network;
 
-import hellfirepvp.astralsorcery.common.auxiliary.tick.ITickHandler;
+import hellfirepvp.observerlib.common.util.tick.ITickHandler;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraft.world.dimension.DimensionType;
+import net.minecraftforge.event.TickEvent;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
@@ -27,7 +29,7 @@ import java.util.Map;
 public class StarlightTransmissionHandler implements ITickHandler {
 
     private static final StarlightTransmissionHandler instance = new StarlightTransmissionHandler();
-    private Map<Integer, TransmissionWorldHandler> worldHandlers = new HashMap<>();
+    private Map<DimensionType, TransmissionWorldHandler> worldHandlers = new HashMap<>();
 
     private StarlightTransmissionHandler() {}
 
@@ -38,37 +40,34 @@ public class StarlightTransmissionHandler implements ITickHandler {
     @Override
     public void tick(TickEvent.Type type, Object... context) {
         World world = (World) context[0];
-        if(world.isRemote) return;
-
-        int dimId = world.provider.getDimension();
-        TransmissionWorldHandler handle = worldHandlers.get(dimId);
-        if(handle == null) {
-            handle = new TransmissionWorldHandler(dimId);
-            worldHandlers.put(dimId, handle);
+        if (world.isRemote()) {
+            return;
         }
-        handle.tick(world);
+
+        worldHandlers.computeIfAbsent(world.getDimension().getType(), TransmissionWorldHandler::new)
+                .tick(world);
     }
 
-    public void serverCleanHandlers() {
-        for (int id : worldHandlers.keySet()) {
-            worldHandlers.get(id).clear(id);
-        }
+    public void clearServer() {
+        worldHandlers.values().forEach(TransmissionWorldHandler::clear);
         worldHandlers.clear();
     }
 
-    public void informWorldUnload(World world) {
-        int dimId = world.provider.getDimension();
-        TransmissionWorldHandler handle = worldHandlers.get(dimId);
-        if(handle != null) {
-            handle.clear(world.provider.getDimension());
+    public void informWorldUnload(IWorld world) {
+        DimensionType dimType = world.getDimension().getType();
+        TransmissionWorldHandler handle = worldHandlers.get(dimType);
+        if (handle != null) {
+            handle.clear();
         }
-        this.worldHandlers.remove(dimId);
+        this.worldHandlers.remove(dimType);
     }
 
     @Nullable
-    public TransmissionWorldHandler getWorldHandler(World world) {
-        if(world == null) return null;
-        return worldHandlers.get(world.provider.getDimension());
+    public TransmissionWorldHandler getWorldHandler(IWorld world) {
+        if (world == null) {
+            return null;
+        }
+        return worldHandlers.get(world.getDimension().getType());
     }
 
     @Override

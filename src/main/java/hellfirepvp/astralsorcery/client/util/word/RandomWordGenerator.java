@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -23,12 +23,12 @@ import java.util.Map;
  */
 public abstract class RandomWordGenerator {
 
-    private static Map<String, RandomWordGenerator> localizedProviders = Maps.newHashMap();
+    public static Map<String, RandomWordGenerator> localizedProviders = Maps.newHashMap();
     private static RandomWordGenerator fallback;
 
     @Nonnull
     public static RandomWordGenerator getGenerator() {
-        String lang = Minecraft.getMinecraft().gameSettings.language;
+        String lang = Minecraft.getInstance().gameSettings.language;
         if (lang == null) {
             return fallback;
         }

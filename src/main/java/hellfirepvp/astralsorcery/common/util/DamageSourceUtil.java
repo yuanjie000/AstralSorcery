@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -11,7 +11,7 @@ package hellfirepvp.astralsorcery.common.util;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EntityDamageSource;
-import net.minecraft.util.EntityDamageSourceIndirect;
+import net.minecraft.util.IndirectEntityDamageSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -35,7 +35,7 @@ public class DamageSourceUtil {
     }
 
     public static DamageSource withEntityIndirect(@Nonnull String damageType, @Nullable Entity actualSource, @Nullable Entity indirectSource) {
-        return new EntityDamageSourceIndirect(damageType, indirectSource, actualSource);
+        return new IndirectEntityDamageSource(damageType, indirectSource, actualSource);
     }
 
     @Nullable
@@ -66,7 +66,7 @@ public class DamageSourceUtil {
     private static boolean mayChangeAttributes(DamageSource src) {
         Class<?> srcClass = src.getClass();
         return srcClass.equals(DamageSource.class) || srcClass.equals(EntityDamageSource.class) ||
-                srcClass.equals(EntityDamageSourceIndirect.class);
+                srcClass.equals(IndirectEntityDamageSource.class);
     }
 
     @Nullable
@@ -90,7 +90,7 @@ public class DamageSourceUtil {
             dst = new EntityDamageSource(src.getDamageType(),
                     directSource != null ? directSource : src.getImmediateSource());
         } else { // equals EntityDamageSourceIndirect.class
-            dst = new EntityDamageSourceIndirect(src.getDamageType(),
+            dst = new IndirectEntityDamageSource(src.getDamageType(),
                     directSource != null ? directSource : src.getImmediateSource(),
                     trueSource != null ? trueSource : (directSource != null ? directSource : src.getTrueSource()));
         }
@@ -99,25 +99,25 @@ public class DamageSourceUtil {
     }
 
     private static void copy(DamageSource src, DamageSource dest) {
-        if(src.canHarmInCreative()) {
+        if (src.canHarmInCreative()) {
             dest.setDamageAllowedInCreativeMode();
         }
-        if(src.isDamageAbsolute()) {
+        if (src.isDamageAbsolute()) {
             dest.setDamageIsAbsolute();
         }
-        if(src.isProjectile()) {
+        if (src.isProjectile()) {
             dest.setProjectile();
         }
-        if(src.isExplosion()) {
+        if (src.isExplosion()) {
             dest.setExplosion();
         }
-        if(src.isFireDamage()) {
+        if (src.isFireDamage()) {
             dest.setFireDamage();
         }
-        if(src.isMagicDamage()) {
+        if (src.isMagicDamage()) {
             dest.setMagicDamage();
         }
-        if(src.isDifficultyScaled()) {
+        if (src.isDifficultyScaled()) {
             dest.setDifficultyScaled();
         }
     }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,22 +8,18 @@
 
 package hellfirepvp.astralsorcery.common.util;
 
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktParticleEvent;
+import hellfirepvp.astralsorcery.common.util.block.BlockPredicate;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import hellfirepvp.astralsorcery.common.util.object.ObjectReference;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.material.Material;
 import net.minecraft.entity.Entity;
-import net.minecraft.init.Blocks;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -34,21 +30,20 @@ import java.util.*;
  */
 public class RaytraceAssist {
 
-    //-1 is wildcard
-    private static final Map<Block, List<Integer>> passable = new HashMap<>();
-
-    private static final double STEP_WIDTH = 0.05;
+    private static final List<BlockPredicate> passable = new ArrayList<>();
+    private static final double STEP_WIDTH = 0.1;
     private static final Vector3 CENTRALIZE = new Vector3(0.5, 0.5, 0.5);
 
     private final Vector3 start, target;
     private final BlockPos startPos, targetPos;
 
     private boolean collectEntities = false;
-    private List<Integer> collected = new LinkedList<>();
+    private Set<Integer> collected = new HashSet<>();
     private AxisAlignedBB collectBox = null;
-    private boolean includeEnd = false;
+    private boolean includeEnd = false, hitBlocks = true, hitFluids = true;
+    private double stepWidth = STEP_WIDTH;
 
-    private BlockPos hit = null;
+    private BlockPos posHit = null;
 
     public RaytraceAssist(BlockPos start, BlockPos target) {
         this(new Vector3(start).add(CENTRALIZE), new Vector3(target).add(CENTRALIZE));
@@ -66,6 +61,21 @@ public class RaytraceAssist {
         return this;
     }
 
+    public RaytraceAssist hitBlock(boolean hitBlocks) {
+        this.hitBlocks = hitBlocks;
+        return this;
+    }
+
+    public RaytraceAssist hitFluidsBeforeBlocks(boolean hitFluids) {
+        this.hitFluids = hitFluids;
+        return this;
+    }
+
+    public RaytraceAssist stepWith(double stepWidth) {
+        this.stepWidth = stepWidth;
+        return this;
+    }
+
     public void setCollectEntities(double additionalCollectRadius) {
         this.collectEntities = true;
         this.collectBox = new AxisAlignedBB(0, 0, 0, 0, 0, 0);
@@ -73,102 +83,87 @@ public class RaytraceAssist {
     }
 
     public boolean isClear(World world) {
+        return this.forEachBlockPos(at -> {
+            if (collectEntities) {
+                List<Entity> entities = world.getEntitiesWithinAABB(Entity.class, collectBox.offset(at));
+                for (Entity b : entities) {
+                    collected.add(b.getEntityId());
+                }
+            }
+
+            return MiscUtils.executeWithChunk(world, at, () -> {
+                if (!isStartEnd(at) && !world.isAirBlock(at)) {
+                    if (this.hitFluids && !world.getFluidState(at).isEmpty()) {
+                        posHit = at;
+                        return false;
+                    }
+                    if ((this.hitBlocks || this.hitFluids) && !isAllowed(world, at, world.getBlockState(at))) {
+                        posHit = at;
+                        return false;
+                    }
+                }
+                return true;
+            }, false);
+        });
+    }
+
+    public boolean forEachStep(Predicate<Vector3> raystepFn) {
         Vector3 aim = start.vectorFromHereTo(target);
-        Vector3 stepAim = aim.clone().normalize().multiply(STEP_WIDTH);
+        Vector3 stepAim = aim.clone().normalize().multiply(this.stepWidth);
         double distance = aim.length();
         Vector3 prevVec = start.clone();
-        for (double distancePart = STEP_WIDTH; distancePart <= distance; distancePart += STEP_WIDTH) {
+
+        for (double distancePart = this.stepWidth; distancePart <= distance; distancePart += this.stepWidth) {
             Vector3 stepVec = prevVec.clone().add(stepAim);
-            BlockPos at = stepVec.toBlockPos();
-
-            if(collectEntities) {
-                List<Entity> entities = world.getEntitiesWithinAABB(Entity.class, collectBox.offset(stepVec.getX(), stepVec.getY(), stepVec.getZ()));
-                for (Entity b : entities) {
-                    if(!collected.contains(b.getEntityId())) {
-                        collected.add(b.getEntityId());
-                    }
-                }
+            if (!raystepFn.test(stepVec.clone())) {
+                return false;
             }
-
-            if(MiscUtils.isChunkLoaded(world, new ChunkPos(at))) {
-                if(!isStartEnd(at) && !world.isAirBlock(at)) {
-                    IBlockState state = world.getBlockState(at);
-                    if(!isAllowed(state)) {
-                        hit = at;
-                        return false;
-                    }
-                }
-            }
-
-            /* Tried often enough. doesn't work properly for whatever reason.
-            RayTraceResult rtr = world.rayTraceBlocks(prevVec.toVec3d(), stepVec.toVec3d());
-
-            if(rtr != null && rtr.typeOfHit == RayTraceResult.Type.BLOCK) {
-                BlockPos hit = rtr.getBlockPos();
-                if(!isStartEnd(hit)) {
-                    IBlockState state = world.getBlockState(hit);
-                    if(!isAllowed(state)) {
-                        return false;
-                    }
-                }
-            }*/
-
             prevVec = stepVec;
         }
         return true;
     }
 
-    public BlockPos blockHit() {
-        return hit;
+    public boolean forEachBlockPos(Predicate<BlockPos> raystepFn) {
+        ObjectReference<BlockPos> lastPos = new ObjectReference<>();
+        return this.forEachStep(vec -> {
+            BlockPos at = vec.toBlockPos();
+            if (lastPos.get() == null || !lastPos.get().equals(at)) {
+                lastPos.set(at);
+                return raystepFn.test(at);
+            }
+            return true;
+        });
+    }
+
+    public BlockPos positionHit() {
+        return posHit;
     }
 
     public List<Entity> collectedEntities(World world) {
         List<Entity> entities = new LinkedList<>();
         for (Integer id : collected) {
             Entity e = world.getEntityByID(id);
-            if(e != null && !e.isDead) {
+            if (e != null && e.isAlive()) {
                 entities.add(e);
             }
         }
         return entities;
     }
 
-    private boolean isAllowed(IBlockState state) {
-        Block b = state.getBlock();
-        List<Integer> accepted = passable.get(b);
-        if(accepted != null) {
-            if(accepted.size() == 1 && accepted.get(0) == -1) return true;
-            if(accepted.contains(b.getMetaFromState(state))) return true;
-        }
-        return false;
+    private boolean isAllowed(World world, BlockPos at, BlockState state) {
+        return MiscUtils.contains(passable, predicate -> predicate.test(world, at, state));
     }
 
     private boolean isStartEnd(BlockPos hit) {
         return hit.equals(startPos) || (!includeEnd && hit.equals(targetPos));
     }
 
-    public static void addPassable(Block b, Integer... stateMetas) {
-        List<Integer> passStates = new ArrayList<>();
-        if(stateMetas == null || stateMetas.length == 0) {
-            passStates.add(-1);
-        } else {
-            Collections.addAll(passStates, stateMetas);
-        }
-        passable.put(b, passStates);
+    public static void addPassable(BlockPredicate predicate) {
+        passable.add(predicate);
     }
 
     static {
-        addPassable(Blocks.GLASS);
-        addPassable(Blocks.GLASS_PANE);
-        addPassable(Blocks.STAINED_GLASS);
-        addPassable(Blocks.STAINED_GLASS_PANE);
-    }
-
-    @SideOnly(Side.CLIENT)
-    public static void playDebug(PktParticleEvent event) {
-        Vector3 pos = event.getVec();
-        EntityFXFacingParticle p = EffectHelper.genericFlareParticle(pos.getX(), pos.getY(), pos.getZ());
-        p.gravity(0.004).scale(0.05F);
+        addPassable(((world, pos, state) -> state.getFluidState().isEmpty() && state.getMaterial().equals(Material.GLASS)));
     }
 
 }

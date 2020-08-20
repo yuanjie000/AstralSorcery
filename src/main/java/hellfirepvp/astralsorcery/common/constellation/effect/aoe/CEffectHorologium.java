@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -9,31 +9,32 @@
 package hellfirepvp.astralsorcery.common.constellation.effect.aoe;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.client.effect.EffectHelper;
-import hellfirepvp.astralsorcery.client.effect.fx.EntityFXFacingParticle;
-import hellfirepvp.astralsorcery.common.base.TileAccelerationBlacklist;
+import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
+import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
+import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
+import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.constellation.IMinorConstellation;
-import hellfirepvp.astralsorcery.common.constellation.effect.CEffectPositionList;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProperties;
-import hellfirepvp.astralsorcery.common.constellation.effect.GenListEntries;
-import hellfirepvp.astralsorcery.common.lib.Constellations;
-import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import hellfirepvp.astralsorcery.common.network.packet.server.PktParticleEvent;
-import hellfirepvp.astralsorcery.common.util.ILocatable;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.CEffectAbstractList;
+import hellfirepvp.astralsorcery.common.constellation.effect.base.ListEntries;
+import hellfirepvp.astralsorcery.common.data.config.registry.TileAccelerationBlacklistRegistry;
+import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
+import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import hellfirepvp.astralsorcery.common.util.ParticleEffectWatcher;
+import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import hellfirepvp.astralsorcery.common.util.effect.time.TimeStopController;
-import hellfirepvp.astralsorcery.common.util.effect.time.TimeStopZone;
+import hellfirepvp.astralsorcery.common.util.time.TimeStopController;
+import hellfirepvp.astralsorcery.common.util.time.TimeStopZone;
+import net.minecraft.client.renderer.texture.ITickable;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ITickable;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
 
@@ -42,105 +43,117 @@ import java.awt.*;
  * The complete source code for this mod can be found on github.
  * Class: CEffectHorologium
  * Created by HellFirePvP
- * Date: 10.01.2017 / 18:34
+ * Date: 18.01.2020 / 22:41
  */
-public class CEffectHorologium extends CEffectPositionList {
+public class CEffectHorologium extends CEffectAbstractList<ListEntries.PosEntry> {
 
-    //public static final int MAX_SEARCH_RANGE = 8;
-    //public static final int MAX_ACCEL_COUNT = 30;
+    public static HorologiumConfig CONFIG = new HorologiumConfig();
 
-    public boolean enabled = true;
-    public static double potencyMultiplier = 1;
+    public CEffectHorologium(@Nonnull ILocatable origin) {
+        super(origin, ConstellationsAS.horologium, CONFIG.maxAmount.get(), (world, pos, state) -> TileAccelerationBlacklistRegistry.INSTANCE.canBeAccelerated(world.getTileEntity(pos)));
+    }
 
-    public static int searchRange = 16;
-    public static int maxCount = 30;
+    @Nullable
+    @Override
+    public ListEntries.PosEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+        return new ListEntries.PosEntry(pos);
+    }
 
-    public CEffectHorologium(@Nullable ILocatable origin) {
-        super(origin, Constellations.horologium, "horologium", maxCount, (world, pos) -> TileAccelerationBlacklist.canAccelerate(world.getTileEntity(pos)));
+    @Nullable
+    @Override
+    public ListEntries.PosEntry createElement(World world, BlockPos pos) {
+        return new ListEntries.PosEntry(pos);
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, float percStrength, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
-        if(!enabled) return false;
-        percStrength *= potencyMultiplier;
-        if(percStrength < 1) {
-            if(world.rand.nextFloat() > percStrength) return false;
+    @OnlyIn(Dist.CLIENT)
+    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+        ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
+
+        for (int i = 0; i < 2; i++) {
+            Color c = MiscUtils.eitherOf(rand,
+                    () -> Color.WHITE,
+                    () -> ColorsAS.CONSTELLATION_HOROLOGIUM);
+            Vector3 at = Vector3.random().normalize().multiply(rand.nextFloat() * prop.getSize()).add(pos).add(0.5, 0.5, 0.5);
+            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(at)
+                    .alpha(VFXAlphaFunction.FADE_OUT)
+                    .color(VFXColorFunction.constant(c))
+                    .setScaleMultiplier(0.3F + rand.nextFloat() * 0.5F)
+                    .setMaxAge(40 + rand.nextInt(20));
         }
 
-        if(modified.isCorrupted()) {
+        if (rand.nextInt(8) == 0) {
+            Vector3 rand1 = Vector3.random().normalize().multiply(rand.nextFloat() * prop.getSize()).add(pos).add(0.5, 0.5, 0.5);
+            Vector3 rand2 = Vector3.random().normalize().multiply(rand.nextFloat() * prop.getSize()).add(pos).add(0.5, 0.5, 0.5);
+            EffectHelper.of(EffectTemplatesAS.LIGHTNING)
+                    .spawn(rand1)
+                    .makeDefault(rand2)
+                    .color(VFXColorFunction.WHITE);
+        }
+    }
+
+    @Override
+    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        boolean changed = false;
+
+        if (properties.isCorrupted()) {
             TimeStopZone zone = TimeStopController.tryGetZoneAt(world, pos);
-            if(zone == null) {
-                zone = TimeStopController.freezeWorldAt(TimeStopZone.EntityTargetController.noPlayers(), world, pos, true, (float) modified.getSize(), 100);
-            }
-            if(zone == null) {
-                return false;
+            if (zone == null) {
+                zone = TimeStopController.freezeWorldAt(TimeStopZone.EntityTargetController.noPlayers(), world, pos, (float) properties.getSize(), 100);
             }
             zone.setTicksToLive(100);
             return true;
         }
-        boolean changed = false;
-        GenListEntries.SimpleBlockPosEntry entry = getRandomElementByChance(rand);
-        if(entry != null) {
-            BlockPos sel = entry.getPos();
-            if(MiscUtils.isChunkLoaded(world, new ChunkPos(sel))) {
-                TileEntity te = world.getTileEntity(sel);
-                if(TileAccelerationBlacklist.canAccelerate(te)) { //Does != null && instanceof ITickable check.
-                    if (ParticleEffectWatcher.INSTANCE.mayFire(world, sel)) {
-                        PktParticleEvent ev = new PktParticleEvent(PktParticleEvent.ParticleEventType.CE_ACCEL_TILE, sel.getX(), sel.getY(), sel.getZ());
-                        PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, sel, 16));
-                    }
+
+        ListEntries.PosEntry entry = this.getRandomElementChanced();
+        if (entry != null) {
+            if (MiscUtils.executeWithChunk(world, entry.getPos(), () -> {
+                TileEntity tile = MiscUtils.getTileAt(world, entry.getPos(), TileEntity.class, true);
+                if (tile != null && TileAccelerationBlacklistRegistry.INSTANCE.canBeAccelerated(tile)) {
                     try {
                         long startNs = System.nanoTime();
-                        int times = 5 + rand.nextInt(3);
+                        int times = 2 + rand.nextInt(4);
                         while (times > 0) {
-                            ((ITickable) te).update();
+                            ((ITickable) tile).tick();
                             if((System.nanoTime() - startNs) >= 80_000) {
                                 break;
                             }
                             times--;
                         }
                     } catch (Exception exc) {
-                        TileAccelerationBlacklist.errored(te.getClass());
-                        removeElement(entry);
-                        AstralSorcery.log.warn("Couldn't accelerate TileEntity " + te.getClass().getName() + " properly.");
+                        TileAccelerationBlacklistRegistry.INSTANCE.addErrored(tile);
+                        this.removeElement(entry);
+                        AstralSorcery.log.warn("Couldn't accelerate TileEntity " + tile.getClass().getName() + ".");
                         AstralSorcery.log.warn("Temporarily blacklisting that class. Consider adding that to the blacklist if it persists?");
                         exc.printStackTrace();
                     }
                 } else {
-                    removeElement(entry);
-                    changed = true;
+                    this.removeElement(entry);
+                    return true;
                 }
+                return false;
+            }, false)) {
+                changed = true;
             }
         }
 
-        if(findNewPosition(world, pos, modified)) changed = true;
+        if (this.findNewPosition(world, pos, properties) != null) {
+            changed = true;
+        }
 
         return changed;
     }
 
-    @SideOnly(Side.CLIENT)
-    public static void playParticles(PktParticleEvent event) {
-        Vector3 at = event.getVec();
-        EntityFXFacingParticle p = EffectHelper.genericFlareParticle(
-                at.getX() + 0.5,
-                at.getY() + 0.5,
-                at.getZ() + 0.5);
-        p.motion((rand.nextFloat() * 0.03F) * (rand.nextBoolean() ? 1 : -1),
-                (rand.nextFloat() * 0.03F) * (rand.nextBoolean() ? 1 : -1),
-                (rand.nextFloat() * 0.03F) * (rand.nextBoolean() ? 1 : -1));
-        p.scale(0.25F).setColor(Color.CYAN.brighter());
+    @Override
+    public Config getConfig() {
+        return CONFIG;
     }
 
-    @Override
-    public ConstellationEffectProperties provideProperties(int mirrorCount) {
-        return new ConstellationEffectProperties(CEffectHorologium.searchRange);
-    }
+    private static class HorologiumConfig extends CountConfig {
 
-    @Override
-    public void loadFromConfig(Configuration cfg) {
-        searchRange = cfg.getInt(getKey() + "Range", getConfigurationSection(), searchRange, 1, 64, "Defines the radius (in blocks) in which the ritual will search for valid tileEntities to accelerate");
-        maxCount = cfg.getInt(getKey() + "Count", getConfigurationSection(), 30, 1, 4000, "Defines the amount of tileEntities the ritual can cache and accelerate at max count");
-        enabled = cfg.getBoolean(getKey() + "Enabled", getConfigurationSection(), true, "Set to false to disable this ConstellationEffect.");
-        potencyMultiplier = cfg.getFloat(getKey() + "PotencyMultiplier", getConfigurationSection(), 1.0F, 0.01F, 100F, "Set the potency multiplier for this ritual effect. Will affect all ritual effects and their efficiency.");
+        public HorologiumConfig() {
+            super("horologium", 6D, 3D, 32);
+        }
     }
 }

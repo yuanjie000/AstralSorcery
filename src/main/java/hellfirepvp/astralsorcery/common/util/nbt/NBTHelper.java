@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,28 +8,38 @@
 
 package hellfirepvp.astralsorcery.common.util.nbt;
 
-import com.google.common.base.Optional;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.block.Block;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.state.IProperty;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.ForgeRegistry;
+import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.registries.RegistryManager;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -41,119 +51,226 @@ import java.util.function.Consumer;
 public class NBTHelper {
 
     @Nonnull
-    public static NBTTagCompound getPersistentData(Entity entity) {
-        return getPersistentData(entity.getEntityData());
+    public static CompoundNBT getPersistentData(Entity entity) {
+        return getPersistentData(entity.getPersistentData());
     }
 
     @Nonnull
-    public static NBTTagCompound getPersistentData(ItemStack item) {
+    public static CompoundNBT getPersistentData(ItemStack item) {
         return getPersistentData(getData(item));
     }
 
     @Nonnull
-    public static NBTTagCompound getPersistentData(NBTTagCompound base) {
-        NBTTagCompound compound;
+    public static CompoundNBT getPersistentData(CompoundNBT base) {
+        CompoundNBT compound;
         if (hasPersistentData(base)) {
-            compound = base.getCompoundTag(AstralSorcery.MODID);
+            compound = base.getCompound(AstralSorcery.MODID);
         } else {
-            compound = new NBTTagCompound();
-            base.setTag(AstralSorcery.MODID, compound);
+            compound = new CompoundNBT();
+            base.put(AstralSorcery.MODID, compound);
         }
         return compound;
     }
 
     public static boolean hasPersistentData(Entity entity) {
-        return hasPersistentData(entity.getEntityData());
+        return hasPersistentData(entity.getPersistentData());
     }
 
     public static boolean hasPersistentData(ItemStack item) {
-        return item.getTagCompound() != null && hasPersistentData(item.getTagCompound());
+        return item.hasTag() && hasPersistentData(item.getTag());
     }
 
-    public static boolean hasPersistentData(NBTTagCompound base) {
-        return base.hasKey(AstralSorcery.MODID) && base.getTag(AstralSorcery.MODID) instanceof NBTTagCompound;
+    public static boolean hasPersistentData(CompoundNBT base) {
+        return base.contains(AstralSorcery.MODID) && base.get(AstralSorcery.MODID) instanceof CompoundNBT;
     }
 
 
     public static void removePersistentData(Entity entity) {
-        removePersistentData(entity.getEntityData());
+        removePersistentData(entity.getPersistentData());
     }
 
     public static void removePersistentData(ItemStack item) {
-        if (item.hasTagCompound()) removePersistentData(item.getTagCompound());
+        if (item.hasTag()) {
+            removePersistentData(item.getTag());
+        }
     }
 
-    public static void removePersistentData(NBTTagCompound base) {
-        base.removeTag(AstralSorcery.MODID);
+    public static void removePersistentData(CompoundNBT base) {
+        base.remove(AstralSorcery.MODID);
     }
 
+    public static void deepMerge(CompoundNBT dst, CompoundNBT src) {
+        for (String s : src.keySet()) {
+            INBT nbtElement = src.get(s);
+            if (nbtElement.getId() == Constants.NBT.TAG_COMPOUND) {
+                if (dst.contains(s, Constants.NBT.TAG_COMPOUND)) {
+                    deepMerge(dst.getCompound(s), (CompoundNBT) nbtElement);
+                } else {
+                    dst.put(s, nbtElement.copy());
+                }
+            } else if (nbtElement.getId() == Constants.NBT.TAG_LIST) {
+                if (dst.contains(s, Constants.NBT.TAG_LIST)) {
+                    ListNBT dstList = (ListNBT) dst.get(s);
+                    ListNBT srcList = (ListNBT) nbtElement;
+                    if (dstList.getTagType() == srcList.getTagType()) {
+                        deepMergeList(dstList, srcList);
+                    } else {
+                        dst.put(s, srcList.copy());
+                    }
+                } else {
+                    dst.put(s, nbtElement.copy());
+                }
+            } else {
+                dst.put(s, nbtElement.copy());
+            }
+        }
+    }
 
-    public static NBTTagCompound getData(ItemStack stack) {
-        NBTTagCompound compound = stack.getTagCompound();
+    //Stupid NBT stuff ahead. the iterator and the actual .get returns from 2 different lists.
+    //Don't use the iterator on ListNBT...
+    private static void deepMergeList(ListNBT dst, ListNBT src) {
+        for (int j = 0; j < src.size(); j++) {
+            INBT toAdd = src.get(j);
+
+            boolean found = false;
+            for (int i = 0; i < dst.size(); i++) {
+                INBT existing = dst.get(i);
+                if (existing.equals(toAdd)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                dst.add(toAdd.copy());
+            }
+        }
+    }
+
+    @Nonnull
+    public static <E, N extends INBT> List<E> readList(CompoundNBT nbt, String key, int type, Function<N, E> deserializer) {
+        if (!nbt.contains(key, Constants.NBT.TAG_LIST)) {
+            return new ArrayList<>();
+        }
+        return readList(nbt.getList(key, type), deserializer);
+    }
+
+    @Nonnull
+    public static <E, N extends INBT> List<E> readList(ListNBT nbt, Function<N, E> deserializer) {
+        return nbt.stream()
+                .map(n -> deserializer.apply((N) n))
+                .collect(Collectors.toList());
+    }
+
+    public static <E> void writeList(CompoundNBT tag, String key, Collection<E> collection, Function<E, INBT> serializer) {
+        tag.put(key, writeList(collection, serializer));
+    }
+
+    public static <E> ListNBT writeList(Collection<E> collection, Function<E, INBT> serializer) {
+        ListNBT nbt = new ListNBT();
+        nbt.addAll(collection.stream()
+                .map(serializer)
+                .collect(Collectors.toList()));
+        return nbt;
+    }
+
+    public static CompoundNBT getData(ItemStack stack) {
+        CompoundNBT compound = stack.getTag();
         if (compound == null) {
-            compound = new NBTTagCompound();
-            stack.setTagCompound(compound);
+            compound = new CompoundNBT();
+            stack.setTag(compound);
         }
         return compound;
     }
 
-    public static void setBlockState(NBTTagCompound cmp, String key, IBlockState state) {
-        NBTTagCompound serialized = getBlockStateNBTTag(state);
-        if (serialized != null) {
-            cmp.setTag(key, serialized);
+    public static <T> void writeOptional(CompoundNBT nbt, String key, @Nullable T object, BiConsumer<CompoundNBT, T> writer) {
+        nbt.putBoolean(key + "_present", object != null);
+        if (object != null) {
+            CompoundNBT write = new CompoundNBT();
+            writer.accept(write, object);
+            nbt.put(key, write);
         }
     }
 
     @Nullable
-    public static IBlockState getBlockState(NBTTagCompound cmp, String key) {
-        return getBlockStateFromTag(cmp.getCompoundTag(key));
+    public static <T> T readOptional(CompoundNBT nbt, String key, Function<CompoundNBT, T> reader) {
+        return readOptional(nbt, key, reader, null);
+    }
+
+    @Nullable
+    public static <T> T readOptional(CompoundNBT nbt, String key, Function<CompoundNBT, T> reader, T _default) {
+        if (nbt.getBoolean(key + "_present")) {
+            CompoundNBT read = nbt.getCompound(key);
+            return reader.apply(read);
+        }
+        return _default;
+    }
+
+    public static <T extends Enum<T>> void writeEnum(CompoundNBT nbt, String key, T enumValue) {
+        nbt.putInt(key, enumValue.ordinal());
+    }
+
+    public static <T extends Enum<T>> T readEnum(CompoundNBT nbt, String key, Class<T> enumClazz) {
+        if (!enumClazz.isEnum()) {
+            throw new IllegalArgumentException("Passed class is not an enum!");
+        }
+        return enumClazz.getEnumConstants()[nbt.getInt(key)];
+    }
+
+    public static void setBlockState(CompoundNBT cmp, String key, BlockState state) {
+        CompoundNBT serialized = getBlockStateNBTTag(state);
+        cmp.put(key, serialized);
+    }
+
+    @Nullable
+    public static BlockState getBlockState(CompoundNBT cmp, String key) {
+        return getBlockStateFromTag(cmp.getCompound(key));
     }
 
     @Nonnull
-    public static NBTTagCompound getBlockStateNBTTag(IBlockState state) {
-        if(state.getBlock().getRegistryName() == null) {
+    public static CompoundNBT getBlockStateNBTTag(BlockState state) {
+        if (state.getBlock().getRegistryName() == null) {
             state = Blocks.AIR.getDefaultState();
         }
-        NBTTagCompound tag = new NBTTagCompound();
-        tag.setString("registryName", state.getBlock().getRegistryName().toString());
-        NBTTagList properties = new NBTTagList();
-        for (IProperty property : state.getPropertyKeys()) {
-            NBTTagCompound propTag = new NBTTagCompound();
+        CompoundNBT tag = new CompoundNBT();
+        tag.putString("registryName", state.getBlock().getRegistryName().toString());
+        ListNBT properties = new ListNBT();
+        for (IProperty property : state.getProperties()) {
+            CompoundNBT propTag = new CompoundNBT();
             try {
-                propTag.setString("value", property.getName(state.getValue(property)));
+                propTag.putString("value", property.getName(state.get(property)));
             } catch (Exception exc) {
                 continue;
             }
-            propTag.setString("property", property.getName());
-            properties.appendTag(propTag);
+            propTag.putString("property", property.getName());
+            properties.add(propTag);
         }
-        tag.setTag("properties", properties);
+        tag.put("properties", properties);
         return tag;
     }
 
     @Nullable
-    public static IBlockState getBlockStateFromTag(NBTTagCompound cmp) {
+    public static BlockState getBlockStateFromTag(CompoundNBT cmp) {
         return getBlockStateFromTag(cmp, null);
     }
 
     @Nullable
-    public static <T extends Comparable<T>> IBlockState getBlockStateFromTag(NBTTagCompound cmp, IBlockState _default) {
+    public static <T extends Comparable<T>> BlockState getBlockStateFromTag(CompoundNBT cmp, BlockState _default) {
         ResourceLocation key = new ResourceLocation(cmp.getString("registryName"));
         Block block = ForgeRegistries.BLOCKS.getValue(key);
-        if(block == null || block == Blocks.AIR) return _default;
-        IBlockState state = block.getDefaultState();
-        Collection<IProperty<?>> properties = state.getPropertyKeys();
-        NBTTagList list = cmp.getTagList("properties", Constants.NBT.TAG_COMPOUND);
-        for (int i = 0; i < list.tagCount(); i++) {
-            NBTTagCompound propertyTag = list.getCompoundTagAt(i);
+        if (block == null || block == Blocks.AIR) return _default;
+        BlockState state = block.getDefaultState();
+        Collection<IProperty<?>> properties = state.getProperties();
+        ListNBT list = cmp.getList("properties", Constants.NBT.TAG_COMPOUND);
+        for (int i = 0; i < list.size(); i++) {
+            CompoundNBT propertyTag = list.getCompound(i);
             String valueStr = propertyTag.getString("value");
             String propertyStr = propertyTag.getString("property");
             IProperty<T> match = (IProperty<T>) MiscUtils.iterativeSearch(properties, prop -> prop.getName().equalsIgnoreCase(propertyStr));
-            if(match != null) {
+            if (match != null) {
                 try {
                     Optional<T> opt = match.parseValue(valueStr);
-                    if(opt.isPresent()) {
-                        state = state.withProperty(match, opt.get());
+                    if (opt.isPresent()) {
+                        state = state.with(match, opt.get());
                     }
                 } catch (Throwable tr) {} // Thanks Exu2
             }
@@ -161,107 +278,118 @@ public class NBTHelper {
         return state;
     }
 
-    public static void setAsSubTag(NBTTagCompound compound, String tag, Consumer<NBTTagCompound> applyFct) {
-        NBTTagCompound newTag = new NBTTagCompound();
+    public static void setAsSubTag(CompoundNBT compound, String tag, Consumer<CompoundNBT> applyFct) {
+        CompoundNBT newTag = new CompoundNBT();
         applyFct.accept(newTag);
-        compound.setTag(tag, newTag);
+        compound.put(tag, newTag);
     }
 
-    public static void setStack(NBTTagCompound compound, String tag, ItemStack stack) {
+    @Nullable
+    public static <T> T readFromSubTag(CompoundNBT compound, String tag, Function<CompoundNBT, T> readFct) {
+        if (compound.contains(tag, Constants.NBT.TAG_COMPOUND)) {
+            return readFct.apply(compound.getCompound(tag));
+        }
+        return null;
+    }
+
+    public static <T extends IForgeRegistryEntry<T>> void setRegistryEntry(CompoundNBT compoundNBT, String tag, T entry) {
+        setResourceLocation(compoundNBT, tag + "_registry", RegistryManager.ACTIVE.getRegistry(entry.getRegistryType()).getRegistryName());
+        setResourceLocation(compoundNBT, tag, entry.getRegistryName());
+    }
+
+    @Nullable
+    public static <T extends IForgeRegistryEntry<T>> T getRegistryEntry(CompoundNBT compoundNBT, String tag) {
+        ResourceLocation registryName = getResourceLocation(compoundNBT, tag + "_registry");
+        if (registryName != null) {
+            ForgeRegistry<T> registry = RegistryManager.ACTIVE.getRegistry(registryName);
+            if (registry != null) {
+                ResourceLocation key = getResourceLocation(compoundNBT, tag);
+                if (key != null) {
+                    return registry.getValue(key);
+                }
+            }
+        }
+        return null;
+    }
+
+    public static void setResourceLocation(CompoundNBT compoundNBT, String tag, ResourceLocation key) {
+        compoundNBT.putString(tag, key.toString());
+    }
+
+    @Nullable
+    public static ResourceLocation getResourceLocation(CompoundNBT compoundNBT, String tag) {
+        if (compoundNBT.contains(tag)) {
+            return new ResourceLocation(compoundNBT.getString(tag));
+        }
+        return null;
+    }
+
+    public static void setStack(CompoundNBT compound, String tag, ItemStack stack) {
+        setAsSubTag(compound, tag, stack::write);
+    }
+
+    public static ItemStack getStack(CompoundNBT compound, String tag) {
+        return readFromSubTag(compound, tag, ItemStack::read);
+    }
+
+    public static void setFluid(CompoundNBT compound, String tag, FluidStack stack) {
         setAsSubTag(compound, tag, stack::writeToNBT);
     }
 
-    public static void removeUUID(NBTTagCompound compound, String key) {
-        compound.removeTag(key + "Most");
-        compound.removeTag(key + "Least");
+    public static FluidStack getFluid(CompoundNBT compound, String tag) {
+        return readFromSubTag(compound, tag, FluidStack::loadFluidStackFromNBT);
     }
 
-    public static ItemStack getStack(NBTTagCompound compound, String tag) {
-        return getStack(compound, tag, ItemStack.EMPTY);
+    public static void removeUUID(CompoundNBT compound, String key) {
+        compound.remove(key + "Most");
+        compound.remove(key + "Least");
     }
 
-    //Get tags with default value
-    public static ItemStack getStack(NBTTagCompound compound, String tag, ItemStack defaultValue) {
-        if (compound.hasKey(tag)) {
-            return new ItemStack(compound.getCompoundTag(tag));
-        }
-        return defaultValue;
+    public static CompoundNBT writeBlockPosToNBT(BlockPos pos, CompoundNBT compound) {
+        compound.putInt("bposX", pos.getX());
+        compound.putInt("bposY", pos.getY());
+        compound.putInt("bposZ", pos.getZ());
+        return compound;
     }
 
-    public static boolean getBoolean(NBTTagCompound compound, String tag, boolean defaultValue) {
-        return compound.hasKey(tag) ? compound.getBoolean(tag) : defaultValue;
-    }
-
-    public static String getString(NBTTagCompound compound, String tag, String defaultValue) {
-        return compound.hasKey(tag) ? compound.getString(tag) : defaultValue;
-    }
-
-    public static int getInteger(NBTTagCompound compound, String tag, int defaultValue) {
-        return compound.hasKey(tag) ? compound.getInteger(tag) : defaultValue;
-    }
-
-    public static double getDouble(NBTTagCompound compound, String tag, double defaultValue) {
-        return compound.hasKey(tag) ? compound.getDouble(tag) : defaultValue;
-    }
-
-    public static float getFloat(NBTTagCompound compound, String tag, float defaultValue) {
-        return compound.hasKey(tag) ? compound.getFloat(tag) : defaultValue;
-    }
-
-    public static byte getByte(NBTTagCompound compound, String tag, byte defaultValue) {
-        return compound.hasKey(tag) ? compound.getByte(tag) : defaultValue;
-    }
-
-    public static short getShort(NBTTagCompound compound, String tag, short defaultValue) {
-        return compound.hasKey(tag) ? compound.getShort(tag) : defaultValue;
-    }
-
-    public static long getLong(NBTTagCompound compound, String tag, long defaultValue) {
-        return compound.hasKey(tag) ? compound.getLong(tag) : defaultValue;
-    }
-
-    public static void writeBlockPosToNBT(BlockPos pos, NBTTagCompound compound) {
-        compound.setInteger("bposX", pos.getX());
-        compound.setInteger("bposY", pos.getY());
-        compound.setInteger("bposZ", pos.getZ());
-    }
-
-    public static BlockPos readBlockPosFromNBT(NBTTagCompound compound) {
-        int x = compound.getInteger("bposX");
-        int y = compound.getInteger("bposY");
-        int z = compound.getInteger("bposZ");
+    public static BlockPos readBlockPosFromNBT(CompoundNBT compound) {
+        int x = compound.getInt("bposX");
+        int y = compound.getInt("bposY");
+        int z = compound.getInt("bposZ");
         return new BlockPos(x, y, z);
     }
 
-    public static NBTTagCompound writeVector3(Vector3 v) {
-        NBTTagCompound cmp = new NBTTagCompound();
+    public static CompoundNBT writeVector3(Vector3 v) {
+        CompoundNBT cmp = new CompoundNBT();
         writeVector3(v, cmp);
         return cmp;
     }
 
-    public static void writeVector3(Vector3 v, NBTTagCompound compound) {
-        compound.setDouble("vecPosX", v.getX());
-        compound.setDouble("vecPosY", v.getY());
-        compound.setDouble("vecPosZ", v.getZ());
+    public static CompoundNBT writeVector3(Vector3 v, CompoundNBT compound) {
+        compound.putDouble("vecPosX", v.getX());
+        compound.putDouble("vecPosY", v.getY());
+        compound.putDouble("vecPosZ", v.getZ());
+        return compound;
     }
 
-    public static Vector3 readVector3(NBTTagCompound compound) {
+    public static Vector3 readVector3(CompoundNBT compound) {
         return new Vector3(
                 compound.getDouble("vecPosX"),
                 compound.getDouble("vecPosY"),
                 compound.getDouble("vecPosZ"));
     }
 
-    public static void writeBoundingBox(AxisAlignedBB box, NBTTagCompound tag) {
-        tag.setDouble("boxMinX", box.minX);
-        tag.setDouble("boxMinY", box.minY);
-        tag.setDouble("boxMinZ", box.minZ);
-        tag.setDouble("boxMaxX", box.maxX);
-        tag.setDouble("boxMaxY", box.maxY);
-        tag.setDouble("boxMaxZ", box.maxZ);
+    public static CompoundNBT writeBoundingBox(AxisAlignedBB box, CompoundNBT tag) {
+        tag.putDouble("boxMinX", box.minX);
+        tag.putDouble("boxMinY", box.minY);
+        tag.putDouble("boxMinZ", box.minZ);
+        tag.putDouble("boxMaxX", box.maxX);
+        tag.putDouble("boxMaxY", box.maxY);
+        tag.putDouble("boxMaxZ", box.maxZ);
+        return tag;
     }
 
-    public static AxisAlignedBB readBoundingBox(NBTTagCompound tag) {
+    public static AxisAlignedBB readBoundingBox(CompoundNBT tag) {
         return new AxisAlignedBB(
                 tag.getDouble("boxMinX"),
                 tag.getDouble("boxMinY"),

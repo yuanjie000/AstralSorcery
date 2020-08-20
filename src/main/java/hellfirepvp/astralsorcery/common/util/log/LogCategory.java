@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,7 +8,9 @@
 
 package hellfirepvp.astralsorcery.common.util.log;
 
-import hellfirepvp.astralsorcery.common.util.Provider;
+import hellfirepvp.astralsorcery.common.data.config.entry.LogConfig;
+
+import java.util.function.Supplier;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -20,14 +22,19 @@ import hellfirepvp.astralsorcery.common.util.Provider;
 public enum LogCategory {
 
     PERKS,
+    UNINTENDED_CHUNK_LOADING,
     STRUCTURE_MATCH,
-    TREE_BEACON;
+    GATEWAY_CACHE;
 
-    public void info(Provider<String> message) {
+    public boolean isEnabled() {
+        return LogConfig.CONFIG.isLoggingEnabled(this);
+    }
+
+    public void info(Supplier<String> message) {
         LogUtil.info(this, message);
     }
 
-    public void warn(Provider<String> message) {
+    public void warn(Supplier<String> message) {
         LogUtil.warn(this, message);
     }
 

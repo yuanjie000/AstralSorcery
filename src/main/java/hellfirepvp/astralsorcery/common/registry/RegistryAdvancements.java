@@ -1,5 +1,5 @@
 /*******************************************************************************
- * HellFirePvP / Astral Sorcery 2019
+ * HellFirePvP / Astral Sorcery 2020
  *
  * All rights reserved.
  * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
@@ -8,9 +8,9 @@
 
 package hellfirepvp.astralsorcery.common.registry;
 
-import hellfirepvp.astralsorcery.common.advancements.*;
+import hellfirepvp.astralsorcery.common.advancement.*;
 
-import static hellfirepvp.astralsorcery.common.lib.AdvancementTriggers.*;
+import static hellfirepvp.astralsorcery.common.lib.AdvancementsAS.*;
 import static net.minecraft.advancements.CriteriaTriggers.register;
 
 /**
@@ -18,7 +18,7 @@ import static net.minecraft.advancements.CriteriaTriggers.register;
  * The complete source code for this mod can be found on github.
  * Class: RegistryAdvancements
  * Created by HellFirePvP
- * Date: 27.10.2018 / 10:54
+ * Date: 11.05.2020 / 20:34
  */
 public class RegistryAdvancements {
 
