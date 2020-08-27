@@ -6,6 +6,7 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.modifier.PerkAttributeModifier;
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraftforge.fml.LogicalSide;
 
 import static hellfirepvp.astralsorcery.common.lib.PerkCustomModifiersAS.*;
 
@@ -22,7 +23,7 @@ public class RegistryPerkCustomModifiers {
 
     public static void init() {
         FOCUS_GELU = register(new PerkAttributeModifier(AstralSorcery.key("focus_gelu"),
-                PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, ModifierType.ADDED_MULTIPLY, 0.03F) {
+                PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, ModifierType.ADDED_MULTIPLY, 0.02F) {
             @Override
             protected void initModifier() {
                 super.initModifier();
@@ -51,7 +52,8 @@ public class RegistryPerkCustomModifiers {
 
             @Override
             public float getValue(PlayerEntity player, PlayerProgress progress) {
-                return 1F + (0.05F * progress.getAvailablePerkPoints(player));
+                LogicalSide side = player.getEntityWorld().isRemote() ? LogicalSide.CLIENT : LogicalSide.SERVER;
+                return 1F + (0.05F * progress.getAvailablePerkPoints(player, side));
             }
 
             @Override

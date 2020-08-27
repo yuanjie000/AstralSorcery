@@ -36,7 +36,7 @@
   "advancements.astralsorcery.perk_level_large.title": "It all looks so different on this side",
   "advancements.astralsorcery.perk_level_large.desc": "Develop your personal starlight to maximum level.",
   "advancements.astralsorcery.perk_level_medium.title": "No sign of the morning coming",
-  "advancements.astralsorcery.perk_level_medium.desc": "Develop your personal starlight to level 20.",
+  "advancements.astralsorcery.perk_level_medium.desc": "Develop your personal starlight to level 25.",
   "advancements.astralsorcery.perk_level_small.title": "It's a start",
   "advancements.astralsorcery.perk_level_small.desc": "Develop your personal starlight to level 10.",
   "advancements.astralsorcery.rock_crystals.title": "It's worth how much?",
@@ -104,6 +104,7 @@
   "enchantment.astralsorcery.night_vision.desc": "Grants the wearer night vision.",
   "enchantment.astralsorcery.scorching_heat.desc": "Blocks mined with this enchantment will have their drops smelted, as though in a furnace.",
 
+  "astralsorcery.amulet.color.colorless": "Pristine",
   "astralsorcery.amulet.enchantment.level.one": "level",
   "astralsorcery.amulet.enchantment.level.more": "levels",
   "astralsorcery.amulet.enchantment.add_to_specific.name": "+%s %s to %s",
@@ -153,7 +154,7 @@
 
   "astralsorcery.journal.node.CPAPER.name": "Constellation Papers",
   "astralsorcery.journal.CPAPER.1.text": "Inside the storage of Academy Shrines can be found study aids in the form of parchment. These parchments are attuned to the existing Academy archives, and will reveal knowledge of an additional constellation to the user when first viewed, as long as their archives record indicates sufficient understanding of Starlight concepts. Due to this, duplicate records will not be generated for any given initiate. Excess study materials should be left behind for other initiates.",
-  "astralsorcery.journal.CPAPER.3.text": "These papers can be stored within the Tome for future reference by opening the Tome while holding Shift. <NL>In the event an initiate would be so irresponsible as to lose their papers, the Academy will not be re-issuing these materials. Instead, the initiate may borrow a copy from another initiate, or recreate them once they have access to a sufficiently advanced crafting altar to properly infuse the constellation knowledge back into parchment. A relatively small cost for such a large lapse of judgement.",
+  "astralsorcery.journal.CPAPER.3.text": "These papers can be stored within the Tome for future reference by opening the Tome while holding Shift. <NL>In the event an initiate would be so irresponsible as to lose their papers, the Academy will not be re-issuing these materials. Instead, the initiate may borrow a copy from another initiate, or recreate them once they have access to a sufficiently advanced crafting altar to properly infuse the constellation knowledge back into parchment. A relatively small cost for such a large lapse of judgement. Papers stored in the tome are accessible by the initiate from any other tome.",
 
   "astralsorcery.journal.node.WAND.name": "Resonating Wand",
   "astralsorcery.journal.WAND.1.text": "While the floating crystals in the shrines will naturally spill some of its internal Starlight onto nearby crafting tables thanks to the Academy's wards, other crystals will not. As this behavior is also fairly wasteful and magically messy, it will not suffice for more delicate crafting. One of the first tools any initiate should obtain is a wand that will allow them to control the release of Starlight energies from Starlight sensitive devices and crafting implements by right-clicking them.",
@@ -1089,9 +1090,11 @@
   "perk.astralsorcery.key.low_life.desc.2": "the more health you're missing.",
   "perk.astralsorcery.key.luck.name": "Consistent Luck",
   "perk.astralsorcery.key.luck.desc": "+1 level of Fortune.",
+  "perk.astralsorcery.key.entity_reach.name": "Honed Influence",
+  "perk.astralsorcery.key.entity_reach.desc": "Bonuses to Block Reach apply to Entity Reach.",
 
   "perk.astralsorcery.special.focus.gelu.name": "Focus: Gelu",
-  "perk.astralsorcery.special.focus.gelu.desc.1": "Gain +3%% increased Perk Effectiveness per allocated Perk.",
+  "perk.astralsorcery.special.focus.gelu.desc.1": "Gain +2%% increased Perk Effectiveness per allocated Perk.",
   "perk.astralsorcery.special.focus.gelu.desc.2": "Other modifiers to Perk Effectiveness no longer apply.",
   "perk.astralsorcery.special.focus.gelu.desc.3": "",
   "perk.astralsorcery.special.focus.gelu.desc.4": "You can only unlock 1 Focus Perk.",

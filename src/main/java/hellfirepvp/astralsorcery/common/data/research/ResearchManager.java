@@ -32,13 +32,12 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -150,6 +149,17 @@ public class ResearchManager {
         return true;
     }
 
+    public static boolean updateConstellationPapers(List<IConstellation> papers, PlayerEntity player) {
+        PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
+        if (!progress.isValid()) return false;
+
+        progress.setStoredConstellationPapers(papers.stream().map(IForgeRegistryEntry::getRegistryName).collect(Collectors.toList()));
+
+        ResearchSyncHelper.pushProgressToClientUnsafe(progress, player);
+        ResearchHelper.savePlayerKnowledge(player);
+        return true;
+    }
+
     public static boolean maximizeTier(PlayerEntity player) {
         PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
         if (!progress.isValid()) return false;
@@ -193,7 +203,7 @@ public class ResearchManager {
         progress.setExp(0);
         progress.setAttunedConstellation(constellation);
         AbstractPerk root;
-        if (constellation != null && (root = PerkTree.PERK_TREE.getRootPerk(constellation)) != null) {
+        if (constellation != null && (root = PerkTree.PERK_TREE.getRootPerk(LogicalSide.SERVER, constellation)) != null) {
             CompoundNBT data = new CompoundNBT();
             root.onUnlockPerkServer(player, progress, data);
             progress.applyPerk(root, data);
@@ -228,7 +238,7 @@ public class ResearchManager {
     public static boolean applyPerk(PlayerEntity player, @Nonnull AbstractPerk perk) {
         PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
         if (!progress.isValid()) return false;
-        if (!progress.hasFreeAllocationPoint(player)) return false;
+        if (!progress.hasFreeAllocationPoint(player, LogicalSide.SERVER)) return false;
         if (progress.hasPerkUnlocked(perk)) return false;
 
         CompoundNBT data = new CompoundNBT();
@@ -406,7 +416,7 @@ public class ResearchManager {
         PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
         if (!progress.isValid()) return false;
 
-        progress.modifyExp(exp, player);
+        progress.modifyExp(exp, player, LogicalSide.SERVER);
 
         AdvancementsAS.PERK_LEVEL.trigger((ServerPlayerEntity) player);
 

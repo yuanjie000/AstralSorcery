@@ -14,18 +14,18 @@ import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.perk.PerkTree;
 import hellfirepvp.astralsorcery.common.perk.data.PerkTypeHandler;
 import hellfirepvp.astralsorcery.common.perk.node.MajorPerk;
+import hellfirepvp.astralsorcery.common.perk.tree.PerkTreePoint;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -36,29 +36,29 @@ import java.util.List;
  */
 public class KeyTreeConnector extends MajorPerk {
 
-    private static final List<KeyTreeConnector> connectorCache = new ArrayList<>();
-
     public KeyTreeConnector(ResourceLocation name, float x, float y) {
         super(name, x, y);
         this.setCategory(CATEGORY_EPIPHANY);
-        connectorCache.add(this);
     }
 
     @Override
     public boolean mayUnlockPerk(PlayerProgress progress, PlayerEntity player) {
-        if (!progress.hasFreeAllocationPoint(player) ||
+        if (!progress.hasFreeAllocationPoint(player, getSide(player)) ||
                 !canSee(player, progress)) return false;
 
+        LogicalSide side = getSide(player);
         boolean hasAllAdjacent = true;
-        for (AbstractPerk otherPerks : PerkTree.PERK_TREE.getConnectedPerks(this)) {
+        for (AbstractPerk otherPerks : PerkTree.PERK_TREE.getConnectedPerks(side, this)) {
             if (!progress.hasPerkUnlocked(otherPerks)) {
                 hasAllAdjacent = false;
                 break;
             }
         }
         if (!hasAllAdjacent) {
-            connectorCache.removeIf(perk -> !PerkTree.PERK_TREE.getPerk(otherPerk -> otherPerk == perk).isPresent());
-            return connectorCache.stream().anyMatch(progress::hasPerkUnlocked);
+            return PerkTree.PERK_TREE.getPerkPoints(getSide(player)).stream()
+                    .map(PerkTreePoint::getPerk)
+                    .filter(perk -> perk instanceof KeyTreeConnector)
+                    .anyMatch(progress::hasPerkUnlocked);
         } else {
             return true;
         }
@@ -69,7 +69,7 @@ public class KeyTreeConnector extends MajorPerk {
         super.onUnlockPerkServer(player, progress, dataStorage);
 
         ListNBT listTokens = new ListNBT();
-        for (AbstractPerk otherPerk : PerkTree.PERK_TREE.getConnectedPerks(this)) {
+        for (AbstractPerk otherPerk : PerkTree.PERK_TREE.getConnectedPerks(LogicalSide.SERVER, this)) {
             if (ResearchManager.forceApplyPerk(player, otherPerk)) {
                 String token = "connector-tk-" + otherPerk.getRegistryName().toString();
                 if (ResearchManager.grantFreePerkPoint(player, token)) {
@@ -88,5 +88,10 @@ public class KeyTreeConnector extends MajorPerk {
         for (int i = 0; i < list.size(); i++) {
             ResearchManager.revokeFreePoint(player, list.getString(i));
         }
+    }
+
+    @Override
+    public void clearCaches(LogicalSide side) {
+        super.clearCaches(side);
     }
 }
