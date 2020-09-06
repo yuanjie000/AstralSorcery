@@ -1,9 +1,9 @@
 /*******************************************************************************
  * HellFirePvP / Astral Sorcery 2020
  *
- *  All rights reserved.
- *  The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
- *  For further details, see the License file there.
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
  ******************************************************************************/
 
 package hellfirepvp.astralsorcery.datagen.assets;
@@ -143,6 +143,8 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
         this.simpleBlockState(BlocksAS.TELESCOPE);
         this.simpleBlockState(BlocksAS.OBSERVATORY);
         this.simpleBlockState(BlocksAS.WELL);
+        this.simpleBlockState(BlocksAS.TREE_BEACON);
+        this.simpleBlockState(BlocksAS.TREE_BEACON_COMPONENT, this.modelNothing());
 
         this.getVariantBuilder(BlocksAS.FLARE_LIGHT).forAllStates(state -> ArrayUtils.toArray(new ConfiguredModel(this.modelNothing())));
         this.simpleBlockState(BlocksAS.TRANSLUCENT_BLOCK, this.modelNothing());

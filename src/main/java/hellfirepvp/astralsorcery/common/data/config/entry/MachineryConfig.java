@@ -6,22 +6,28 @@
  * For further details, see the License file there.
  ******************************************************************************/
 
-package hellfirepvp.astralsorcery.common.item.base.render;
+package hellfirepvp.astralsorcery.common.data.config.entry;
 
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import hellfirepvp.astralsorcery.common.data.config.base.ConfigEntry;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
- * Class: ItemOverlayRender
+ * Class: MachineryConfig
  * Created by HellFirePvP
- * Date: 28.02.2020 / 18:48
+ * Date: 05.09.2020 / 08:07
  */
-public interface ItemOverlayRender {
+public class MachineryConfig extends ConfigEntry {
 
-    @OnlyIn(Dist.CLIENT)
-    boolean renderOverlay(ItemStack stack, float pTicks);
+    public static final MachineryConfig CONFIG = new MachineryConfig();
 
+    private MachineryConfig() {
+        super("machinery");
+    }
+
+    @Override
+    public void createEntries(ForgeConfigSpec.Builder cfgBuilder) {
+
+    }
 }

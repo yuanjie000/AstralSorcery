@@ -61,4 +61,15 @@ public class ContainerAltarDiscovery extends ContainerAltarBase {
     Optional<ItemStack> handleCustomTransfer(PlayerEntity player, int index) {
         return Optional.empty();
     }
+
+    @Override
+    public int translateIndex(int fromIndex) {
+        if (fromIndex >= 16) {
+            return fromIndex - 10;
+        }
+        if (fromIndex >= 11) {
+            return fromIndex - 8;
+        }
+        return fromIndex - 6;
+    }
 }

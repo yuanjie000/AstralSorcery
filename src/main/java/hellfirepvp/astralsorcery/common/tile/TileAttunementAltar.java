@@ -1,4 +1,12 @@
 /*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2020
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
+/*******************************************************************************
  * HellFirePvP / Astral Sorcery 2019
  *
  * All rights reserved.
@@ -259,17 +267,17 @@ public class TileAttunementAltar extends TileEntityTick {
     @OnlyIn(Dist.CLIENT)
     private void tickConstellationBeams() {
         VFXColorFunction<?> beamColor = VFXColorFunction.constant(ColorsAS.DEFAULT_GENERIC_PARTICLE);
-        float beamSize = 0.3F;
+        float beamSize = 0.8F;
         for (Tuple<BlockPos, BlockPos> conn : this.getConstellationConnectionPositions(this.activeConstellation)) {
             Vector3 from = new Vector3(conn.getA()).add(0.5, 0.5, 0.5);
             Vector3 to   = new Vector3(conn.getB()).add(0.5, 0.5, 0.5);
 
             if (this.getTicksExisted() % 50 == 0) {
-                EffectHelper.of(EffectTemplatesAS.LIGHTBEAM_TRANSFER)
+                EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                         .spawn(from)
                         .setup(to, beamSize, beamSize)
                         .color(beamColor);
-                EffectHelper.of(EffectTemplatesAS.LIGHTBEAM_TRANSFER)
+                EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                         .spawn(to)
                         .setup(from, beamSize, beamSize)
                         .color(beamColor);

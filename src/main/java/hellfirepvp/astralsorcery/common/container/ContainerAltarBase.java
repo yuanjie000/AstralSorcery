@@ -47,6 +47,9 @@ public abstract class ContainerAltarBase extends ContainerTileEntity<TileAltar> 
 
     abstract Optional<ItemStack> handleCustomTransfer(PlayerEntity player, int index);
 
+    //Yes this is not a pretty solution. tell me a better one.
+    public abstract int translateIndex(int fromIndex);
+
     @Override
     public ItemStack transferStackInSlot(PlayerEntity playerIn, int index) {
         ItemStack itemstack = ItemStack.EMPTY;

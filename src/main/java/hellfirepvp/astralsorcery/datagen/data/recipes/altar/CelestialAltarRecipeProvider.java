@@ -21,6 +21,7 @@ import hellfirepvp.astralsorcery.common.util.NameUtil;
 import net.minecraft.data.IFinishedRecipe;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.tags.ItemTags;
 import net.minecraftforge.common.Tags;
 
 import java.util.function.Consumer;
@@ -35,7 +36,6 @@ import java.util.function.Consumer;
 public class CelestialAltarRecipeProvider {
 
     public static void registerAltarRecipes(Consumer<IFinishedRecipe> registrar) {
-        //TODO tree beacon
         registerRecipes(registrar);
         registerColoredLensRecipes(registrar);
     }
@@ -57,6 +57,24 @@ public class CelestialAltarRecipeProvider {
                         .key('R', BlocksAS.MARBLE_RUNED)
                 )
                 .addOutput(BlocksAS.ALTAR_RADIANCE)
+                .build(registrar);
+
+        SimpleAltarRecipeBuilder.builder()
+                .createRecipe(BlocksAS.TREE_BEACON, AltarType.CONSTELLATION)
+                .setStarlightRequirement(0.6F)
+                .setInputs(AltarRecipeGrid.builder()
+                        .patternLine("     ")
+                        .patternLine(" LRL ")
+                        .patternLine(" LSL ")
+                        .patternLine(" LFL ")
+                        .patternLine("MM MM")
+                        .key('R', ItemsAS.RESONATING_GEM)
+                        .key('L', ItemTags.LEAVES)
+                        .key('S', ItemTags.SAPLINGS)
+                        .key('F', FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                        .key('M', BlocksAS.MARBLE_RUNED)
+                )
+                .addOutput(BlocksAS.TREE_BEACON)
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()

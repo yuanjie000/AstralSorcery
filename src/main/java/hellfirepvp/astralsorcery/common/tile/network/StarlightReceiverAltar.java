@@ -23,7 +23,7 @@ import net.minecraft.world.World;
  * Created by HellFirePvP
  * Date: 12.08.2019 / 19:54
  */
-public class StarlightReceiverAltar extends SimpleTransmissionReceiver {
+public class StarlightReceiverAltar extends SimpleTransmissionReceiver<TileAltar> {
 
     public StarlightReceiverAltar(BlockPos thisPos) {
         super(thisPos);
@@ -31,10 +31,20 @@ public class StarlightReceiverAltar extends SimpleTransmissionReceiver {
 
     @Override
     public void onStarlightReceive(World world, IWeakConstellation type, double amount) {
-        TileAltar well = getTileAtPos(world, TileAltar.class);
+        TileAltar well = getTileAtPos(world);
         if (well != null) {
             well.receiveStarlight(amount);
         }
+    }
+
+    @Override
+    public boolean syncTileData(World world, TileAltar tile) {
+        return true;
+    }
+
+    @Override
+    public Class<TileAltar> getTileClass() {
+        return TileAltar.class;
     }
 
     @Override

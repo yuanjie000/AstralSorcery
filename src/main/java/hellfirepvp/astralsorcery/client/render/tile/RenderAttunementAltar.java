@@ -9,7 +9,6 @@
 package hellfirepvp.astralsorcery.client.render.tile;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.vertex.IVertexBuilder;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.model.builtin.ModelAttunementAltar;
 import hellfirepvp.astralsorcery.client.util.RenderingVectorUtils;
@@ -36,6 +35,7 @@ public class RenderAttunementAltar extends CustomTileEntityRenderer<TileAttuneme
 
     @Override
     public void render(TileAttunementAltar tile, float pTicks, MatrixStack renderStack, IRenderTypeBuffer renderTypeBuffer, int combinedLight, int combinedOverlay) {
+        //TODO depth
         renderStack.push();
         renderStack.translate(0.5, 0.5, 0.5);
         renderStack.rotate(Vector3f.XP.rotationDegrees(180));
