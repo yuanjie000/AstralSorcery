@@ -8,10 +8,10 @@
   "jei.category.astralsorcery.well": "聚星缸",
   "jei.category.astralsorcery.infuser": "星能聚合器",
   "jei.category.astralsorcery.transmutation": "星辉转化",
-  "jei.category.astralsorcery.altar.discovery": "星辉合成台",
-  "jei.category.astralsorcery.altar.attunement": "星辉祭坛",
-  "jei.category.astralsorcery.altar.constellation": "天辉祭坛",
-  "jei.category.astralsorcery.altar.trait": "五彩祭坛",
+  "jei.category.astralsorcery.altar_attunement": "星辉祭坛",
+  "jei.category.astralsorcery.altar_constellation": "天辉祭坛",
+  "jei.category.astralsorcery.altar_discovery": "星辉合成台",
+  "jei.category.astralsorcery.altar_trait": "五彩祭坛",
 
   "advancements.astralsorcery.attune_crystal.title": "开始共振",
   "advancements.astralsorcery.attune_crystal.desc": "将一个水晶石与星座进行共鸣。",
@@ -144,41 +144,41 @@
   "astralsorcery.journal.research.brilliance": "辉煌",
 
   "astralsorcery.journal.node.WELCOME.name": "欢迎",
-  "astralsorcery.journal.WELCOME.1.text": "We congratulate you on your choice to pursue your undergraduate magical studies with the Academy of the Astral. The Tome held in your hands has been specially prepared by the Academy's instructors to serve as your study and learning guide for the duration of this pursuit. Each Tome is linked to our Starlight Archives, and will automatically expand the information available within based on your progress. <NL>In this way, direct instruction by our professors is not needed, and you will be able to progress",
-  "astralsorcery.journal.WELCOME.2.text": "at whatever rate best suits your particular learning needs. <NL>Do not mistake this to mean your studies will be easy. The Academy prides itself on the quality of its graduates compared to other institutes of learning, and proof that your understanding of the principles of starlight manipulation will be needed for your Tome to allow access to further educational materials from the Archives. <NL>We all wish you luck on your journey! <NL>-The Faculty and Staff of the Academy of the Astral.",
+  "astralsorcery.journal.WELCOME.1.text": "我们很高兴您能选择星空学院进行本科魔法学习。您手上的宝典是由学院的讲师为您在学院学习期间而特别准备的学习指南。  所有宝典都链接到我们的星能档案中，会随着您的学习进度自动扩展可用的资料。<NL>因此，您可以靠自学而不需要学院的教授来言传身教的指导。",
+  "astralsorcery.journal.WELCOME.2.text": "以最适合的进度来适配您的学习需求。<NL>但不要误以为您的学习会很轻松。与其他的学习机构相比，本学院以毕业生的优异成绩而自豪，您需要用宝典来证明对于星能操纵基本原理的了解，才能获准从星能档案中获得更多的资源倾斜。<NL>我们都祝您学习顺利！<NL>——星空学院全体教职员工。",
 
-  "astralsorcery.journal.node.SHRINES.name": "Academy Shrines",
-  "astralsorcery.journal.SHRINES.1.text": "Areas determined by the Academy to be conducive to mental study have had shrines built there. These consist of two variants: Larger and more elaborate shrines that contain crystals useful to manipulating Starlight, and smaller shrines that are useful to smaller initiate study groups. Both types include storage with study supplies inside, though the exact contents may change based on the initiates who used that location last. The larger shrines are usually located in areas free of tree obstructions, such as deserts and colder mountain tops.",
-  "astralsorcery.journal.SHRINES.2.text": "The larger shrines contain sample Collector Crystals useful for gathering and manipulating Starlight. Each has an attunement to one of the five constellations of the Bright classification, in order to be most beneficial to newer initiates just starting out in their studies. <NL>While flawless specimens in their own rights, these crystals are crafted from refined, but not pure, bases and so should not be expected to provide the same starlight energy levels available to practiced crystal crafters who have highly refined their craft. These crystals cannot be enhanced in their performance due to this same issue.",
-  "astralsorcery.journal.SHRINES.3.text": "Special wards have been placed to prevent initiates from carrying off or modifying these study tools to maintain the availabiltity for all initiates in a region. <NL>The Academy reminds all initiates that Starlight cannot penetrate opaque, solid materials. While the Academy will install a roofed covering to protect the study areas against inclement weather and hostile creatures should the Academy need to close, this roof should be removed if the shrine is intended for utilization of the crystal within.",
+  "astralsorcery.journal.node.SHRINES.name": "圣陵学院",
+  "astralsorcery.journal.SHRINES.1.text": "该学院认为在建有神殿的地区附近有利于进行精神研究。它们一般有两种变体：内藏有能进行星能操纵的浮动水晶的大型精致神殿和较小型的初学者遗迹。这两种类型的建筑内都存储有一部分的物资，当然其内的物品也会受上个使用该建筑的使用者而有所变化。大型的神殿通常位于没有树木遮挡的空旷区域，比如沙漠或者高山顶部。",
+  "astralsorcery.journal.SHRINES.2.text": "大型的神殿内含有可以用于聚焦和操纵星能的标准聚能水晶。所有人都能借此对五大明亮级别的星座之一进行调和共鸣，对于初学者来说在研究方面有极大的助益。<NL>虽然这些水晶本身是完美无瑕的，但它们是重新精制而成的，本质不够纯净，因此不要期望它与那些熟练掌握水晶调制技术者制作的聚能水晶有相同的星能量。这些水晶也因此无法进行性能强化。",
+  "astralsorcery.journal.SHRINES.3.text": "作为公共学习工具的浮动水晶周围设置了特殊的力场控制结界以防止提升者取走或修改它们，这保障了该区域所有提升者的重复利用性。<NL>该学院提醒所有提升者，星能是无法穿透所有不透明的固体物质。当学院需要关闭时，会进行顶部覆盖以防止学区受到恶劣天气和敌对生物的影响，如果要使用神殿内部的浮动水晶，记得移除顶部覆盖。",
 
   "astralsorcery.journal.node.CPAPER.name": "星图",
-  "astralsorcery.journal.CPAPER.1.text": "Inside the storage of Academy Shrines can be found study aids in the form of parchment. These parchments are attuned to the existing Academy archives, and will reveal knowledge of an additional constellation to the user when first viewed, as long as their archives record indicates sufficient understanding of Starlight concepts. Due to this, duplicate records will not be generated for any given initiate. Excess study materials should be left behind for other initiates.",
-  "astralsorcery.journal.CPAPER.3.text": "These papers can be stored within the Tome for future reference by opening the Tome while holding Shift. <NL>In the event an initiate would be so irresponsible as to lose their papers, the Academy will not be re-issuing these materials. Instead, the initiate may borrow a copy from another initiate, or recreate them once they have access to a sufficiently advanced crafting altar to properly infuse the constellation knowledge back into parchment. A relatively small cost for such a large lapse of judgement. Papers stored in the tome are accessible by the initiate from any other tome.",
+  "astralsorcery.journal.CPAPER.1.text": "在圣陵学院的仓库内可以找到辅助学习用的羊皮纸。这些羊皮纸与现有的星能档案相匹配，会在使用者首次观看的时候检测相关的档案记录来生成星图，只要对星能概念有足够的了解就会揭示出有关其他星座的知识。因此，不会给如何提升者生成重复的记录。多余的物资应留给其他提升者。",
+  "astralsorcery.journal.CPAPER.3.text": "按住Shift的同时打开宝典，可以将这些星图存储在宝典中方便之后进行参考。<NL>若有提升者因失误而丢失星图，学院将不会重新发放这些资料。不过，可以向其他提升者借取一份副本，或者在可以使用更高级的合成祭坛的时候手工重新将星座知识拓印到羊皮纸内。对于如此重大的过失来说是相对较小的代价。提升者可以从任意宝典内查看存储的星图。",
 
   "astralsorcery.journal.node.WAND.name": "共鸣星杖",
-  "astralsorcery.journal.WAND.1.text": "While the floating crystals in the shrines will naturally spill some of its internal Starlight onto nearby crafting tables thanks to the Academy's wards, other crystals will not. As this behavior is also fairly wasteful and magically messy, it will not suffice for more delicate crafting. One of the first tools any initiate should obtain is a wand that will allow them to control the release of Starlight energies from Starlight sensitive devices and crafting implements by right-clicking them.",
-  "astralsorcery.journal.WAND.3.text": "Due to its sensitivity to gathered Starlight energies, the wand can be used at night to determine areas of conflicting Starlight resonance. The vibrations of this wand when exposed to open Starlight at night will reveal areas where the resonating frequency of the wand reveals areas deep underground where contained Starlight energies are contained by a §3crystalline form§r. <NL>These revealed areas appear as almost smokey areas of Starlight displacement above ground.",
-  "astralsorcery.journal.WAND.4.text": "One final use of a Resonating Wand is that attempting to activate a Starlight device that requires a supporting structure built around it will alert the wielder when the supporting structure is incorrect. Due to the disruptions in flowing Starlight, missing or misplaced portions of the structure will be visually highlighted, allowing for rapid troubleshooting in the construction of these structures.",
+  "astralsorcery.journal.WAND.1.text": "多亏了学院的养护，浮动水晶会自动将星能洒落到附近的合成台上，其他聚能水晶可以做不到。但这种行为也会产生大量的星能浪费与奇异的混乱，因此无法用于更精巧的工艺上。任何提升者获得的第一个工具必是共鸣星杖，该星杖可以通过右键控制星能从星能感应装置以及特制工具的释放。",
+  "astralsorcery.journal.WAND.3.text": "鉴于其对聚集星能异常敏感，因此可以在晚上用它来找寻冲突的星能共振区域。当在露天的夜晚时，星杖会与区域进行共鸣，星杖的共振频率说明该区域的地下深处含有§3结晶态§r的星能析出。<NL>这些区域在地面上看起来如同星能在地面移动而形成的烟雾弥漫区。",
+  "astralsorcery.journal.WAND.4.text": "共鸣星杖的另一个作用是激活那些需要复杂结构运行的星能装置，如果结构错误，它会在异常的星能中断区突出显示，提醒使用者尽快排除故障问题。",
 
   "astralsorcery.journal.node.ORES.name": "矿物",
-  "astralsorcery.journal.ORES.1.text": "§8§nRock Crystal Ore:§r Deep underground near bedrock, the intense pressure can form incredibly rare and fragile crystals. These crystals have a unique internal structure that makes them particularly receptive to Starlight energies. Despite the relative fragility of these crystals, they are held within hard veins of rock that are prone to destroying the fragile crystals inside unless mined by a tool sufficiently hard itself, such as diamond. The resonation in Starlight energies becomes visible when holding a Resonating Wand",
-  "astralsorcery.journal.ORES.2.text": "when near these crystal deposits, allowing them to be seen through prevailing blocks before harvest. <NL>§9§nAquamarine Shale:§r Polished by the continuous flow of water over fragmented crystal deposits along riverbanks and beaches, these crystals react to the constant low-level exposure to Starlight, resulting in a uniquely transmuted natural resource well suited for Starlight crafting.",
+  "astralsorcery.journal.ORES.1.text": "§8§n水晶石矿石：§r 在基岩附近的地下深处，因高压而形成的极其稀有且脆弱的晶体。这些晶体具有独特的晶胞结构，这使其对于星能十分敏感。尽管这些晶体本质十分脆弱，但它们被固定在坚硬的岩石层中，必须用坚固的工具（比如钻石）才能进行开采，否则会破坏其内脆弱的晶体。手持共鸣星杖时能够直视星能共振场。",
+  "astralsorcery.journal.ORES.2.text": "当靠近这些晶体沉积物时，可以通过发光的异常星能点找到它们进行挖掘。<NL>§9§n海蓝宝石砂岩：§r 受沿河岸与海滩上连续不断的水流长久的冲刷而沉积的零散晶体，这些晶体在受到持续的低能星辉照射下产生了应激反应，这形成了一种十分适合星能合成上的自然转化的资源。",
 
   "astralsorcery.journal.node.ALTAR1.name": "星辉合成台",
-  "astralsorcery.journal.ALTAR1.1.text": "The purity of Starlight easily realigns the contents of materials into a more ordered and pure state for their intended purpose. By placing a crafting table near to an Academy Shrine Collector Crystal, the wards will redirect Starlight and transmute the crafting table into a crafting instrument more suited to an initiate. Made of the purest marble, this entry-level altar table can cleanly absorb Starlight energy from the sky or a linked Collector Crystal, and redirect the magical energy into the crafting materials laid in it, instead of relying on a constant magically-messy flood of power.",
-  "astralsorcery.journal.ALTAR1.2.text": "In order to capture Starlight on its own this table needs an unobstructed view of the sky directly above. It also lacks the required matrix that a Collector Crystal possesses to gather Starlight efficiently, and due to this is unable to compensate for atmospheric diffusion of Starlight energy. Measurements by the Academy indicate sea level is roughly the mid-point in diffusion losses, with bedrock showing nearly full diffusion loss of the energies. Atmospheric diffusion losses disappear at around twice the distance from bedrock as sea level itself.",
-  "astralsorcery.journal.ALTAR1.4.text": "If the table is above the atmospheric diffusion height, or other factors make raising the table higher are infeasible, relocating the table to another location in the world would be recommended. Starlight energies are not uniformly distributed from the heavens, and there are areas of the world with far more concentrated Starlight energies available than others. Thankfully, a recurrence of Icarian Famine has not repeated, and there are no recorded instances in modern times of locations with almost no Starlight energies over large areas by survey teams.",
-  "astralsorcery.journal.ALTAR1.5.text": "Once the items needed as ingredients for the crafting recipe are laid out within the table, right-clicking the table with a Resonating Wand will release the reservoir, flooding the ingredients with Starlight power. The resulting crafting item will be ejected from the table automatically once the crafting completes. The current reservoir of stored energy is displayed below the table item interface itself. Due to the volatility of Starlight,",
-  "astralsorcery.journal.ALTAR1.6.text": "the storage does not function like a battery that charges over time, but instead reflects the current amount of ambient captured Starlight available for crafting. All but the most simple devices, tools, and material manipulations will require more Starlight than this table can safely redirect and provide with its reservoir. <NL>Once an initiate has used it to build the necessary tools to continue their education, they will also have gained sufficient knowledge in the needed Starlight concepts to improve upon this table, making it far more effective.",
+  "astralsorcery.journal.ALTAR1.1.text": "星能的纯净度很容易根据材料的属性重新调整为有序纯净状态来达到预期目的。在圣陵学院的浮动聚能水晶附近放一个合成台，力场控制结界将星能重定向，把合成台转化为适合提升者使用的合成工具。这款入门级的合成台采用最纯净的大理石制成，可以将天空中或聚能水晶内的纯净星能过滤吸收，将其重定向到放置在其内的合成材料上，而不必依赖那混乱而无法控制的能量脉冲上。",
+  "astralsorcery.journal.ALTAR1.2.text": "为了让它能吸收星能，需要一个露天的环境。另外，它也缺少聚能水晶那样能够有效防止星能逸散的在充能矩阵，因此星能的逸散是无法避免的。学院的测量结果表明，海平面高度大致是逸散损失的中间点，在基岩层时星能几乎完全逸散了，大气层在高度为海平面的两倍时，将停止逸散。",
+  "astralsorcery.journal.ALTAR1.4.text": "如果合成台的位置高于大气层，或通过其他方式让其突破大气层高度是无效的，建议将合成台重新放置到其他正常的位置上。星能并非在天空上均匀分布的，部分地区的可用星能量会远超其他地区。值得庆幸的是，星能的总量不会因这类鲁莽的行为而匮乏，并且在所有已知地区，调查组未曾发现有大范围的绝星能区。",
+  "astralsorcery.journal.ALTAR1.5.text": "在合成台上摆放后制作配方原料的物品后，用共鸣星杖右键单击引导合成台内储存的星能，使其充分与原材料结合。当物品制作完成后会自动从合成台内弹出。当前合成台所储存的星能会显示在合成台界面的下方。由于星能的逸散性，其会以波动状态增减。",
+  "astralsorcery.journal.ALTAR1.6.text": "这种储存功能不同于电池那样随时间而充能，而是反映当前合成时所有收集到的可用星能总量。除了最简单的设备，工具和材料处理之外，所有这些都将需要合成台提供其内储存的更大量的纯净安全的星能进行重定向。<NL>一旦有提升者用其构建必要的工具继续深入学习时，他们还需要在星能概念上获得足够的知识来改进合成台，提升它的使用效率。",
 
   "astralsorcery.journal.node.MARBLETYPES.name": "大理石",
-  "astralsorcery.journal.MARBLETYPES.1.text": "The marble needed by an Astral Sorcerer is an especially pure variant. Magically pristine and highly reflective of magical energies, this marble can be found in pockets underground. Other marbles with less magical purity cannot be used for the delicate energy control needed to work with Starlight. Carving channels in prescribed manners will alter how the marble channels nearby Starlight. <NL>While this is the same marble used by the Academy in all of its communal Shrines and other student gathering areas, the",
-  "astralsorcery.journal.MARBLETYPES.2.text": "Academy strongly warns all initiates that stealing or defacing the marble used for Academy property will result in punishment to those caught by the faculty, up to and including being expelled from the Academy.",
+  "astralsorcery.journal.MARBLETYPES.1.text": "星辉法师需要的是一种特别纯净的特种大理石。可以在地下的洞穴中找到这种具有独特的奇妙质感且能对星能进行高度反射的大理石。至于其他的低纯度大理石，由于无法进行更细致的能量控制，是无法与星能进行交感作用的。以特定的雕琢方式改变大理石的纹理，会改变大理石控制附近星能的渠道。<NL>",
+  "astralsorcery.journal.MARBLETYPES.2.text": "虽然这与学院的公共神殿以及学生聚集区内公用的大理石相同，但学院在此郑重告诫所有提升者，盗窃或破坏学院公共财产大理石的将受到院级处分，严重者甚至将被开除出学院。",
 
   "astralsorcery.journal.node.SOOTYMARBLE.name": "熏黑大理石",
-  "astralsorcery.journal.SOOTYMARBLE.1.text": "By coating the surface of marble with a magical filtering element, such as coal dust, the marble itself can be changed beyond simply making it \"dirty\". The magical resonance of the marble is fundamentally changed in this way, so that even washing off the dust does not change the new appearance or efficacy of the marble, along with the qualities of the magical energy absorbed and reflected through that surface. This is most useful when attempting to channel larger volumes of Starlight by removing any impurities in their energy that may have been picked up during",
-  "astralsorcery.journal.SOOTYMARBLE.2.text": "transmission from source to collector.",
+  "astralsorcery.journal.SOOTYMARBLE.1.text": "把一些神奇的过滤元素（比如煤炭）作为大理石的表面涂层，可以改变大理石的性质，而不仅仅是使其变得“肮脏”。特殊的共振方式已经从根本上改变了大理石的性质，因此即使洗去灰尘也无法改变大理石通过表面吸收和反射特殊能量的性质与新外观。",
+  "astralsorcery.journal.SOOTYMARBLE.2.text": "在纯化大量星能内蕴含的杂质时是十分有用的，因为在使用星能收集装置吸收星能时是有极大可能吸收到大量的杂质的。",
 
 
 
@@ -379,7 +379,7 @@
   "astralsorcery.journal.CHARGED_TOOLS.1.text": "As crystalline tools already rely heavily on channeling passive Starlight for their function, they behave differently when Infused. Rather than transmuting their physical form, they instead have the natural magical pathways inside the crystals reinforced, allowing for far more direct and obvious magical effects when supplied outside magic. Feeding these tools with the natural Starlight Charge of the wielder will manifest this magic, but this will apply stresses to the crystals that requires a \"cooldown\" period before being repeated. Over time, the tool will use up its Infused",
   "astralsorcery.journal.CHARGED_TOOLS.2.text": "power, and require re-infusion. <NL>The magic manifested by this Charge energy relates directly to how the crystals were shaped in crafting the tool. Axes can harvest many connected parts of the struck tree at once, pickaxes can detect nearby ores despite intervening material, shovels can dig a broader hole at once, and weapons will unleash a burst of magical energy around their injured target that causes other nearby foes to also be injured.",
 
-  "astralsorcery.journal.node.TREEBEACON.name": "Tree Farming [WIP]",
+  "astralsorcery.journal.node.TREEBEACON.name": "Tree Farming",
   "astralsorcery.journal.TREEBEACON.1.text": "Living matter is more receptive to Starlight than non-living matter, and new growth even more so. This is shown most-readily with plants, and the most reactive are those that grow the largest: trees. By tapping into that natural reactivity with a special magical beacon, a snapshot of the essence of the tree can be captured at the moment it grows from a sapling, expending the growth into an ethereal construct exemplifying the essence of that sapling. The sapling itself will be consumed to fuel the creation and image of this echo. By passing captured Starlight through this",
   "astralsorcery.journal.TREEBEACON.3.text": "echo, it may be extruded into real products of that tree. <NL>In this way, far more resources can be created magically from this echo than if the real tree were to be harvested. Focusing starlight into this beacon will accelerate how quickly the resources are generated, with Aevitas providing the most benefit. Foliage is least likely to be generated by the beacon, as it is furthest from the essence of each tree. <NL>While each beacon can support multiple echoes, each echo has a limited lifespan and will eventually break down, necessitating a new sapling.",
 
@@ -641,6 +641,7 @@
   "block.astralsorcery.observatory": "瞭望台",
   "block.astralsorcery.prism": "棱镜",
   "block.astralsorcery.refraction_table": "群星映射台",
+  "block.astralsorcery.tree_beacon": "烽火树",
   "block.astralsorcery.ritual_link": "效应重定向",
   "block.astralsorcery.ritual_pedestal": "效应放大器",
   "block.astralsorcery.telescope": "天文望远镜",
@@ -653,7 +654,6 @@
 
   "__comment": "",
 
-  "block.astralsorcery.blocktreebeacon": "烽火树",
   "block.astralsorcery.blockcelestialgateway": "天体星门",
   "block.astralsorcery.blockbore": "万象泉",
   "block.astralsorcery.blockborehead.liquid": "纳耳狂曼喷口",
