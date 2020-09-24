@@ -53,10 +53,11 @@
   "structure.astralsorcery.pattern_altar_attunement.name": "星辉祭坛",
   "structure.astralsorcery.pattern_altar_constellation.name": "天辉祭坛",
   "structure.astralsorcery.pattern_altar_trait.name": "五彩祭坛",
+  "structure.astralsorcery.pattern_celestial_gateway.name": "天体星门",
   "structure.astralsorcery.pattern_ritual_pedestal.name": "效应放大器",
   "structure.astralsorcery.pattern_infuser.name": "星能聚合器",
   "structure.astralsorcery.pattern_enhanced_collector_crystal.name": "强效聚能水晶",
-  "structure.astralsorcery.pattern_spectral_relay.name": "Astral Relay",
+  "structure.astralsorcery.pattern_spectral_relay.name": "光波增幅器",
   "structure.astralsorcery.pattern_attunement_altar.name": "共鸣祭坛",
 
   "astralsorcery.misc.ctrlcopy": "CTRL + 左键进行复制",
@@ -183,58 +184,58 @@
 
 
   "astralsorcery.journal.node.HAND_TELESCOPE.name": "望远镜",
-  "astralsorcery.journal.HAND_TELESCOPE.1.text": "Despite stars having a set location of appearance as they wheel overhead in the sky, certain recurring patterns and shapes will appear to those sensitive to the magical energies emanated by them. These magical constellations have their own schedule they appear within, which is linked to the phases of the moon. A specially crafted glass can be used to make these magical energies far more visible to the viewer. Despite being a rather simple device, the Looking Glass will facilitate viewing the strongest of these magical constellations, though the ebb and flow of",
-  "astralsorcery.journal.HAND_TELESCOPE.4.text": "interfering energies from other constellations means that only one constellation will be visible to this tool on any given night. <NL>Staring at the night sky without any nearby obstructions is absolutely necessary, and the user must have at least seen one of these constellations traced out before. It is important that once the user believes they have located such a constellation that they hold shift in order to not move the Looking Glass at all, and then carefully trace the pattern of the constellation using left-click.",
-  "astralsorcery.journal.HAND_TELESCOPE.5.text": "Not holding the Looking Glass absolutely still in this way, or without tracing with near perfect accuracy the constellation, the magical pattern will not be truly §3discovered§r. This discovery is permanently etched into their minds and never forgotten, and so strong is this pattern that they will no longer need a device to see it in the night sky at all.",
+  "astralsorcery.journal.HAND_TELESCOPE.1.text": "尽管星体在星空中不断的在移动，但仍然会显示出特定的位置。对于那些星能敏感者而言，则能感应到某些重复出现的图案与形状中蕴含的特殊能量。这些奇特的星座的运动规律与月相有关。可以使用一种特制的玻璃镜片使观察者更清楚的对它们进行观测。虽然望远镜是最基础的观测设备，但它仍能提高你对星空的观测效率，",
+  "astralsorcery.journal.HAND_TELESCOPE.4.text": "不过受其他星座的能量干扰，每个夜晚，望远镜只能对一个星座进行观测。<NL>观测时必须保证周围没有任何的障碍物，并且要发现过对应星座的星图才行。更重要的是，但你发现了星座需要进行绘制时，按住shift固定望远镜，然后用左键对星座的图案进行详细的测绘。",
+  "astralsorcery.journal.HAND_TELESCOPE.5.text": "如果没有对望远镜进行固定，或没有准确的绘制出星座的话，是无法§3发现§r它们的。一旦完成星座的绘制，其将永久固化在脑海里，星座中的强大能量让你从此以后再也无需任何设备就能再夜空中看到它。",
 
   "astralsorcery.journal.node.ILLUM_POWDER.name": "辉光粉",
-  "astralsorcery.journal.ILLUM_POWDER.1.text": "Glowstone is reactive to Starlight energy, even the small amount resonating within an Aquamarine. By crushing glowstone together with an Aquamarine, the resulting pile of dust is highly reactive with itself. Throwing this dust results in a magical lightsource being suspended in space. <NL>As a floating cloud of dust, it is harder to accidentally snuff than a torch, requiring smothering the light with liquid or a block.",
+  "astralsorcery.journal.ILLUM_POWDER.1.text": "荧石对星能也是有反应的，即使与微量的海蓝宝石接触也会发生明显的共振现象。把海蓝宝石与荧石磨碎的粉末混合在一起，它们之间会产生剧烈的高能反应。将这种粉末扔出会在空间中形成一个光源。<NL>其本质就是一团漂浮的粉尘，在不知情的情况下，不会像火把一样熄灭，要做到这点需要用液体或方块对其进行覆盖。",
 
   "astralsorcery.journal.node.NOC_POWDER.name": "暗夜粉",
-  "astralsorcery.journal.NOC_POWDER.1.text": "While a darkened room is the normal method of forcing monsters to spawn for harvesting of their valuable organs, the placement of these rooms poses logistical challenges besides the requirement of no light. <NL>By leveraging the magical energies in Illumination Powder with certain other reactive ingredients to create an area of anti-light, a throwable powder is made that generates a temporary cloud of darkness that creates monsters from the echoes of the biome within black cloud for a short while, regardless of the",
-  "astralsorcery.journal.NOC_POWDER.3.text": "rarity of those monster spawns. <NL>This cloud does not block the purifying effects of sunlight in its area, and so care should be taken not to drive away or prematurely damage some of the monsters within. <NL>Placing multiple clouds too close to each other, or too frequently in the same space, sees diminishing returns in effectiveness. This is true whether thrown by sorcerer or dispenser.",
+  "astralsorcery.journal.NOC_POWDER.1.text": "虽然暗室是一般情况下强制怪物生成并收割它们身上贵重器官的正常方式，但暗室除了没有光线的要求外，还有严格的后勤要求。<NL>通过利用辉光粉内的星能与其他活性成分来产生抑光区域，这就制作出了一个可投掷的，生成临时的黑暗云区域的粉末，",
+  "astralsorcery.journal.NOC_POWDER.3.text": "该区域会在短时间内根据生物群系的反应生成相应的怪物，无论它们是如何的稀有少见。<NL>这片区域不会影响阳光对怪物的净化效果，因此应注意不要赶走或过早击杀其中的一些怪物。<NL>将多个云区放置的太近或太频繁的在同一个位置释放，会降低怪物的生成几率。无论是由你自己还是投掷器扔出的。",
 
   "astralsorcery.journal.node.ILLUMINATOR.name": "洞穴照明器",
-  "astralsorcery.journal.ILLUMINATOR.1.text": "When large areas of darkness need illumination, Illumination Powder is insufficient. Not only does it require manual deployment, but it requires the sorcerer to travel into danger directly. Deploying Illumination Sparks using a Starlight-powered device is far better. <NL>By powering the device directly from the nighttime Fosic Field, or a more advanced initiate's Illumination Wand, the Cave Illuminator can provide light coverage over a wide area, in spiraling vertical layers 8 meters apart.",
-  "astralsorcery.journal.ILLUMINATOR.3.text": "To prevent unnecessary placement of Sparks, the Illuminator will only place Sparks in areas lower than the Illuminator itself, and only in places that are covered from the sky. If given sufficient time, it can illuminate all the way down to bedrock, and will continue to place new Sparks in newly made empty spaces. <NL>Removing the Illuminator will leave the Sparks behind. As removing the sparks is labor intensive, care should be taken when placing a Cave Illuminator to prevent lighting up areas that are undesired.",
+  "astralsorcery.journal.ILLUMINATOR.1.text": "辉光粉无法应付大范围的区域照明问题。这不仅仅是需要手动部署的问题，还需要亲身进入危险区域。使用由星能驱动的设备来部署光源会好很多。<NL>通过吸收夜间的聚能场或使用其他提升者的照明星杖为装置供能，洞穴照明器可以在8米范围的螺旋形垂直层中提供广阔的照明范围。",
+  "astralsorcery.journal.ILLUMINATOR.3.text": "为了防止光源过多的问题，洞穴照明器只会在其下方的洞穴区域放置光源。如果有足够的时间，它将一直照亮到基岩层，并将继续在新出现的空白区域放置光源。<NL>拆除洞穴照明器时光源会保留。毕竟清楚光源是十分费力的工作，因此放置时请注意，以防止照亮不需要的区域。",
 
   "astralsorcery.journal.node.ROCK_CRYSTALS.name": "水晶石的属性",
-  "astralsorcery.journal.ROCK_CRYSTALS.1.text": "Due to the special circumstances that creates them, each newly mined Rock Crystal is different. These variances in size, purity of the crystal, and even shape of the facets can result in considerable differences in suitability for a purpose. There is no method to determine what these attributes will be for any given crystal before freed from its rocky prison, and while the Academy recognizes that modifications to these crystals is an incredibly important part in their use, it is not nearly as simple as shaping a normal gemstone's appearance.",
-  "astralsorcery.journal.ROCK_CRYSTALS.2.text": "Smashing a Rock Crystal's facets into something as crude as a grindstone would simply destroy them. Other, more refined, methods are needed for §8modifying§r a crystal.",
+  "astralsorcery.journal.ROCK_CRYSTALS.1.text": "由于产生它们的特殊环境，每种新开采的水晶石都是不同的。在尺寸、纯度与可塑性上的差异，都会导致对特定用途的适用性存在相当大的差异。在把它们从岩石层中挖掘出来前，没有如何办法可以确定这些水晶石的具体属性。虽然学院早已认知到对水晶石的修正是利用水晶石的必经之路，但这可不像给一个普通宝石整容那么简单。",
+  "astralsorcery.journal.ROCK_CRYSTALS.2.text": "将水晶石用砂轮粗暴的打磨只会造成破坏。因此需要用更优雅的方式对水晶进行§8修正§r。",
 
   "astralsorcery.journal.node.CRYSTAL_GROWTH.name": "水晶的修正",
-  "astralsorcery.journal.CRYSTAL_GROWTH.1.text": "Submerging a Rock Crystal into a pool of Liquid Starlight until absorbed can be used to repair or grow the crystal into a more robust version of itself, as the internal matrix is realigned and reinforced by the magical energies of concentrated Starlight. When this occurs, the Size of the crystal will increase. There are still limits to what any crystal can have an attribute improved to or its number of attributes, and removal of an attribute is not possible without intentional use of a specialized tool.",
-  "astralsorcery.journal.CRYSTAL_GROWTH.2.text": "Submerging two crystals in Liquid Starlight will cause the crystal with fewer attributes to merge into the crystal with more, with the \"larger\" crystal potentially gaining one or more of the attributes of the absorbed crystal. The more attributes the crystal already has, the less likely this is to occur.",
+  "astralsorcery.journal.CRYSTAL_GROWTH.1.text": "基于内部矩阵基质受星能影响而进行强化重构的原理，将水晶石浸没在星能液中，直到星能液被吸收掉，可以修复或者让水晶石变得更坚固耐用。当发生这种情况时，水晶石的尺寸将增长。但任何水晶石的属性修正与属性数量的修正都有其极限，若不使用专用工具是无法删除水晶石上的属性的。",
+  "astralsorcery.journal.CRYSTAL_GROWTH.2.text": "将两个晶体浸入星能液中会导致属性较少的水晶石被合并到具有更多属性的水晶石中，“较大”的水晶石可能获得被吸收的水晶石的一个或多个属性。水晶石拥有的属性越多，发生这种情况的可能性就越小。",
 
   "astralsorcery.journal.node.CUTTING_TOOL.name": "星辉锭切削工具",
-  "astralsorcery.journal.CUTTING_TOOL.1.text": "Academy texts show that while an iron or steel chisel makes a good tool, it only addresses the physical form, yet Channeling Starlight only addresses the magical form. By combining Starmetal's hardness with its radiant magical field, both forms can be simultaneously affected. Gold prevents the chisel head's magical field from deforming, reinforcing the tool. <NL>Enchanting the tool will see superior protection against negative results during use.",
-  "astralsorcery.journal.CUTTING_TOOL.3.text": "By striking with the tool at a crystal, the crystal and its attributes can be split. The resulting crystals will each inherit a portion of their parent's attributes, but the process is neither even nor perfect. Sometimes attributes may be lost during this process. <NL>Repeatedly submerging crystals and carving pieces from them can be used over time to shape a crystal to a specific purpose, though it can take some considerable §5fortune§r to be efficient.",
+  "astralsorcery.journal.CUTTING_TOOL.1.text": "学院文献表明，虽然铁或钢凿子是一种很好的工具，但它仅是物理上的，而引导星能则完全相反，仅是魔法上的。将星辉锭的坚固特性与能量辐射场相结合，可以同时影响两种形态。金可以防止凿头的星能场变形，强化工具。<NL>对工具进行附魔将获得更好的保护，以防产生负面影响。",
+  "astralsorcery.journal.CUTTING_TOOL.3.text": "用工具敲击水晶石，可以分割水晶石以及其属性。新生成的水晶石将各自继承其父代属性的一部分，但这个过程既不均匀也不完美。有时还会导致部分属性消失。<NL>不断的将水晶石和雕凿出的碎片浸没在星能液中，再花费些时间，可以塑造出一个特定用途的水晶石，当然，这需要一些§5运气§r才行。",
 
   "astralsorcery.journal.node.TOOLS.name": "水晶石工具",
-  "astralsorcery.journal.TOOLS.1.text": "While particularly vulnerable to shear forces, Rock Crystals can be carefully shaped to channel background Starlight energies to become far more durable than metal tools. By using several crystals to specially craft common tools that channel background Starlight energies, these tools can be crafted to magically leverage the attributes of their component crystals. In this way, a tool may be specially shaped to a more specialized use, and even two tools from the same crafter may have completely different strengths or abilities, based on the crystals used.",
-  "astralsorcery.journal.TOOLS.3.text": "Submerging damaged tools into Liquid Starlight will recover their lost durability once the Liquid Starlight is absorbed. <NL>More learned initiates may even be able to find methods to provide outside Starlight energy to these tools while in-use to empower them further, or leverage their attributes in other ways.",
+  "astralsorcery.journal.TOOLS.1.text": "尽管特别容易受剪切应力影响，但精心特制的水晶石在导引背景星能时的性能要远远优于金属工具。使用多个水晶石专门制作的普通工具导引背景星能时，可以充分地利用其组成的水晶石所具有的属性并完美发挥出来。用这种方式制作的工具将拥有独特的作用，即使是同一为制作者所制造的工具也有可能因为所使用的水晶石而拥有完全不同的强度与能力。",
+  "astralsorcery.journal.TOOLS.3.text": "可以将损坏的工具浸入星能液中，让其吸收星能液来恢复耐久。<NL>一些博学多识的提升者甚至可以找到在使用过程中为这些工具提供外部星能的方法，来进一步增强它们的功能，或以其他的方式利用它们的属性。",
 
   "astralsorcery.journal.node.WELL.name": "聚星缸",
-  "astralsorcery.journal.WELL.1.text": "Crystals are receptive to Starlight, naturally generating a dew-like condensate of Starlight when exposed to high concentrations of Starlight. This Liquid Starlight has many uses for a sorcerer, but trying to collect the faint amounts that naturally gather on Aquamarine gems or Crystals under normal concentrations is impossible. A special channeling container is needed for gatherering and storing Starlight for accelerated, stable Liquid Starlight collection. The more Starlight that is provided to a Lightwell, the faster it will produce liquid from any given catalyst.",
-  "astralsorcery.journal.WELL.3.text": "Inserting a catalyst object into the Lightwell using right-click binds it irretrievably to the Lightwell. This catalyst will be slowly degraded by the Starlight power channeled through it, generating liquid until it is disintegrated entirely. While lifespan of a catalyst is variable, larger catalysts will produce more liquid and last longer. Starlight-sensitive Aquamarine and Crystals generate Liquid Starlight, buut other catalysts can be used to generate other liquids, such as lava from netherrack.",
-  "astralsorcery.journal.WELL.4.text": "Due to the construction requirements to operate, the block directly above the opening of a Lightwell must remain empty, even if it is powered by external Starlight energy. Pipes and pumps that actively draw fluids can remove fluid from a Lightwell using the bottom face, but cannot return fluid back into a Lightwell. <NL>The more Starlight receptivity in a catalyst, the more liquid it will produce. Rock Crystals provide much more than Aquamarines, and enhancing a catalyst with advanced forms will produce more than their base form.",
-  "astralsorcery.journal.WELL.5.text": "Liquid Starlight has uses outside of Starlight crafting. Besides flowing faster than water and bestowing limited night vision on one bathing in it, it also interacts with other liquids. This supercold fluid will instantly freeze any water that comes into contact with it, and chills flowing lava so quickly that it results in granules of sand instead of stone.<NL>Sometimes, the sand created is imbued with excess Starlight in the process, creating new Aquamarine Shale.",
+  "astralsorcery.journal.WELL.1.text": "水晶石周围会自然而然的聚集星能，将其放置在高浓度的星能下时，其周围会生成露珠状的星能凝结液。这种液态的星能对于魔法研究上有极大的助益，但正常情况下是无法收集海蓝宝石或水晶石周围自然凝结的微量液体的。需要用一个特制的导引容器来收集与存储星能，以更加快速稳定的方式收集星能液。提供给聚星缸的星能越多，它利用催化剂产生星能液的速度就越快。",
+  "astralsorcery.journal.WELL.3.text": "使用鼠标右键将催化剂放入聚星缸后，催化剂将无法取下。催化剂将被周围的星能缓慢降解，并不断生成星能液，直到它完全分解为止。虽然催化剂的使用寿命都不同，但越大份量的催化剂产生的星能液越多，其寿命也越长。对星能敏感的海蓝宝石和水晶石可以产生星能液，但是其他催化剂也可以产生其他液体，比如用下界岩产生熔岩。",
+  "astralsorcery.journal.WELL.4.text": "由于其独特的构造限制，即使有外部的星能源进行供能，聚星缸正上方的位置也必须保持露天。从聚星缸的底部可以用抽取液体的泵或管道来提前液体，但无法将液体回流到聚星缸内。<NL>催化剂对星能的感应越强，它产生的液体就越多。水晶石就比海蓝宝石要产生更多的星能液，以更高级的方式强化的催化剂会比其基础形式产生更多的产物。",
+  "astralsorcery.journal.WELL.5.text": "星能液在星能合成外也有其他的用途。它的流动速度比水更快，触碰它会获得暂时的夜视能力，它也与其他液体发生交互作用。这种超冷流体会立即冻结与之接触的所有水，并迅速冷却流动的熔岩，以至于形成的是沙子而不是石头。<NL>有时形成沙子时受环境的星能影响生成海蓝宝石砂岩。",
 
   "astralsorcery.journal.node.INFUSED_WOOD.name": "聚星木",
-  "astralsorcery.journal.INFUSED_WOOD.1.text": "As a fibrous material, soaking wood in Liquid Starlight results in the liquid being drawn into the fibers, impregnating and empowering the wood. <NL>This results in a tougher and more resilient material that is particularly well-suited to directing magical energies. Further enrichment can be performed at a Starlight-sensitive crafting table if more magical sensitivity is needed.",
+  "astralsorcery.journal.INFUSED_WOOD.1.text": "作为一种纤维材料，将木材浸泡在星能液中会让星能液被吸入纤维中，使木材浸透并加大其强度。<NL>新产生的这种材料坚韧且富有弹性，特别适合用于引导魔法能量。如果需要更多的魔法感应度，可以在星能感应型的合成台上进行进一步加工。",
 
   "astralsorcery.journal.node.ALTAR2.name": "星辉祭坛",
-  "astralsorcery.journal.ALTAR2.1.text": "The next test of any initiate is upgrading their Luminous Crafting Table to allow for outside starlight manipulation, an important step in progressing into further power using magical Starlight. By making alterations to the table and magically reinforcing the marble involved, the ability to manipulate twice the magical energies of just a Luminous Crafting Table is possible. <NL>This does require a supporting structure to leverage this extra capacity §bafter§r upgrading the table.",
-  "astralsorcery.journal.ALTAR2.4.text": "While having twice the Starlight capacity of a Luminous Crafting Table is good, another important feature of the Altar is that the reservoir will indicate when it does not have a properly formed supporting structure around it, turning §4red§r when not properly formed. <NL>Multiple items may be crafted at a time, if sufficient Starlight exists and sufficient ingredients to complete the crafting are stacked into the table at the same time. The larger an Altar's reservoir, the faster it will craft.",
+  "astralsorcery.journal.ALTAR2.1.text": "任何提升者的下一个测试都是升级他的星辉合成台，以允许操纵外部的星能，这是使用星能进入下一阶段的必经之路。通过对合成台进行改造，使用魔法加固并强化相关的大理石，就可以操纵并使用两倍于星辉合成台的星能量。<NL>不过这需要一个支撑结构，以便在§b升级后§r利用这些额外的容量。",
+  "astralsorcery.journal.ALTAR2.4.text": "虽然拥有两倍于星辉合成台的星能容量是不错，但是祭坛的另一个重要特征是需要完整的结构，如果周围的结构不完整，那么内部的星能储存槽将显示为§4红色§r。<NL>如果有足够的星能，并且有足够的原料同时摆放在祭坛上，那么可以同时制作多个物品。祭坛储存的星能越多，它的合成速度就越快。",
 
-  "astralsorcery.journal.node.SKY_RESO.name": "Fosic Energy",
-  "astralsorcery.journal.SKY_RESO.1.text": "The magic energy provided by a constellation resonates heavily with it's own unqiue frequency. While very useful when manipulating specific energies, sometimes a sorcerer does not care what constellation the power comes from. Thankkfully, much like a sea fed by many rivers, the combined rivers of all constellations also creates a magical sea. This sea is called the Fosic Field, and suffuses down from the heavens the magical energy of the constellations.",
-  "astralsorcery.journal.SKY_RESO.2.text": "Regardless of study or power no sorcerer can see the raw power saturation of the Fosic Field. Unlearned initiates seeking to know the level of the field where they are might move a Luminous Crafting Table around the world, using its Starlight reservoir to take measurements. <NL>While this is functional, it is not a particularly time efficient method and exposes the initiate to monsters.",
-  "astralsorcery.journal.SKY_RESO.3.text": "A similarly poor method would be a device which displays the raw Fosic Field directly, as it would be like looking for water while swimming in the ocean. <NL>Crafting a device reactive to only the highest concentrations of the field is recommended. Holding this Resonator aloft at nighttime would reveal areas of the highest Fosic concentration, much like a Resonating Wand and Rock Crystal Ore. Rare blue clouds indicate strong areas, and sparks within these clouds indicate the highest concentrations in the field.",
+  "astralsorcery.journal.node.SKY_RESO.name": "法斯刻能量",
+  "astralsorcery.journal.SKY_RESO.1.text": "星座产生的星能会与其自身的独特频率产生强烈的共鸣。这在操纵某些特定的能量时非常有用，但有时使用者并不在乎星能来自于哪个星座。谢天谢地，百川汇海，万流归宗，星能也不例外。这片星能的海洋被称为法斯刻之域，其从星空中洒落大量的星能。",
+  "astralsorcery.journal.SKY_RESO.2.text": "无论任何探究或吸取，没有使用者能够达到法斯刻之域的能量极限。未学习过相关知识的提升者要查看所在位置的星能场能量程度，可以使用星辉合成台内的储存库进行手动测量，这需要带着星辉合成台进行移动。<NL>虽然这个方法的确有效，但效率太低，而且有可能碰上怪物。",
+  "astralsorcery.journal.SKY_RESO.3.text": "同样糟糕的方法是直接显示原始法斯刻之域的装置，就如同在海里游泳时寻找水一样。<NL>因此建议仅制造对最高浓度的星能场产生反应的装置。在夜间时将法斯刻共振器举到高处，可以找到法斯刻浓度最高的区域，就像共鸣星杖与水晶石矿石那样。罕见的蓝色云层表明当前区域含有的强烈能量，而这些云中的火花表明了该区域的最高浓度。",
 
-  "astralsorcery.journal.node.SPEC_RELAY.name": "Astral Relay",
-  "astralsorcery.journal.SPEC_RELAY.1.text": "While a Fosic Resonator is useful to locate high Fosic concentrations, an initiate may not desire (or even be able) to relocate their infrastructure to take advantage of these concentrations. As crafting one's own floating Collector Crystal is not for novice initiates, manipulating the collection radius of a starlight altar is the next best thing.",
-  "astralsorcery.journal.SPEC_RELAY.4.text": "Utilizing a small structure of marble to channel nearby Fosic energies into a Astral Relay would serve as a good Fosic collection point. Inserting a lens into the relay with right-click would give an outlet for those collected energies. Due to the nature of the Relay, any starlight crafting apparatus within 16 meters of the Relay itself would have the additional gathered Fosic energies supplied to it. This transfer will be visible to anyone nearby.",
+  "astralsorcery.journal.node.SPEC_RELAY.name": "光波增幅器",
+  "astralsorcery.journal.SPEC_RELAY.1.text": "虽然法斯刻共振器可以用于找寻高法斯刻浓度区域，但估计没有提升者想（或者不能）将基础设施迁移来利用这些高浓度区域。对于初学者来说也无法制作自己的聚能水晶，因此扩展星辉祭坛的聚能范围就是唯一的选择了。",
+  "astralsorcery.journal.SPEC_RELAY.4.text": "利用小型的大理石结构将附近的法斯刻能量引导到光波增幅器中，将形成一个良好的法斯刻聚能点。用鼠标右键将玻璃透镜插入光波增幅器内，将为收集到的能量提供一个出口。基于光波增幅器的特性，所有距离16米内的星能使用装置都将获得额外的法斯刻能量供应。附近的任何人都能观测到能量传输的过程。",
 
 
 
@@ -627,7 +628,7 @@
   "block.astralsorcery.celestial_collector_crystal": "天体聚能水晶",
   "block.astralsorcery.celestial_collector_crystal.typed": "%s 天体聚能水晶",
 
-  "block.astralsorcery.spectral_relay": "Astral Relay",
+  "block.astralsorcery.spectral_relay": "光波增幅器",
   "block.astralsorcery.altar_discovery": "星辉合成台",
   "block.astralsorcery.altar_attunement": "星辉祭坛",
   "block.astralsorcery.altar_constellation": "天辉祭坛",
@@ -635,6 +636,7 @@
   "block.astralsorcery.altar_brilliance": "祭坛",
   "block.astralsorcery.attunement_altar": "共鸣祭坛",
   "block.astralsorcery.chalice": "遏制圣杯",
+  "block.astralsorcery.celestial_gateway": "天体星门",
   "block.astralsorcery.illuminator": "洞穴照明器",
   "block.astralsorcery.infuser": "星能聚合器",
   "block.astralsorcery.lens": "透镜",
@@ -654,7 +656,6 @@
 
   "__comment": "",
 
-  "block.astralsorcery.blockcelestialgateway": "天体星门",
   "block.astralsorcery.blockbore": "万象泉",
   "block.astralsorcery.blockborehead.liquid": "纳耳狂曼喷口",
   "block.astralsorcery.blockborehead.vortex": "费萨利德喷口",
