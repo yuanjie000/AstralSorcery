@@ -10,11 +10,14 @@ package hellfirepvp.astralsorcery.common.block.tile;
 
 import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
 import hellfirepvp.astralsorcery.common.block.properties.PropertiesGlass;
+import hellfirepvp.astralsorcery.common.item.ItemAquamarine;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.DataAS;
+import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.tile.TileCelestialGateway;
 import hellfirepvp.astralsorcery.common.util.ColorUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import hellfirepvp.observerlib.api.block.BlockStructureObserver;
 import net.minecraft.block.BlockRenderType;
@@ -29,8 +32,11 @@ import net.minecraft.item.DyeColor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
@@ -66,34 +72,6 @@ public class BlockCelestialGateway extends ContainerBlock implements CustomItemB
                 .harvestTool(ToolType.PICKAXE));
     }
 
-    @Nullable
-    public static DyeColor getColor(ItemStack stack) {
-        if (!(stack.getItem() instanceof BlockItem) ||
-                !(((BlockItem) stack.getItem()).getBlock() instanceof BlockCelestialGateway)) {
-            return null;
-        }
-
-        CompoundNBT tag = NBTHelper.getPersistentData(stack);
-        if (!tag.contains("color")) {
-            return null;
-        }
-        return NBTHelper.readEnum(tag, "color", DyeColor.class);
-    }
-
-    public static void setColor(ItemStack stack, @Nullable DyeColor color) {
-        if (!(stack.getItem() instanceof BlockItem) ||
-                !(((BlockItem) stack.getItem()).getBlock() instanceof BlockCelestialGateway)) {
-            return;
-        }
-
-        CompoundNBT tag = NBTHelper.getPersistentData(stack);
-        if (color == null) {
-            tag.remove("color");
-        } else {
-            NBTHelper.writeEnum(tag, "color", color);
-        }
-    }
-
     @Override
     @OnlyIn(Dist.CLIENT)
     public void addInformation(ItemStack stack, @Nullable IBlockReader worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
@@ -124,6 +102,36 @@ public class BlockCelestialGateway extends ContainerBlock implements CustomItemB
     }
 
     @Override
+    public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult hit) {
+        TileCelestialGateway gateway = MiscUtils.getTileAt(world, pos, TileCelestialGateway.class, false);
+        if (gateway != null &&
+                gateway.getOwner() != null &&
+                gateway.getOwner().isPlayer(player)) {
+
+            if (gateway.isLocked()) {
+                if (!world.isRemote()) {
+                    ItemStack remaining = ItemUtils.dropItemToPlayer(player, new ItemStack(ItemsAS.AQUAMARINE));
+                    if (!remaining.isEmpty()) {
+                        ItemUtils.dropItemNaturally(world, player.getPosX(), player.getPosY(), player.getPosZ(), remaining);
+                    }
+                    gateway.unlock();
+                }
+                return ActionResultType.SUCCESS;
+            } else {
+                ItemStack held = player.getHeldItem(hand);
+                if (held.getItem() instanceof ItemAquamarine) {
+                    if (!world.isRemote()) {
+                        held.shrink(1);
+                        gateway.lock();
+                    }
+                    return ActionResultType.SUCCESS;
+                }
+            }
+        }
+        return ActionResultType.PASS;
+    }
+
+    @Override
     public void onBlockPlacedBy(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.onBlockPlacedBy(world, pos, state, placer, stack);
 
@@ -140,12 +148,35 @@ public class BlockCelestialGateway extends ContainerBlock implements CustomItemB
     }
 
     @Override
-    public void onReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moving) {
-        super.onReplaced(state, world, pos, newState, moving);
-
-        if (state != newState) {
-            DataAS.DOMAIN_AS.getData(world, DataAS.KEY_GATEWAY_CACHE).removePosition(world, pos);
+    public float getPlayerRelativeBlockHardness(BlockState state, PlayerEntity player, IBlockReader world, BlockPos pos) {
+        TileCelestialGateway gateway = MiscUtils.getTileAt(world, pos, TileCelestialGateway.class, true);
+        if (gateway != null && gateway.isLocked() && gateway.getOwner() != null) {
+            return gateway.getOwner().isPlayer(player) ? this.blockHardness : -1F;
         }
+        return this.blockHardness;
+    }
+
+    @Override
+    public float getBlockHardness(BlockState blockState, IBlockReader world, BlockPos pos) {
+        TileCelestialGateway gateway = MiscUtils.getTileAt(world, pos, TileCelestialGateway.class, true);
+        if (gateway != null && gateway.isLocked() && gateway.getOwner() != null) {
+            //Assume this is non-player related hardness. In which case, it cannot be mined to begin with.
+            return -1;
+        }
+        return this.blockHardness;
+    }
+
+    @Override
+    public void onReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moving) {
+        if (state != newState && !world.isRemote()) {
+            DataAS.DOMAIN_AS.getData(world, DataAS.KEY_GATEWAY_CACHE).removePosition(world, pos);
+            TileCelestialGateway gateway = MiscUtils.getTileAt(world, pos, TileCelestialGateway.class, true);
+            if (gateway != null && gateway.isLocked()) {
+                ItemUtils.dropItemNaturally(world, pos.getX(), pos.getY(), pos.getZ(), new ItemStack(ItemsAS.AQUAMARINE));
+            }
+        }
+
+        super.onReplaced(state, world, pos, newState, moving);
     }
 
     @Override
@@ -159,6 +190,34 @@ public class BlockCelestialGateway extends ContainerBlock implements CustomItemB
     @Override
     public boolean isValidPosition(BlockState state, IWorldReader world, BlockPos pos) {
         return hasSolidSideOnTop(world, pos.down());
+    }
+
+    @Nullable
+    public static DyeColor getColor(ItemStack stack) {
+        if (!(stack.getItem() instanceof BlockItem) ||
+                !(((BlockItem) stack.getItem()).getBlock() instanceof BlockCelestialGateway)) {
+            return null;
+        }
+
+        CompoundNBT tag = NBTHelper.getPersistentData(stack);
+        if (!tag.contains("color")) {
+            return null;
+        }
+        return NBTHelper.readEnum(tag, "color", DyeColor.class);
+    }
+
+    public static void setColor(ItemStack stack, @Nullable DyeColor color) {
+        if (!(stack.getItem() instanceof BlockItem) ||
+                !(((BlockItem) stack.getItem()).getBlock() instanceof BlockCelestialGateway)) {
+            return;
+        }
+
+        CompoundNBT tag = NBTHelper.getPersistentData(stack);
+        if (color == null) {
+            tag.remove("color");
+        } else {
+            NBTHelper.writeEnum(tag, "color", color);
+        }
     }
 
     @Override

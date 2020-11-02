@@ -10,6 +10,7 @@ package hellfirepvp.astralsorcery.common.integration.jei;
 
 import hellfirepvp.astralsorcery.common.block.tile.altar.AltarType;
 import hellfirepvp.astralsorcery.common.container.ContainerAltarBase;
+import hellfirepvp.astralsorcery.common.util.Counter;
 import hellfirepvp.astralsorcery.common.util.MapStream;
 import mezz.jei.api.gui.IRecipeLayout;
 import mezz.jei.api.gui.ingredient.IGuiIngredient;
@@ -95,7 +96,15 @@ public class TieredAltarRecipeTransferHandler<C extends ContainerAltarBase> impl
 
         int inputCount = 0;
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
-        for (IGuiIngredient<ItemStack> ingredient : itemStackGroup.getGuiIngredients().values()) {
+        //Remove relay inputs from the input grid.
+        Map<Integer, IGuiIngredient<ItemStack>> itemStacks = new HashMap<>();
+        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> entry : itemStackGroup.getGuiIngredients().entrySet()) {
+            if (entry.getKey() < 25) {
+                itemStacks.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        for (IGuiIngredient<ItemStack> ingredient : itemStacks.values()) {
             if (ingredient.isInput() && !ingredient.getAllIngredients().isEmpty()) {
                 inputCount++;
             }
@@ -137,7 +146,7 @@ public class TieredAltarRecipeTransferHandler<C extends ContainerAltarBase> impl
             return handlerHelper.createUserErrorWithTooltip(message);
         }
 
-        RecipeTransferUtil.MatchingItemsResult matchingItemsResult = RecipeTransferUtil.getMatchingItems(stackHelper, availableItemStacks, itemStackGroup.getGuiIngredients());
+        RecipeTransferUtil.MatchingItemsResult matchingItemsResult = RecipeTransferUtil.getMatchingItems(stackHelper, availableItemStacks, itemStacks);
 
         if (matchingItemsResult.missingItems.size() > 0) {
             String message = Translator.translateToLocal("jei.tooltip.error.recipe.transfer.missing");
