@@ -34,7 +34,7 @@ import java.util.Set;
 public class RockCrystalBuffer extends SectionWorldData<RockCrystalBuffer.BufferSection> {
 
     public RockCrystalBuffer(WorldCacheDomain.SaveKey<?> key) {
-        super(key, PRECISION_AREA);
+        super(key, 10);
     }
 
     @Override
@@ -47,9 +47,9 @@ public class RockCrystalBuffer extends SectionWorldData<RockCrystalBuffer.Buffer
         for (int xx = -chunkRadius; xx <= chunkRadius; xx++) {
             for (int zz = -chunkRadius; zz <= chunkRadius; zz++) {
                 ChunkPos other = new ChunkPos(center.x + xx, center.z + zz);
-                BufferSection section = this.getSection(other.getBlock(0, 0, 0));
+                BufferSection section = this.getSection(other.asBlockPos());
                 if (section != null) {
-                    out.addAll(section.crystalPositions);
+                    this.read(() -> out.addAll(section.crystalPositions));
                 }
             }
         }
@@ -58,14 +58,14 @@ public class RockCrystalBuffer extends SectionWorldData<RockCrystalBuffer.Buffer
 
     public void addOre(BlockPos pos) {
         BufferSection section = this.getOrCreateSection(pos);
-        section.crystalPositions.add(pos);
+        this.write(() -> section.crystalPositions.add(pos));
         markDirty(section);
     }
 
     public void removeOre(BlockPos pos) {
         BufferSection section = this.getSection(pos);
         if (section != null) {
-            section.crystalPositions.remove(pos);
+            this.write(() -> section.crystalPositions.remove(pos));
             markDirty(section);
         }
     }
@@ -81,7 +81,7 @@ public class RockCrystalBuffer extends SectionWorldData<RockCrystalBuffer.Buffer
 
     public static class BufferSection extends WorldSection {
 
-        private Set<BlockPos> crystalPositions = new HashSet<>();
+        private final Set<BlockPos> crystalPositions = new HashSet<>();
 
         private BufferSection(int sX, int sZ) {
             super(sX, sZ);

@@ -19,9 +19,9 @@ import hellfirepvp.astralsorcery.common.network.play.server.PktSyncData;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.World;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -104,11 +104,11 @@ public class SyncDataHolder implements ITickHandler {
         }
     }
 
-    public static void clearWorld(IWorld world) {
-        DimensionType dimType = world.getDimension().getType();
+    public static void clearWorld(World world) {
+        RegistryKey<World> dim = world.getDimensionKey();
         for (ResourceLocation key : SyncDataRegistry.getKnownKeys()) {
             if (!world.isRemote()) {
-                executeServer(key, AbstractData.class, data -> data.clear(dimType));
+                executeServer(key, AbstractData.class, data -> data.clear(dim));
             }
         }
     }

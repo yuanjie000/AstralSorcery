@@ -19,11 +19,12 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.state.IProperty;
+import net.minecraft.state.Property;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.IFormattableTextComponent;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.dimension.DimensionType;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryManager;
@@ -32,7 +33,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -139,11 +139,11 @@ public class ByteBufUtils {
     }
 
     public static void writeTextComponent(PacketBuffer buf, ITextComponent cmp) {
-        writeString(buf, ITextComponent.Serializer.toJson(cmp));
+        writeString(buf, IFormattableTextComponent.Serializer.toJson(cmp));
     }
 
-    public static ITextComponent readTextComponent(PacketBuffer buf) {
-        return ITextComponent.Serializer.fromJson(readString(buf));
+    public static IFormattableTextComponent readTextComponent(PacketBuffer buf) {
+        return IFormattableTextComponent.Serializer.getComponentFromJson(readString(buf));
     }
 
     public static void writeString(PacketBuffer buf, String toWrite) {
@@ -160,26 +160,24 @@ public class ByteBufUtils {
     }
 
     public static <T> void writeRegistryEntry(PacketBuffer buf, IForgeRegistryEntry<T> entry) {
-        if (entry instanceof DimensionType) {
-            buf.writeInt(1);
-            writeResourceLocation(buf, DimensionType.getKey((DimensionType) entry));
-        } else {
-            buf.writeInt(0);
-            writeResourceLocation(buf, entry.getRegistryName());
-            writeResourceLocation(buf, RegistryManager.ACTIVE.getRegistry(entry.getRegistryType()).getRegistryName());
-        }
+        writeResourceLocation(buf, entry.getRegistryName());
+        writeResourceLocation(buf, RegistryManager.ACTIVE.getRegistry(entry.getRegistryType()).getRegistryName());
     }
 
     public static <T> T readRegistryEntry(PacketBuffer buf) {
-        int type = buf.readInt();
-        if (type == 1) {
-            ResourceLocation entryName = readResourceLocation(buf);
-            return (T) DimensionType.byName(entryName);
-        } else {
-            ResourceLocation entryName = readResourceLocation(buf);
-            ResourceLocation registryName = readResourceLocation(buf);
-            return (T) RegistryManager.ACTIVE.getRegistry(registryName).getValue(entryName);
-        }
+        ResourceLocation entryName = readResourceLocation(buf);
+        ResourceLocation registryName = readResourceLocation(buf);
+        return (T) RegistryManager.ACTIVE.getRegistry(registryName).getValue(entryName);
+    }
+
+    public static void writeVanillaRegistryEntry(PacketBuffer buf, RegistryKey<?> key) {
+        writeResourceLocation(buf, key.getRegistryName());
+        writeResourceLocation(buf, key.getLocation());
+    }
+
+    public static <T> RegistryKey<T> readVanillaRegistryEntry(PacketBuffer buf) {
+        ResourceLocation registryName = readResourceLocation(buf);
+        return RegistryKey.getOrCreateKey(RegistryKey.getOrCreateRootKey(registryName), readResourceLocation(buf));
     }
 
     public static void writeResourceLocation(PacketBuffer buf, ResourceLocation key) {
@@ -272,9 +270,9 @@ public class ByteBufUtils {
     public static void writeBlockState(PacketBuffer byteBuf, @Nonnull BlockState state) {
         ByteBufUtils.writeRegistryEntry(byteBuf, state.getBlock());
 
-        Collection<IProperty<?>> properties = state.getProperties();
+        Collection<Property<?>> properties = state.getProperties();
         byteBuf.writeInt(properties.size());
-        for (IProperty prop : properties) {
+        for (Property prop : properties) {
             ByteBufUtils.writeString(byteBuf, prop.getName());
             ByteBufUtils.writeString(byteBuf, prop.getName(state.get(prop)));
         }
@@ -288,7 +286,7 @@ public class ByteBufUtils {
         for (int i = 0; i < properties; i++) {
             String propName = ByteBufUtils.readString(byteBuf);
             String valueStr = ByteBufUtils.readString(byteBuf);
-            IProperty<T> property = (IProperty<T>) MiscUtils.iterativeSearch(state.getProperties(), prop -> prop.getName().equalsIgnoreCase(propName));
+            Property<T> property = (Property<T>) MiscUtils.iterativeSearch(state.getProperties(), prop -> prop.getName().equalsIgnoreCase(propName));
             if (property != null) {
                 Optional<T> value = property.parseValue(valueStr);
                 if (value.isPresent()) {

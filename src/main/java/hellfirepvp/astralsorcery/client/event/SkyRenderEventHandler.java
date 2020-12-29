@@ -13,8 +13,9 @@ import hellfirepvp.astralsorcery.client.sky.ChainingSkyRenderer;
 import hellfirepvp.astralsorcery.common.constellation.SkyHandler;
 import hellfirepvp.astralsorcery.common.constellation.world.WorldContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.World;
-import net.minecraftforge.client.IRenderHandler;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.client.world.DimensionRenderInfo;
+import net.minecraftforge.client.ISkyRenderHandler;
 import net.minecraftforge.client.event.EntityViewRenderEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.LogicalSide;
@@ -29,31 +30,31 @@ import net.minecraftforge.fml.LogicalSide;
 public class SkyRenderEventHandler {
 
     public static void onRender(RenderWorldLastEvent event) {
-        World world = Minecraft.getInstance().world;
-        if (world != null && world.getDimension().isSurfaceWorld()) {
-            IRenderHandler render = world.getDimension().getSkyRenderer();
+        ClientWorld world = Minecraft.getInstance().world;
+        if (world != null && world.func_239132_a_().func_241683_c_() == DimensionRenderInfo.FogType.NORMAL) {
+            ISkyRenderHandler render = world.func_239132_a_().getSkyRenderHandler();
             if (!(render instanceof ChainingSkyRenderer)) {
-                int dimId = world.getDimension().getType().getId();
-                if (RenderingConfig.CONFIG.skyRenderDimensions.get().contains(dimId)) {
-                    world.getDimension().setSkyRenderer(new ChainingSkyRenderer(world.getDimension().getSkyRenderer()));
+                String strDimKey = world.getDimensionKey().getLocation().toString();
+                if (RenderingConfig.CONFIG.dimensionsWithSkyRendering.get().contains(strDimKey)) {
+                    world.func_239132_a_().setSkyRenderHandler(new ChainingSkyRenderer(world.func_239132_a_().getSkyRenderHandler()));
                 }
             }
         }
     }
 
     public static void onFog(EntityViewRenderEvent.FogColors event) {
-        World world = Minecraft.getInstance().world;
+        ClientWorld world = Minecraft.getInstance().world;
         if (world != null) {
-            int dimId = world.getDimension().getType().getId();
-            if (world.getDimension().isSurfaceWorld() &&
-                    RenderingConfig.CONFIG.skyRenderDimensions.get().contains(dimId) &&
-                    !RenderingConfig.CONFIG.weakSkyRenders.get().contains(dimId) &&
-                    world.getDimension().getSkyRenderer() instanceof ChainingSkyRenderer) {
+            String strDimKey = world.getDimensionKey().getLocation().toString();
+            if (world.func_239132_a_().func_241683_c_() == DimensionRenderInfo.FogType.NORMAL &&
+                    RenderingConfig.CONFIG.dimensionsWithSkyRendering.get().contains(strDimKey) &&
+                    !RenderingConfig.CONFIG.dimensionsWithOnlyConstellationRendering.get().contains(strDimKey) &&
+                    world.func_239132_a_().getSkyRenderHandler() instanceof ChainingSkyRenderer) {
 
                 WorldContext ctx = SkyHandler.getContext(world, LogicalSide.CLIENT);
 
-                if (ctx != null && ctx.getCelestialHandler().isSolarEclipseActive()) {
-                    float perc = ctx.getCelestialHandler().getSolarEclipsePercent();
+                if (ctx != null && ctx.getCelestialEventHandler().getSolarEclipse().isActiveNow()) {
+                    float perc = ctx.getCelestialEventHandler().getSolarEclipsePercent();
                     perc = 0.05F + (perc * 0.95F);
 
                     event.setRed(event.getRed() * perc);

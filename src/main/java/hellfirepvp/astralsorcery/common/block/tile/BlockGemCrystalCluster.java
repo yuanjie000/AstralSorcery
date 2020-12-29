@@ -28,7 +28,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
 import net.minecraft.util.IStringSerializable;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
@@ -40,6 +40,7 @@ import net.minecraftforge.common.ToolType;
 
 import javax.annotation.Nullable;
 import java.awt.*;
+import java.util.Locale;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -64,7 +65,7 @@ public class BlockGemCrystalCluster extends ContainerBlock implements CustomItem
                 .harvestTool(ToolType.PICKAXE)
                 .harvestLevel(1)
                 .sound(SoundType.GLASS)
-                .lightValue(6));
+                .setLightLevel((state) -> 6));
     }
 
     @Override
@@ -79,7 +80,7 @@ public class BlockGemCrystalCluster extends ContainerBlock implements CustomItem
 
     @Override
     public VoxelShape getShape(BlockState state, IBlockReader world, BlockPos pos, ISelectionContext context) {
-        Vec3d offset = state.getOffset(world, pos);
+        Vector3d offset = state.getOffset(world, pos);
         VoxelShape shape = VoxelShapes.fullCube();
         switch (state.get(STAGE)) {
             case STAGE_0:
@@ -106,10 +107,12 @@ public class BlockGemCrystalCluster extends ContainerBlock implements CustomItem
         return OffsetType.XZ;
     }
 
+    /*
+    TODO custom states via state container
     @Override
-    public Vec3d getOffset(BlockState state, IBlockReader world, BlockPos pos) {
+    public Vector3d getOffset(BlockState state, IBlockReader world, BlockPos pos) {
         return super.getOffset(state, world, pos).mul(0.7, 0.7, 0.7);
-    }
+    }*/
 
     @Override
     public BlockState updatePostPlacement(BlockState state, Direction placedAgainst, BlockState facingState, IWorld world, BlockPos pos, BlockPos facingPos) {
@@ -204,13 +207,13 @@ public class BlockGemCrystalCluster extends ContainerBlock implements CustomItem
         }
 
         @Override
-        public String getName() {
-            return name().toLowerCase();
+        public String getString() {
+            return name().toLowerCase(Locale.ROOT);
         }
 
         @Override
         public String toString() {
-            return this.getName();
+            return this.getString();
         }
     }
 }

@@ -13,6 +13,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.InterModComms;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.versions.forge.ForgeVersion;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,18 +28,9 @@ import java.util.function.Supplier;
  */
 public enum Mods {
 
-    MINECRAFT("minecraft") {
-        @Override
-        public boolean isPresent() {
-            return true;
-        }
-    },
-    ASTRAL_SORCERY(AstralSorcery.MODID) {
-        @Override
-        public boolean isPresent() {
-            return true;
-        }
-    },
+    MINECRAFT("minecraft", true),
+    FORGE(ForgeVersion.MOD_ID, true),
+    ASTRAL_SORCERY(AstralSorcery.MODID, true),
     DRACONIC_EVOLUTION("draconicevolution"),
     CURIOS("curios"),
     JEI("jei"),
@@ -49,9 +41,13 @@ public enum Mods {
 
     //private static Class<?> gcPlayerClass, urPlayerClass;
 
-    Mods(String modName) {
-        this.modid = modName;
-        this.loaded = ModList.get().isLoaded(this.modid);
+    Mods(String modid) {
+        this(modid, ModList.get().isLoaded(modid));
+    }
+
+    private Mods(String modid, boolean loaded) {
+        this.modid = modid;
+        this.loaded = loaded;
     }
 
     public String getModId() {

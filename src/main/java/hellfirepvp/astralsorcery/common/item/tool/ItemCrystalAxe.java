@@ -10,6 +10,7 @@ package hellfirepvp.astralsorcery.common.item.tool;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import hellfirepvp.astralsorcery.common.item.base.TypeEnchantableItem;
 import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -40,7 +41,7 @@ import java.util.Map;
  * Created by HellFirePvP
  * Date: 17.08.2019 / 18:10
  */
-public class ItemCrystalAxe extends ItemCrystalTierItem {
+public class ItemCrystalAxe extends ItemCrystalTierItem implements TypeEnchantableItem {
 
     //watch out for forge moving this somewhere.
     private static final Map<Block, Block> BLOCK_STRIPPING_MAP = new ImmutableMap.Builder<Block, Block>()
@@ -72,9 +73,14 @@ public class ItemCrystalAxe extends ItemCrystalTierItem {
     }
 
     @Override
+    public boolean canEnchantItem(ItemStack stack, EnchantmentType type) {
+        return type == EnchantmentType.BREAKABLE || type == EnchantmentType.DIGGER;
+    }
+
+    @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
         EnchantmentType type = enchantment.type;
-        return type == EnchantmentType.ALL || type == EnchantmentType.DIGGER || type == EnchantmentType.BREAKABLE;
+        return type == EnchantmentType.DIGGER || type == EnchantmentType.BREAKABLE;
     }
 
     @Override

@@ -48,7 +48,7 @@ public class MantleEffectVicio extends MantleEffect {
         super.tickServer(player);
 
         PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
-        if (prog.hasPerkEffect(p -> p instanceof KeyMantleFlight) &&
+        if (prog.getPerkData().hasPerkEffect(p -> p instanceof KeyMantleFlight) &&
                 AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCost.get(), true)) {
             boolean prev = player.abilities.allowFlying;
             player.abilities.allowFlying = true;
@@ -57,7 +57,7 @@ public class MantleEffectVicio extends MantleEffect {
             }
 
             EventHelperTemporaryFlight.allowFlight(player, 10);
-            if (player.abilities.isFlying && !player.onGround && player.ticksExisted % 10 == 0) {
+            if (player.abilities.isFlying && !player.isOnGround() && player.ticksExisted % 10 == 0) {
                 AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCost.get(), false);
             }
         }
@@ -69,7 +69,7 @@ public class MantleEffectVicio extends MantleEffect {
         super.tickClient(player);
 
         if (player.isElytraFlying() || (!(player.isCreative() || player.isSpectator()) && player.abilities.isFlying)) {
-            if (Minecraft.getInstance().gameSettings.thirdPersonView == 1) {
+            if (!Minecraft.getInstance().gameSettings.getPointOfView().func_243193_b()) {
                 this.playCapeSparkles(player, 0.1F);
             } else {
                 this.playCapeSparkles(player, 0.7F);
@@ -98,7 +98,7 @@ public class MantleEffectVicio extends MantleEffect {
             } else {
                 progress = ResearchHelper.getProgress(wearingEntity, LogicalSide.SERVER);
             }
-            return effect != null && !progress.hasPerkEffect(p -> p instanceof KeyMantleFlight);
+            return effect != null && !progress.getPerkData().hasPerkEffect(p -> p instanceof KeyMantleFlight);
         }
         return false;
     }

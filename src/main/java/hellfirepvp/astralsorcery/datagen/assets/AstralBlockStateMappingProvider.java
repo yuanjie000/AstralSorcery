@@ -21,10 +21,11 @@ import net.minecraft.block.Block;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.StairsBlock;
 import net.minecraft.data.DataGenerator;
-import net.minecraft.state.IProperty;
+import net.minecraft.state.Property;
 import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.generators.*;
+import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -92,6 +93,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
         this.multiLayerBlockState(BlocksAS.AQUAMARINE_SAND_ORE);
         this.multiLayerBlockState(BlocksAS.ROCK_CRYSTAL_ORE);
         this.multiLayerBlockState(BlocksAS.STARMETAL_ORE);
+        this.simpleBlockState(BlocksAS.STARMETAL);
         this.simpleBlockState(BlocksAS.GLOW_FLOWER);
 
         this.multiLayerBlockState(BlocksAS.SPECTRAL_RELAY);
@@ -161,7 +163,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
                 .addModels(new ConfiguredModel(modelNothing()));
     }
 
-    private <T extends Comparable<T>> void pillarModel(Block b, IProperty<T> pillarType, T middle, T top, T bottom) {
+    private <T extends Comparable<T>> void pillarModel(Block b, Property<T> pillarType, T middle, T top, T bottom) {
         ResourceLocation key = b.getRegistryName();
         this.getVariantBuilder(b)
                 .partialState().with(pillarType, middle)
@@ -173,13 +175,13 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
     }
 
     private <T extends Comparable<T>> void allStateSuffixModel(Block b) {
-        Collection<IProperty<?>> properties = b.getStateContainer().getProperties();
+        Collection<Property<?>> properties = b.getStateContainer().getProperties();
         if (properties.size() != 1) {
             throw new IllegalArgumentException("Can only make path-suffix enumeration for blockstates with exactly 1 property!");
         }
 
         ResourceLocation key = b.getRegistryName();
-        IProperty<T> property = (IProperty<T>) Iterables.getFirst(properties, null);
+        Property<T> property = (Property<T>) Iterables.getFirst(properties, null);
         VariantBlockStateBuilder builder = this.getVariantBuilder(b);
         for (T value : property.getAllowedValues()) {
             builder.partialState().with(property, value)
@@ -188,13 +190,13 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
     }
 
     private <T extends Comparable<T>> void allStateSuffixMultiLayerModel(Block b) {
-        Collection<IProperty<?>> properties = b.getStateContainer().getProperties();
+        Collection<Property<?>> properties = b.getStateContainer().getProperties();
         if (properties.size() != 1) {
             throw new IllegalArgumentException("Can only make path-suffix enumeration for blockstates with exactly 1 property!");
         }
 
         ResourceLocation key = b.getRegistryName();
-        IProperty<T> property = (IProperty<T>) Iterables.getFirst(properties, null);
+        Property<T> property = (Property<T>) Iterables.getFirst(properties, null);
         VariantBlockStateBuilder builder = this.getVariantBuilder(b);
         for (T value : property.getAllowedValues()) {
             builder.partialState().with(property, value)

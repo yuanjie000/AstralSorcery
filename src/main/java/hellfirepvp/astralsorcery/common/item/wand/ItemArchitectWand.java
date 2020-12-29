@@ -51,10 +51,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.*;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -86,7 +83,7 @@ public class ItemArchitectWand extends Item implements ItemBlockStorage, ItemOve
     @Override
     @OnlyIn(Dist.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
-        tooltip.add(getPlaceMode(stack).getDisplay().setStyle(new Style().setColor(TextFormatting.GOLD)));
+        tooltip.add(getPlaceMode(stack).getDisplay().mergeStyle(TextFormatting.GOLD));
     }
 
     @Override
@@ -104,6 +101,7 @@ public class ItemArchitectWand extends Item implements ItemBlockStorage, ItemOve
             return true;
         }
 
+        RenderSystem.enableTexture();
         BlockAtlasTexture.getInstance().bindTexture();
 
         int[] fullBright = new int[] { 15, 15 };
@@ -134,9 +132,9 @@ public class ItemArchitectWand extends Item implements ItemBlockStorage, ItemOve
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean renderOverlay(ItemStack stack, float pTicks) {
+    public boolean renderOverlay(MatrixStack renderStack, ItemStack stack, float pTicks) {
         List<Tuple<ItemStack, Integer>> foundStacks = ItemBlockStorage.getInventoryMatchingItemStacks(Minecraft.getInstance().player, stack);
-        RenderingOverlayUtils.renderDefaultItemDisplay(foundStacks);
+        RenderingOverlayUtils.renderDefaultItemDisplay(renderStack, foundStacks);
         return true;
     }
 
@@ -202,20 +200,16 @@ public class ItemArchitectWand extends Item implements ItemBlockStorage, ItemOve
                 continue;
             }
 
-            if (MiscUtils.canPlayerPlaceBlockPos(player, stateToPlace, placePos, Direction.UP)) {
-                if (AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_PLACEMENT, false) &&
-                        world.setBlockState(placePos, stateToPlace)) {
-                    if (!player.isCreative()) {
-                        ItemUtils.consumeFromPlayerInventory(player, held, extractable, false);
-                    }
-
-                    PktPlayEffect ev = new PktPlayEffect(PktPlayEffect.Type.BLOCK_EFFECT)
-                            .addData(buf -> {
-                                ByteBufUtils.writePos(buf, placePos);
-                                ByteBufUtils.writeBlockState(buf, stateToPlace);
-                            });
-                    PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 32));
-                }
+            if (MiscUtils.canPlayerPlaceBlockPos(player, stateToPlace, placePos, Direction.UP) &&
+                    (player.isCreative() || ItemUtils.consumeFromPlayerInventory(player, held, extractable, false)) &&
+                    AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_PLACEMENT, false) &&
+                    world.setBlockState(placePos, stateToPlace)) {
+                PktPlayEffect ev = new PktPlayEffect(PktPlayEffect.Type.BLOCK_EFFECT)
+                        .addData(buf -> {
+                            ByteBufUtils.writePos(buf, placePos);
+                            ByteBufUtils.writeBlockState(buf, stateToPlace);
+                        });
+                PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 32));
             }
         }
         return ActionResult.resultSuccess(held);
@@ -414,11 +408,11 @@ public class ItemArchitectWand extends Item implements ItemBlockStorage, ItemOve
             this.placeCostMulitplier = placeCostMultiplier;
         }
 
-        public ITextComponent getName() {
+        public IFormattableTextComponent getName() {
             return new TranslationTextComponent("astralsorcery.misc.architect.mode." + this.name);
         }
 
-        public ITextComponent getDisplay() {
+        public IFormattableTextComponent getDisplay() {
             return new TranslationTextComponent("astralsorcery.misc.architect.mode", this.getName());
         }
 

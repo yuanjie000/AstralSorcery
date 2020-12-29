@@ -34,7 +34,7 @@ import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
@@ -68,7 +68,7 @@ public class EntityNocturnalSpark extends ThrowableEntity {
 
     public EntityNocturnalSpark(LivingEntity thrower, World world) {
         super(EntityTypesAS.NOCTURNAL_SPARK, thrower, world);
-        this.shoot(thrower, thrower.rotationPitch, thrower.rotationYaw, 0F, 0.7F, 0.9F);
+        this.func_234612_a_(thrower, thrower.rotationPitch, thrower.rotationYaw, 0F, 0.7F, 0.9F);
     }
 
     public static EntityType.IFactory<EntityNocturnalSpark> factory() {
@@ -81,7 +81,7 @@ public class EntityNocturnalSpark extends ThrowableEntity {
     }
 
     public void setSpawning() {
-        this.setMotion(Vec3d.ZERO);
+        this.setMotion(Vector3d.ZERO);
         this.dataManager.set(SPAWNING, true);
     }
 
@@ -121,7 +121,7 @@ public class EntityNocturnalSpark extends ThrowableEntity {
                         sWorld, this.getPosition(), 8,
                         (world, pos, state) -> !(state.getBlock() instanceof AirBlock) && state.getBlockHardness(world, pos) != -1 && state.getLightValue(world, pos) > 3);
                 for (BlockPos light : lightPositions) {
-                    if (!BlockUtils.breakBlockWithoutPlayer(sWorld, light, sWorld.getBlockState(light), ItemStack.EMPTY, true, true, true)) {
+                    if (!BlockUtils.breakBlockWithoutPlayer(sWorld, light, sWorld.getBlockState(light), ItemStack.EMPTY, true, true)) {
                         sWorld.removeBlock(light, false);
                     }
                 }
@@ -157,12 +157,15 @@ public class EntityNocturnalSpark extends ThrowableEntity {
                 if (rand.nextInt(5) == 0) {
                     randomizeColor(p);
                 }
-                if (rand.nextInt(3) == 0) {
-                    Vector3 target = Vector3.atEntityCorner(this);
-                    MiscUtils.applyRandomOffset(target, rand, 4);
+                if (rand.nextInt(20) == 0) {
+                    Vector3 at = Vector3.atEntityCorner(this);
+                    MiscUtils.applyRandomOffset(at, rand, 2);
+                    Vector3 to = Vector3.atEntityCorner(this);
+                    MiscUtils.applyRandomOffset(to, rand, 2);
+
                     EffectHelper.of(EffectTemplatesAS.LIGHTNING)
-                            .spawn(Vector3.atEntityCorner(this))
-                            .makeDefault(target)
+                            .spawn(at)
+                            .makeDefault(to)
                             .color(VFXColorFunction.constant(Color.BLACK));
                 }
             }
@@ -194,12 +197,15 @@ public class EntityNocturnalSpark extends ThrowableEntity {
 
     private void spawnCycle() {
         if (rand.nextInt(12) == 0 && world instanceof ServerWorld) {
-            BlockPos pos = getPosition().up();
-            pos.add(rand.nextInt(2) - rand.nextInt(2),
-                    rand.nextInt(1) - rand.nextInt(1),
-                    rand.nextInt(2) - rand.nextInt(2));
+            BlockPos pos = getPosition();
+            pos.add(rand.nextInt(2) - rand.nextInt(2), 1, rand.nextInt(2) - rand.nextInt(2));
+            pos = BlockUtils.firstSolidDown(world, pos).up();
 
-            EntityUtils.performWorldSpawningAt((ServerWorld) world, pos, EntityClassification.MONSTER, SpawnReason.SPAWNER, true);
+            if (pos.distanceSq(this.getPosition()) >= 16) {
+                return;
+            }
+            EntityUtils.performWorldSpawningAt((ServerWorld) world, pos, EntityClassification.MONSTER, SpawnReason.SPAWNER, true,
+                    EntityUtils.SpawnConditionFlags.IGNORE_SPAWN_CONDITIONS | EntityUtils.SpawnConditionFlags.IGNORE_ENTITY_COLLISION);
         }
     }
 
@@ -225,7 +231,7 @@ public class EntityNocturnalSpark extends ThrowableEntity {
         if (RayTraceResult.Type.ENTITY.equals(result.getType())) {
             return;
         }
-        Vec3d hit = result.getHitVec();
+        Vector3d hit = result.getHitVec();
         this.setSpawning();
         this.setPosition(hit.x, hit.y, hit.z);
     }

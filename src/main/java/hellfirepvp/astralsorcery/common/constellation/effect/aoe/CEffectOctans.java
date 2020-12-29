@@ -27,17 +27,21 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.BubbleColumnBlock;
 import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.block.material.Material;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.loot.*;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
+import net.minecraft.world.gen.Heightmap;
 import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.storage.loot.*;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -61,11 +65,15 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
 
     public CEffectOctans(@Nonnull ILocatable origin) {
         super(origin, ConstellationsAS.octans, CONFIG.maxAmount.get(), (world, pos, state) -> {
+            if (!corruptedSkipWaterCheck) {
+                pos = world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pos).down();
+            }
             return corruptedSkipWaterCheck || (
-                    state.getBlock() instanceof FlowingFluidBlock &&
-                            state.getMaterial() == Material.WATER &&
-                            state.get(FlowingFluidBlock.LEVEL) == 0 &&
-                            world.isAirBlock(pos.up())
+                    world.isAirBlock(pos.up()) &&
+                            (state.getBlock() instanceof FlowingFluidBlock &&
+                                    state.getMaterial() == Material.WATER &&
+                                    state.get(FlowingFluidBlock.LEVEL) == 0) ||
+                            state.getBlock() instanceof BubbleColumnBlock
                     );
         });
         this.excludeRitualColumn();
@@ -80,6 +88,7 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
     @Nullable
     @Override
     public ListEntries.CounterMaxEntry createElement(World world, BlockPos pos) {
+        pos = world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pos).down();
         return new ListEntries.CounterMaxEntry(pos, 1);
     }
 
@@ -122,11 +131,13 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
                 BlockPos offset = entry.getPos().subtract(pos);
                 if (world.isAirBlock(entry.getPos()) &&
                         (this.isLinkedRitual || Math.abs(offset.getX()) > 5 || Math.abs(offset.getZ()) > 5 || offset.getY() < 0)) {
-                    if (world.setBlockState(entry.getPos(), Blocks.WATER.getDefaultState())) {
-                        for (int i = 0; i < 3; i++) {
-                            spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                    if (!world.getDimensionType().isUltrawarm()) {
+                        if (world.setBlockState(entry.getPos(), Blocks.WATER.getDefaultState())) {
+                            for (int i = 0; i < 3; i++) {
+                                spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                            }
+                            world.neighborChanged(entry.getPos(), Blocks.WATER, entry.getPos());
                         }
-                        world.neighborChanged(entry.getPos(), Blocks.WATER, entry.getPos());
                     }
                 } else if (BlockUtils.isFluidBlock(state)) {
                     if (state.getBlock() == Blocks.WATER) {
@@ -136,6 +147,10 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
                     } else {
                         world.setBlockState(entry.getPos(), Blocks.SAND.getDefaultState());
                     }
+                } else if (state.getBlock() instanceof BubbleColumnBlock) {
+                    if (rand.nextInt(70) == 0) {
+                        spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                    }
                 }
                 return true;
             }).left().orElse(false);
@@ -144,7 +159,7 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
         ListEntries.CounterMaxEntry entry = getRandomElementChanced();
         if (entry != null) {
             if (MiscUtils.canEntityTickAt(world, entry.getPos())) {
-                if (!verifier.test(world, entry.getPos(), world.getBlockState(entry.getPos()))) {
+                if (!isValid(world, entry)) {
                     removeElement(entry);
                 } else {
                     sendConstellationPing(world, new Vector3(entry.getPos()).add(0.5, 1, 0.5));
@@ -168,7 +183,7 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
         }
 
         if (findNewPosition(world, pos, properties)
-                .ifRight(attemptedPos -> sendConstellationPing(world, new Vector3(attemptedPos).add(0.5, 0.5, 0.5)))
+                .ifRight(attemptedPos -> sendConstellationPing(world, new Vector3(world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, attemptedPos).down()).add(0.5, 0.5, 0.5)))
                 .left().isPresent()) {
             update = true;
         }
@@ -180,17 +195,22 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
         ItemStack tool = new ItemStack(Items.FISHING_ROD);
         tool.addEnchantment(Enchantments.LUCK_OF_THE_SEA, 2);
 
+        ResourceLocation fromTable = LootTables.GAMEPLAY_FISHING_FISH;
+        if (rand.nextFloat() < 0.1F) {
+            fromTable = LootTables.GAMEPLAY_FISHING_TREASURE;
+        }
+
         LootContext.Builder builder = new LootContext.Builder(world);
         builder.withLuck(rand.nextInt(2) * rand.nextFloat());
         builder.withRandom(rand);
         builder.withParameter(LootParameters.TOOL, tool);
-        builder.withParameter(LootParameters.POSITION, pos);
-        LootTable table = world.getServer().getLootTableManager().getLootTableFromLocation(LootTables.GAMEPLAY_FISHING);
-        for (ItemStack loot : table.generate(builder.build(LootParameterSets.FISHING))) {
+        builder.withParameter(LootParameters.field_237457_g_, Vector3d.copyCentered(pos));
+        LootTable lootTable = world.getServer().getLootTableManager().getLootTableFromLocation(fromTable);
+        for (ItemStack loot : lootTable.generate(builder.build(LootParameterSets.FISHING))) {
             ItemEntity ei = ItemUtils.dropItemNaturally(world, dropLoc.getX(), dropLoc.getY(), dropLoc.getZ(), loot);
             Vector3 motion = new Vector3(ei.getMotion());
             motion.setY(Math.abs(motion.getY()));
-            ei.setMotion(motion.toVec3d());
+            ei.setMotion(motion.toVector3d());
         }
     }
 
@@ -201,29 +221,29 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
 
     private static class OctansConfig extends CountConfig {
 
-        private final int defaultMinFishTickTime = 100;
-        private final int defaultMaxFishTickTime = 500;
+        private final int defaultMinFishTickTime = 20;
+        private final int defaultMaxFishTickTime = 60;
 
         public ForgeConfigSpec.IntValue minFishTickTime;
         public ForgeConfigSpec.IntValue maxFishTickTime;
 
         public OctansConfig() {
-            super("octans", 12D, 2D, 5);
+            super("octans", 8D, 1D, 64);
         }
 
         @Override
         public void createEntries(ForgeConfigSpec.Builder cfgBuilder) {
             super.createEntries(cfgBuilder);
 
-            this.maxFishTickTime = cfgBuilder
-                    .comment("Defines the maximum default tick-time until a fish may be fished by the ritual. Gets reduced internally the more starlight was provided at the ritual. Has to be bigger as the minimum time; if it isn't it'll be set to the minimum.")
-                    .translation(translationKey("maxFishTickTime"))
-                    .defineInRange("maxFishTickTime", this.defaultMaxFishTickTime, 20, Integer.MAX_VALUE);
-
             this.minFishTickTime = cfgBuilder
                     .comment("Defines the minimum default tick-time until a fish may be fished by the ritual. Gets reduced internally the more starlight was provided at the ritual.")
                     .translation(translationKey("minFishTickTime"))
-                    .defineInRange("minFishTickTime", this.defaultMinFishTickTime, 20, Integer.MAX_VALUE);
+                    .defineInRange("minFishTickTime", this.defaultMinFishTickTime, 5, Integer.MAX_VALUE);
+
+            this.maxFishTickTime = cfgBuilder
+                    .comment("Defines the maximum default tick-time until a fish may be fished by the ritual. Gets reduced internally the more starlight was provided at the ritual. Has to be bigger as the minimum time; if it isn't it'll be set to the minimum.")
+                    .translation(translationKey("maxFishTickTime"))
+                    .defineInRange("maxFishTickTime", this.defaultMaxFishTickTime, 10, Integer.MAX_VALUE);
         }
     }
 }

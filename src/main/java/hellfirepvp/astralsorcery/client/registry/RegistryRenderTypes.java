@@ -9,11 +9,15 @@
 package hellfirepvp.astralsorcery.client.registry;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
+import hellfirepvp.astralsorcery.client.constellation.ConstellationRenderInfos;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.render.RenderStateBuilder;
+import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
 import hellfirepvp.astralsorcery.client.resource.AssetLibrary;
 import hellfirepvp.astralsorcery.client.resource.AssetLoader;
 import hellfirepvp.astralsorcery.client.util.Blending;
+import hellfirepvp.astralsorcery.common.constellation.IConstellation;
+import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.renderer.vertex.VertexFormat;
@@ -33,6 +37,7 @@ public class RegistryRenderTypes {
     public static void init() {
         initEffectTypes();
         initEffects();
+        initConstellationTypes();
         initGuiTypes();
         initTERTypes();
         initModels();
@@ -45,6 +50,7 @@ public class RegistryRenderTypes {
                         .blend(Blending.DEFAULT)
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_GENERIC_PARTICLE_DEPTH = createType("effect_fx_generic_particle_depth", DefaultVertexFormats.POSITION_COLOR_TEX,
                 RenderStateBuilder.builder()
@@ -53,6 +59,7 @@ public class RegistryRenderTypes {
                         .disableCull()
                         .disableDepthMask()
                         .disableDepth()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_GENERIC_PARTICLE_ATLAS = createType("effect_fx_generic_particle_atlas", DefaultVertexFormats.POSITION_COLOR_TEX,
                 RenderStateBuilder.builder()
@@ -60,6 +67,7 @@ public class RegistryRenderTypes {
                         .blend(Blending.DEFAULT)
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_LIGHTNING = createType("effect_fx_lightning", DefaultVertexFormats.POSITION_COLOR_TEX,
                 RenderStateBuilder.builder()
@@ -67,6 +75,7 @@ public class RegistryRenderTypes {
                         .blend(Blending.DEFAULT)
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_LIGHTBEAM = createType("effect_fx_lightbeam", DefaultVertexFormats.POSITION_COLOR_TEX,
                 RenderStateBuilder.builder()
@@ -74,6 +83,7 @@ public class RegistryRenderTypes {
                         .blend(Blending.ADDITIVE_ALPHA)
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_CRYSTAL = createType("effect_fx_crystal", POSITION_COLOR_TEX_NORMAL, GL11.GL_TRIANGLES, 32768,
                 RenderStateBuilder.builder()
@@ -82,6 +92,7 @@ public class RegistryRenderTypes {
                         .defaultAlpha()
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_BURST = createType("effect_fx_burst", DefaultVertexFormats.POSITION_COLOR_TEX,
                 RenderStateBuilder.builder()
@@ -89,6 +100,7 @@ public class RegistryRenderTypes {
                         .blend(Blending.DEFAULT)
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_DYNAMIC_TEXTURE_SPRITE = createType("effect_fx_dynamic_texture_sprite", DefaultVertexFormats.POSITION_COLOR_TEX,
                 RenderStateBuilder.builder()
@@ -97,6 +109,7 @@ public class RegistryRenderTypes {
                         .alpha(0.0001F)
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_TEXTURE_SPRITE = createType("effect_fx_texture_sprite", DefaultVertexFormats.POSITION_COLOR_TEX,
                 RenderStateBuilder.builder()
@@ -105,6 +118,7 @@ public class RegistryRenderTypes {
                         .alpha(0.0001F)
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_CUBE_OPAQUE_ATLAS = createType("effect_fx_cube_opaque_atlas", DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP,
                 RenderStateBuilder.builder()
@@ -113,6 +127,7 @@ public class RegistryRenderTypes {
                         .defaultAlpha()
                         .disableCull()
                         .enableLighting()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_BLOCK_TRANSLUCENT = createType("effect_fx_block_translucent", DefaultVertexFormats.BLOCK,
                 RenderStateBuilder.builder()
@@ -120,6 +135,7 @@ public class RegistryRenderTypes {
                         .blend(Blending.ADDITIVEDARK)
                         .defaultAlpha()
                         .disableCull()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_BLOCK_TRANSLUCENT_DEPTH = createType("effect_fx_block_translucent_depth", DefaultVertexFormats.BLOCK,
                 RenderStateBuilder.builder()
@@ -128,6 +144,7 @@ public class RegistryRenderTypes {
                         .defaultAlpha()
                         .disableCull()
                         .disableDepth()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_CUBE_TRANSLUCENT_ATLAS = createType("effect_fx_cube_translucent_atlas", DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP,
                 RenderStateBuilder.builder()
@@ -136,6 +153,7 @@ public class RegistryRenderTypes {
                         .defaultAlpha()
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_CUBE_TRANSLUCENT_ATLAS_DEPTH = createType("effect_fx_cube_translucent_atlas_depth", DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP,
                 RenderStateBuilder.builder()
@@ -144,6 +162,7 @@ public class RegistryRenderTypes {
                         .defaultAlpha()
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .disableDepth()
                         .build());
         EFFECT_FX_CUBE_AREA_OF_EFFECT = createType("effect_fx_cube_area_of_effect", DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP,
@@ -153,12 +172,14 @@ public class RegistryRenderTypes {
                         .defaultAlpha()
                         .disableCull()
                         .disableDepthMask()
+                        .particleShaderTarget()
                         .build());
         EFFECT_FX_COLOR_SPHERE = createType("effect_fx_color_sphere", DefaultVertexFormats.POSITION_COLOR, GL11.GL_TRIANGLES, 32768,
                 RenderStateBuilder.builder()
                         .blend(Blending.DEFAULT)
                         .disableTexture()
                         .alpha(0.00001F)
+                        .particleShaderTarget()
                         .build());
     }
 
@@ -184,6 +205,25 @@ public class RegistryRenderTypes {
                         .blend(Blending.DEFAULT)
                         .disableDepthMask()
                         .build());
+    }
+
+    private static void initConstellationTypes() {
+        CONSTELLATION_DISCIDIA_BACKGROUND   = createConstellationBackgroundType(ConstellationsAS.discidia, TexturesAS.TEX_DISCIDIA_BACKGROUND);
+        CONSTELLATION_ARMARA_BACKGROUND     = createConstellationBackgroundType(ConstellationsAS.armara, TexturesAS.TEX_ARMARA_BACKGROUND);
+        CONSTELLATION_VICIO_BACKGROUND      = createConstellationBackgroundType(ConstellationsAS.vicio, TexturesAS.TEX_VICIO_BACKGROUND);
+        CONSTELLATION_AEVITAS_BACKGROUND    = createConstellationBackgroundType(ConstellationsAS.aevitas, TexturesAS.TEX_AEVITAS_BACKGROUND);
+        CONSTELLATION_EVORSIO_BACKGROUND    = createConstellationBackgroundType(ConstellationsAS.evorsio, TexturesAS.TEX_EVORSIO_BACKGROUND);
+        CONSTELLATION_LUCERNA_BACKGROUND    = createConstellationBackgroundType(ConstellationsAS.lucerna, TexturesAS.TEX_LUCERNA_BACKGROUND);
+        CONSTELLATION_MINERALIS_BACKGROUND  = createConstellationBackgroundType(ConstellationsAS.mineralis, TexturesAS.TEX_MINERALIS_BACKGROUND);
+        CONSTELLATION_HOROLOGIUM_BACKGROUND = createConstellationBackgroundType(ConstellationsAS.horologium, TexturesAS.TEX_HOROLOGIUM_BACKGROUND);
+        CONSTELLATION_OCTANS_BACKGROUND     = createConstellationBackgroundType(ConstellationsAS.octans, TexturesAS.TEX_OCTANS_BACKGROUND);
+        CONSTELLATION_BOOTES_BACKGROUND     = createConstellationBackgroundType(ConstellationsAS.bootes, TexturesAS.TEX_BOOTES_BACKGROUND);
+        CONSTELLATION_FORNAX_BACKGROUND     = createConstellationBackgroundType(ConstellationsAS.fornax, TexturesAS.TEX_FORNAX_BACKGROUND);
+        CONSTELLATION_PELOTRIO_BACKGROUND   = createConstellationBackgroundType(ConstellationsAS.pelotrio, TexturesAS.TEX_PELOTRIO_BACKGROUND);
+        CONSTELLATION_GELU_BACKGROUND       = createConstellationBackgroundType(ConstellationsAS.gelu, TexturesAS.TEX_GELU_BACKGROUND);
+        CONSTELLATION_ULTERIA_BACKGROUND    = createConstellationBackgroundType(ConstellationsAS.ulteria, TexturesAS.TEX_ULTERIA_BACKGROUND);
+        CONSTELLATION_ALCARA_BACKGROUND     = createConstellationBackgroundType(ConstellationsAS.alcara, TexturesAS.TEX_ALCARA_BACKGROUND);
+        CONSTELLATION_VORUX_BACKGROUND      = createConstellationBackgroundType(ConstellationsAS.vorux, TexturesAS.TEX_VORUX_BACKGROUND);
     }
 
     private static void initGuiTypes() {
@@ -329,4 +369,15 @@ public class RegistryRenderTypes {
         return RenderType.makeType(AstralSorcery.key(name).toString(), vertexFormat, glDrawMode, bufferSize, usesDelegateDrawing, sortVertices, state);
     }
 
+    private static RenderType createConstellationBackgroundType(IConstellation cst, AbstractRenderableTexture tex) {
+        RenderType rType = createType("constellation_background_" + cst.getSimpleName(), DefaultVertexFormats.POSITION_COLOR_TEX,
+                RenderStateBuilder.builder()
+                        .texture(tex)
+                        .blend(Blending.DEFAULT)
+                        .disableDepthMask()
+                        .build());
+
+        ConstellationRenderInfos.registerBackground(cst, rType, tex);
+        return rType;
+    }
 }

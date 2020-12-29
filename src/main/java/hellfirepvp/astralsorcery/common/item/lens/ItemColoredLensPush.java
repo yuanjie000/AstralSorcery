@@ -12,14 +12,15 @@ import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.data.config.entry.GeneralConfig;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
+import hellfirepvp.astralsorcery.common.util.PartialEffectExecutor;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.IWorld;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.World;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -48,21 +49,21 @@ public class ItemColoredLensPush extends ItemColoredLens {
         }
 
         @Override
-        public void entityInBeam(IWorld world, Vector3 origin, Vector3 target, Entity entity, float beamStrength) {
-            if (entity instanceof PlayerEntity && !GeneralConfig.CONFIG.doColoredLensesAffectPlayers.get()) {
+        public void entityInBeam(World world, Vector3 origin, Vector3 target, Entity entity, PartialEffectExecutor executor) {
+            if (entity instanceof PlayerEntity && !GeneralConfig.CONFIG.doColoredLensesAffectPlayers.get() && executor.canExecute()) {
                 return;
             }
-            Vector3 dir = target.clone().subtract(origin).normalize().multiply(0.4F * beamStrength);
-            Vec3d eMotion = entity.getMotion();
+            Vector3 dir = target.clone().subtract(origin).normalize().multiply(0.4F);
+            Vector3d eMotion = entity.getMotion();
             Vector3 motion = new Vector3(
                     Math.min(1F, eMotion.x + dir.getX()),
                     dir.getY() + 0.04F,
                     Math.min(1F, eMotion.z + dir.getZ())
             );
-            entity.setMotion(motion.toVec3d());
+            entity.setMotion(motion.toVector3d());
         }
 
         @Override
-        public void blockInBeam(IWorld world, BlockPos pos, BlockState state, float beamStrength) {}
+        public void blockInBeam(World world, BlockPos pos, BlockState state, PartialEffectExecutor executor) {}
     }
 }

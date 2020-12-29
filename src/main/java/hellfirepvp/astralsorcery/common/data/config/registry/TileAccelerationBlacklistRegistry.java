@@ -11,14 +11,11 @@ package hellfirepvp.astralsorcery.common.data.config.registry;
 import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataAdapter;
 import hellfirepvp.astralsorcery.common.data.config.registry.sets.TileAccelerationBlacklistEntry;
+import hellfirepvp.astralsorcery.common.tile.*;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
-import hellfirepvp.astralsorcery.common.tile.TileAttunementAltar;
-import hellfirepvp.astralsorcery.common.tile.TileObservatory;
-import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.tile.base.network.TileSourceBase;
 import hellfirepvp.astralsorcery.common.tile.base.network.TileTransmissionBase;
-import net.minecraft.tileentity.ITickableTileEntity;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.*;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -48,6 +45,11 @@ public class TileAccelerationBlacklistRegistry extends ConfigDataAdapter<TileAcc
         if (erroredTiles.contains(tileClass)) {
             return false;
         }
+        for (Class<?> excludedTile : erroredTiles) {
+            if (excludedTile.isAssignableFrom(tileClass)) {
+                return false;
+            }
+        }
 
         for (TileAccelerationBlacklistEntry entry : this.getConfiguredValues()) {
             if (entry.test(tile)) {
@@ -66,6 +68,9 @@ public class TileAccelerationBlacklistRegistry extends ConfigDataAdapter<TileAcc
     @Override
     public List<TileAccelerationBlacklistEntry> getDefaultValues() {
         return Lists.newArrayList(
+                new TileAccelerationBlacklistEntry(PistonTileEntity.class.getName()),
+                new TileAccelerationBlacklistEntry(LockableLootTileEntity.class.getName()),
+
                 // Accelerating storage system components looks like a bad idea
                 new TileAccelerationBlacklistEntry("appeng"),
                 new TileAccelerationBlacklistEntry("raoulvdberge.refinedstorage"),
@@ -78,7 +83,13 @@ public class TileAccelerationBlacklistRegistry extends ConfigDataAdapter<TileAcc
                 new TileAccelerationBlacklistEntry(TileAltar.class.getName()),
                 new TileAccelerationBlacklistEntry(TileAttunementAltar.class.getName()),
                 new TileAccelerationBlacklistEntry(TileObservatory.class.getName()),
-                new TileAccelerationBlacklistEntry(TileRitualPedestal.class.getName())
+                new TileAccelerationBlacklistEntry(TileRitualLink.class.getName()),
+                new TileAccelerationBlacklistEntry(TileRitualPedestal.class.getName()),
+                new TileAccelerationBlacklistEntry(TileSpectralRelay.class.getName()),
+                new TileAccelerationBlacklistEntry(TileTelescope.class.getName()),
+                new TileAccelerationBlacklistEntry(TileTranslucentBlock.class.getName()),
+                new TileAccelerationBlacklistEntry(TileTreeBeaconComponent.class.getName()),
+                new TileAccelerationBlacklistEntry(TileVanishing.class.getName())
         );
     }
 

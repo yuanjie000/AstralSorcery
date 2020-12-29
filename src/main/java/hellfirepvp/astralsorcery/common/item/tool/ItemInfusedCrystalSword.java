@@ -18,6 +18,7 @@ import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import hellfirepvp.astralsorcery.common.util.CelestialStrike;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import hellfirepvp.astralsorcery.common.util.object.CacheReference;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -38,8 +39,9 @@ import java.util.UUID;
  */
 public class ItemInfusedCrystalSword extends ItemCrystalSword implements EquipmentAttributeModifierProvider {
 
-    private static final DynamicAttributeModifier INFUSED_SWORD_BASECRIT =
-            new DynamicAttributeModifier(UUID.fromString("bf154d57-22ca-4b62-822e-2ad09df5f1e8"), PerkAttributeTypesAS.ATTR_TYPE_INC_CRIT_CHANCE, ModifierType.ADDITION, 5F);
+    private static final UUID MODIFIER_ID = UUID.fromString("bf154d57-22ca-4b62-822e-2ad09df5f1e8");
+    private static final CacheReference<DynamicAttributeModifier> BASECRIT_MODIFIER =
+            new CacheReference<>(() -> new DynamicAttributeModifier(MODIFIER_ID, PerkAttributeTypesAS.ATTR_TYPE_INC_CRIT_CHANCE, ModifierType.ADDITION, 5F));
 
     @Override
     public boolean onLeftClickEntity(ItemStack stack, PlayerEntity player, Entity entity) {
@@ -54,7 +56,7 @@ public class ItemInfusedCrystalSword extends ItemCrystalSword implements Equipme
 
                 PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
                 if (prog.doPerkAbilities()) {
-                    CelestialStrike.play(serverPlayer, serverPlayer.getEntityWorld(), Vector3.atEntityCorner(entity), Vector3.atEntityCorner(entity));
+                    CelestialStrike.play(serverPlayer, serverPlayer.getServerWorld(), Vector3.atEntityCorner(entity), Vector3.atEntityCorner(entity));
                     serverPlayer.getCooldownTracker().setCooldown(sword.getItem(), 120);
                 }
             }
@@ -64,6 +66,6 @@ public class ItemInfusedCrystalSword extends ItemCrystalSword implements Equipme
 
     @Override
     public Collection<PerkAttributeModifier> getModifiers(ItemStack stack, PlayerEntity player, LogicalSide side, boolean ignoreRequirements) {
-        return Collections.singletonList(INFUSED_SWORD_BASECRIT);
+        return Collections.singletonList(BASECRIT_MODIFIER.get());
     }
 }

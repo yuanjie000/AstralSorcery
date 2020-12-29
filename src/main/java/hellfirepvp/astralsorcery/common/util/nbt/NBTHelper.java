@@ -19,7 +19,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;
-import net.minecraft.state.IProperty;
+import net.minecraft.state.Property;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -29,6 +29,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.ForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryManager;
+import org.apache.commons.lang3.ObjectUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -246,7 +247,7 @@ public class NBTHelper {
         CompoundNBT tag = new CompoundNBT();
         tag.putString("registryName", state.getBlock().getRegistryName().toString());
         ListNBT properties = new ListNBT();
-        for (IProperty property : state.getProperties()) {
+        for (Property property : state.getProperties()) {
             CompoundNBT propTag = new CompoundNBT();
             try {
                 propTag.putString("value", property.getName(state.get(property)));
@@ -271,13 +272,13 @@ public class NBTHelper {
         Block block = ForgeRegistries.BLOCKS.getValue(key);
         if (block == null || block == Blocks.AIR) return _default;
         BlockState state = block.getDefaultState();
-        Collection<IProperty<?>> properties = state.getProperties();
+        Collection<Property<?>> properties = state.getProperties();
         ListNBT list = cmp.getList("properties", Constants.NBT.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
             CompoundNBT propertyTag = list.getCompound(i);
             String valueStr = propertyTag.getString("value");
             String propertyStr = propertyTag.getString("property");
-            IProperty<T> match = (IProperty<T>) MiscUtils.iterativeSearch(properties, prop -> prop.getName().equalsIgnoreCase(propertyStr));
+            Property<T> match = (Property<T>) MiscUtils.iterativeSearch(properties, prop -> prop.getName().equalsIgnoreCase(propertyStr));
             if (match != null) {
                 try {
                     Optional<T> opt = match.parseValue(valueStr);
@@ -341,7 +342,7 @@ public class NBTHelper {
     }
 
     public static ItemStack getStack(CompoundNBT compound, String tag) {
-        return readFromSubTag(compound, tag, ItemStack::read);
+        return ObjectUtils.firstNonNull(readFromSubTag(compound, tag, ItemStack::read), ItemStack.EMPTY);
     }
 
     public static void setFluid(CompoundNBT compound, String tag, FluidStack stack) {
@@ -349,12 +350,18 @@ public class NBTHelper {
     }
 
     public static FluidStack getFluid(CompoundNBT compound, String tag) {
-        return readFromSubTag(compound, tag, FluidStack::loadFluidStackFromNBT);
+        return ObjectUtils.firstNonNull(readFromSubTag(compound, tag, FluidStack::loadFluidStackFromNBT), FluidStack.EMPTY);
     }
 
     public static void removeUUID(CompoundNBT compound, String key) {
-        compound.remove(key + "Most");
-        compound.remove(key + "Least");
+        compound.remove(key);
+    }
+
+    public static UUID getUUID(CompoundNBT compoundNBT, String key, UUID _default) {
+        if (compoundNBT.hasUniqueId(key)) {
+            return compoundNBT.getUniqueId(key);
+        }
+        return _default;
     }
 
     public static CompoundNBT writeBlockPosToNBT(BlockPos pos, CompoundNBT compound) {

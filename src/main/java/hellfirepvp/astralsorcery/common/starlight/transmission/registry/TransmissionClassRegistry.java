@@ -14,10 +14,7 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.base.SimpleTransm
 import hellfirepvp.astralsorcery.common.starlight.transmission.base.SimpleTransmissionSourceNode;
 import hellfirepvp.astralsorcery.common.starlight.transmission.base.crystal.CrystalPrismTransmissionNode;
 import hellfirepvp.astralsorcery.common.starlight.transmission.base.crystal.CrystalTransmissionNode;
-import hellfirepvp.astralsorcery.common.tile.network.StarlightReceiverAltar;
-import hellfirepvp.astralsorcery.common.tile.network.StarlightReceiverRitualPedestal;
-import hellfirepvp.astralsorcery.common.tile.network.StarlightReceiverTreeBeacon;
-import hellfirepvp.astralsorcery.common.tile.network.StarlightReceiverWell;
+import hellfirepvp.astralsorcery.common.tile.network.*;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 
@@ -36,7 +33,7 @@ public class TransmissionClassRegistry {
 
     public static final TransmissionClassRegistry eventInstance = new TransmissionClassRegistry();
 
-    private static Map<ResourceLocation, TransmissionProvider> providerMap = new HashMap<>();
+    private static final Map<ResourceLocation, TransmissionProvider> providerMap = new HashMap<>();
 
     private TransmissionClassRegistry() {}
 
@@ -68,6 +65,8 @@ public class TransmissionClassRegistry {
         register(new StarlightReceiverRitualPedestal.Provider());
         register(new StarlightReceiverAltar.Provider());
         register(new StarlightReceiverTreeBeacon.Provider());
+        register(new StarlightTransmissionLens.Provider());
+        register(new StarlightTransmissionPrism.Provider());
 
         MinecraftForge.EVENT_BUS.post(new StarlightNetworkEvent.TransmissionRegister(eventInstance));
     }

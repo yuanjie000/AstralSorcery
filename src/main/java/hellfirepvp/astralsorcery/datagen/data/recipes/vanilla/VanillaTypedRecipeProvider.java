@@ -8,12 +8,12 @@
 
 package hellfirepvp.astralsorcery.datagen.data.recipes.vanilla;
 
-import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.lib.RecipeSerializersAS;
 import hellfirepvp.astralsorcery.datagen.data.recipes.builder.ResultCookingRecipeBuilder;
 import hellfirepvp.astralsorcery.datagen.data.recipes.builder.SimpleShapedRecipeBuilder;
+import hellfirepvp.astralsorcery.datagen.data.recipes.builder.SimpleShapelessRecipeBuilder;
 import hellfirepvp.astralsorcery.datagen.data.recipes.builder.StoneCuttingRecipeBuilder;
 import net.minecraft.data.CustomRecipeBuilder;
 import net.minecraft.data.IFinishedRecipe;
@@ -201,6 +201,16 @@ public class VanillaTypedRecipeProvider {
                 .patternLine("MMM")
                 .key('M', BlocksAS.BLACK_MARBLE_RAW)
                 .subDirectory("black_marble")
+                .build(registrar);
+
+        SimpleShapedRecipeBuilder.shapedRecipe(BlocksAS.STARMETAL)
+                .patternLine("III")
+                .patternLine("III")
+                .patternLine("III")
+                .key('I', ItemsAS.STARMETAL_INGOT)
+                .build(registrar);
+        SimpleShapelessRecipeBuilder.shapelessRecipe(ItemsAS.STARMETAL_INGOT, 9)
+                .addIngredient(BlocksAS.STARMETAL)
                 .build(registrar);
     }
 

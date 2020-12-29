@@ -19,7 +19,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipeSerializer;
 import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.tags.Tag;
+import net.minecraft.tags.ITag;
 import net.minecraft.util.IItemProvider;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -61,7 +61,7 @@ public class SimpleShapedRecipeBuilder {
         return new SimpleShapedRecipeBuilder(result, count);
     }
 
-    public SimpleShapedRecipeBuilder key(Character symbol, Tag<Item> tag) {
+    public SimpleShapedRecipeBuilder key(Character symbol, ITag.INamedTag<Item> tag) {
         return this.key(symbol, Ingredient.fromTag(tag));
     }
 
@@ -96,15 +96,6 @@ public class SimpleShapedRecipeBuilder {
 
     public void build(Consumer<IFinishedRecipe> consumerIn) {
         this.build(consumerIn, ForgeRegistries.ITEMS.getKey(this.result.getItem()));
-    }
-
-    public void build(Consumer<IFinishedRecipe> consumerIn, String save) {
-        ResourceLocation resourcelocation = ForgeRegistries.ITEMS.getKey(this.result.getItem());
-        if ((new ResourceLocation(save)).equals(resourcelocation)) {
-            throw new IllegalStateException("Shaped Recipe " + save + " should remove its 'save' argument");
-        } else {
-            this.build(consumerIn, new ResourceLocation(save));
-        }
     }
 
     public void build(Consumer<IFinishedRecipe> consumerIn, ResourceLocation id) {
@@ -143,7 +134,7 @@ public class SimpleShapedRecipeBuilder {
         }
     }
 
-    public class Result implements IFinishedRecipe {
+    public static class Result implements IFinishedRecipe {
 
         private final ResourceLocation id;
         private final ItemStack result;

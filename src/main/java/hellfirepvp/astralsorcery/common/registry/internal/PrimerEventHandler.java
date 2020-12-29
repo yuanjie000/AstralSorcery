@@ -35,8 +35,9 @@ import net.minecraft.item.crafting.IRecipeSerializer;
 import net.minecraft.potion.Effect;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.SoundEvent;
-import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.structure.Structure;
+import net.minecraft.world.gen.placement.Placement;
 import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -53,7 +54,7 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
  */
 public class PrimerEventHandler {
 
-    private InternalRegistryPrimer registry;
+    private final InternalRegistryPrimer registry;
 
     public PrimerEventHandler(InternalRegistryPrimer registry) {
         this.registry = registry;
@@ -65,8 +66,8 @@ public class PrimerEventHandler {
         eventBus.addGenericListener(Fluid.class, this::registerFluids);
         eventBus.addGenericListener(TileEntityType.class, this::registerTiles);
         eventBus.addGenericListener(EntityType.class, this::registerEntities);
-        eventBus.addGenericListener(Biome.class, this::registerBiomes);
         eventBus.addGenericListener(Feature.class, this::registerFeatures);
+        eventBus.addGenericListener(Placement.class, this::registerPlacements);
         eventBus.addGenericListener(Effect.class, this::registerEffects);
         eventBus.addGenericListener(Enchantment.class, this::registerEnchantments);
         eventBus.addGenericListener(SoundEvent.class, this::registerSounds);
@@ -88,6 +89,7 @@ public class PrimerEventHandler {
         eventBus.addGenericListener(CrystalProperty.class, this::registerCrystalProperties);
         eventBus.addGenericListener(PropertyUsage.class, this::registerCrystalUsages);
         eventBus.addGenericListener(AltarRecipeEffect.class, this::registerAltarRecipeEffects);
+        eventBus.addGenericListener(Structure.class, this::registerStructureTemplates);
     }
 
     //This exists because you can't sort registries in any fashion or make one load after another in forge.
@@ -98,6 +100,7 @@ public class PrimerEventHandler {
         RegistryEngravingEffects.init();
 
         RegistryStructures.init();
+        RegistryWorldGeneration.init();
 
         RegistryCrystalPropertyUsages.init();
         RegistryCrystalProperties.init();
@@ -109,6 +112,11 @@ public class PrimerEventHandler {
 
         TransmissionClassRegistry.setupRegistry();
         SourceClassRegistry.setupRegistry();
+
+        RegistryPerkAttributeTypes.init();
+        RegistryPerkConverters.init();
+        RegistryPerkCustomModifiers.init();
+        RegistryPerkAttributeReaders.init();
     }
 
     private void registerItems(RegistryEvent.Register<Item> event) {
@@ -140,18 +148,19 @@ public class PrimerEventHandler {
 
     private void registerEntities(RegistryEvent.Register<EntityType<?>> event) {
         RegistryEntities.init();
+        RegistryEntities.initAttributes();
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
     }
 
-    private void registerBiomes(RegistryEvent.Register<Biome> event) {
-        //? maybe. one day.
+    /*private void registerPlacements(RegistryEvent.Register<Placement<?>> event) {
+        RegistryWorldGeneration.registerPlacements();
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
     }
 
     private void registerFeatures(RegistryEvent.Register<Feature<?>> event) {
         RegistryWorldGeneration.registerFeatures();
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+    }*/
 
     private void registerEffects(RegistryEvent.Register<Effect> event) {
         RegistryEffects.init();
@@ -236,6 +245,18 @@ public class PrimerEventHandler {
     }
 
     private void registerStructureTypes(RegistryEvent.Register<StructureType> event) {
+        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+    }
+
+    private void registerStructureTemplates(RegistryEvent.Register<Structure<?>> event) {
+        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+    }
+
+    private void registerFeatures(RegistryEvent.Register<Feature<?>> event) {
+        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+    }
+
+    private void registerPlacements(RegistryEvent.Register<Placement<?>> event) {
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
     }
 

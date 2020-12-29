@@ -137,6 +137,7 @@ public class RadianceAltarRecipeProvider {
                 .addRelayInput(TagsAS.Items.DUSTS_STARDUST)
                 .addRelayInput(TagsAS.Items.DUSTS_STARDUST)
                 .addRelayInput(TagsAS.Items.DUSTS_STARDUST)
+                .addAltarEffect(AltarRecipeEffectsAS.LIQUID_BURST)
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
@@ -160,6 +161,7 @@ public class RadianceAltarRecipeProvider {
                 .addRelayInput(TagsAS.Items.DUSTS_STARDUST)
                 .addRelayInput(ItemsAS.NOCTURNAL_POWDER)
                 .addRelayInput(TagsAS.Items.DUSTS_STARDUST)
+                .addAltarEffect(AltarRecipeEffectsAS.VORTEX_PLANE)
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
@@ -242,6 +244,9 @@ public class RadianceAltarRecipeProvider {
                 .addRelayInput(signature)
                 .addRelayInput(ItemsAS.ILLUMINATION_POWDER)
                 .addRelayInput(TagsAS.Items.DUSTS_STARDUST)
+                .addAltarEffect(AltarRecipeEffectsAS.FOCUS_DUST_SWIRL)
+                .addAltarEffect(AltarRecipeEffectsAS.FOCUS_EDGE)
+                .addAltarEffect(AltarRecipeEffectsAS.ALTAR_FOCUS_SPARKLE)
                 .build(registrar);
     }
 

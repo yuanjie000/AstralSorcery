@@ -16,6 +16,8 @@ import net.minecraft.world.IWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
+import java.util.Locale;
+
 /**
 * This class is part of the Astral Sorcery Mod
 * The complete source code for this mod can be found on github.
@@ -29,12 +31,12 @@ public enum MoonPhase {
     NEW, WAXING_1_4, WAXING_1_2, WAXING_3_4;
 
     public static MoonPhase fromWorld(IWorld world) {
-        return MiscUtils.getEnumEntry(MoonPhase.class, world.getDimension().getMoonPhase(world.getWorld().getDayTime()));
+        return MiscUtils.getEnumEntry(MoonPhase.class, world.getDimensionType().getMoonPhase(world.func_241851_ab()));
     }
 
     @OnlyIn(Dist.CLIENT)
     public AbstractRenderableTexture getTexture() {
-        return AssetLibrary.loadTexture(AssetLoader.TextureLocation.MISC, "moon_" + this.name().toLowerCase());
+        return AssetLibrary.loadTexture(AssetLoader.TextureLocation.MISC, "moon_" + this.name().toLowerCase(Locale.ROOT));
     }
 
 }

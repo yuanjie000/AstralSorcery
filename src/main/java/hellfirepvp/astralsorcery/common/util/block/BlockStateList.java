@@ -8,6 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.util.block;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfiguredBlockStateList;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -28,7 +30,23 @@ import java.util.function.Predicate;
  */
 public class BlockStateList implements BlockPredicate, Predicate<BlockState> {
 
-    private List<SimpleBlockPredicate> configuredMatches = new ArrayList<>();
+    public static final Codec<BlockStateList> CODEC = RecordCodecBuilder.create(codecBuilder -> codecBuilder.group(
+            BlockState.CODEC.listOf().fieldOf("blockStates").forGetter(stateList -> {
+                List<BlockState> applicable = new ArrayList<>();
+                stateList.configuredMatches.forEach(predicate -> {
+                    predicate.validMatch.ifLeft(applicable::addAll).ifRight(block -> {
+                        applicable.addAll(block.getStateContainer().getValidStates());
+                    });
+                });
+                return applicable;
+            }))
+    .apply(codecBuilder, states -> {
+        BlockStateList list = new BlockStateList();
+        states.forEach(list::add);
+        return list;
+    }));
+
+    private final List<SimpleBlockPredicate> configuredMatches = new ArrayList<>();
 
     public BlockStateList add(BlockState... states) {
         this.configuredMatches.add(new SimpleBlockPredicate(states));

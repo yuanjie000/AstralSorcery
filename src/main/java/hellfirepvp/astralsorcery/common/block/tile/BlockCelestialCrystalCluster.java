@@ -29,7 +29,7 @@ import net.minecraft.state.StateContainer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.world.IBlockReader;
@@ -64,7 +64,7 @@ public class BlockCelestialCrystalCluster extends BlockCrystalContainer implemen
                 .harvestTool(ToolType.PICKAXE)
                 .harvestLevel(1)
                 .sound(SoundType.GLASS)
-                .lightValue(8));
+                .setLightLevel((state) -> 8));
     }
 
     @Override
@@ -87,7 +87,7 @@ public class BlockCelestialCrystalCluster extends BlockCrystalContainer implemen
 
     @Override
     public VoxelShape getShape(BlockState state, IBlockReader world, BlockPos pos, ISelectionContext context) {
-        Vec3d offset = state.getOffset(world, pos);
+        Vector3d offset = state.getOffset(world, pos);
         VoxelShape shape;
         switch (state.get(STAGE)) {
             case 4:
@@ -114,10 +114,12 @@ public class BlockCelestialCrystalCluster extends BlockCrystalContainer implemen
         return OffsetType.XZ;
     }
 
+    /*
+    TODO custom states via state container
     @Override
-    public Vec3d getOffset(BlockState state, IBlockReader world, BlockPos pos) {
+    public Vector3d getOffset(BlockState state, IBlockReader world, BlockPos pos) {
         return super.getOffset(state, world, pos).mul(0.7, 0.7, 0.7);
-    }
+    }*/
 
     @Override
     public BlockState updatePostPlacement(BlockState state, Direction placedAgainst, BlockState facingState, IWorld world, BlockPos pos, BlockPos facingPos) {
@@ -130,11 +132,6 @@ public class BlockCelestialCrystalCluster extends BlockCrystalContainer implemen
     @Override
     public boolean isValidPosition(BlockState state, IWorldReader world, BlockPos pos) {
         return hasSolidSideOnTop(world, pos.down());
-    }
-
-    @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
     }
 
     @Override
@@ -152,6 +149,11 @@ public class BlockCelestialCrystalCluster extends BlockCrystalContainer implemen
     @Override
     public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
         return false;
+    }
+
+    @Override
+    public BlockRenderType getRenderType(BlockState state) {
+        return BlockRenderType.MODEL;
     }
 
     @Nullable

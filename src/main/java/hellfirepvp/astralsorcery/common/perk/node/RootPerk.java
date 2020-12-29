@@ -34,7 +34,7 @@ import java.util.UUID;
 public abstract class RootPerk extends AttributeModifierPerk {
 
     private final IMajorConstellation constellation;
-    private Map<UUID, DiminishingMultiplier> dimReturns = new HashMap<>();
+    private final Map<UUID, DiminishingMultiplier> dimReturns = new HashMap<>();
 
     private final Config config;
 
@@ -65,7 +65,7 @@ public abstract class RootPerk extends AttributeModifierPerk {
     }
 
     protected double getExpMultiplier() {
-        return this.applyMultiplierD(this.config.expMultiplier.get());
+        return this.config.expMultiplier.get();
     }
 
     protected float getDiminishingReturns(PlayerEntity player) {

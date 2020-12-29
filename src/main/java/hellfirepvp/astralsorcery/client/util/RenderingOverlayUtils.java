@@ -8,6 +8,7 @@
 
 package hellfirepvp.astralsorcery.client.util;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.BlockAtlasTexture;
@@ -17,6 +18,9 @@ import net.minecraft.client.renderer.ItemRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Tuple;
+import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.text.ITextProperties;
+import net.minecraft.util.text.StringTextComponent;
 import org.lwjgl.opengl.GL11;
 
 import java.util.List;
@@ -30,7 +34,7 @@ import java.util.List;
  */
 public class RenderingOverlayUtils {
 
-    public static void renderDefaultItemDisplay(List<Tuple<ItemStack, Integer>> itemStacks) {
+    public static void renderDefaultItemDisplay(MatrixStack renderStack, List<Tuple<ItemStack, Integer>> itemStacks) {
         int heightNormal  =  26;
         int heightSplit = 13;
         int width   =  26;
@@ -41,7 +45,7 @@ public class RenderingOverlayUtils {
         FontRenderer fontRenderer = Minecraft.getInstance().fontRenderer;
 
         RenderSystem.enableBlend();
-        Blending.DEFAULT.apply();
+        RenderSystem.defaultBlendFunc();
 
         //Draw background frame
         int tempY = offsetY;
@@ -54,20 +58,22 @@ public class RenderingOverlayUtils {
                 //Draw upper half of the 1st slot
                 TexturesAS.TEX_OVERLAY_ITEM_FRAME.bindTexture();
                 RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX, buf -> {
-                    buf.pos(offsetX,            currentY + heightSplit, 10).tex(0, 0.5F).endVertex();
-                    buf.pos(offsetX + width, currentY + heightSplit, 10).tex(1, 0.5F).endVertex();
-                    buf.pos(offsetX + width,    currentY,               10).tex(1, 0)  .endVertex();
-                    buf.pos(offsetX,               currentY,               10).tex(0, 0)  .endVertex();
+                    Matrix4f offset = renderStack.getLast().getMatrix();
+                    buf.pos(offset, offsetX,            currentY + heightSplit, 10).tex(0, 0.5F).endVertex();
+                    buf.pos(offset, offsetX + width, currentY + heightSplit, 10).tex(1, 0.5F).endVertex();
+                    buf.pos(offset, offsetX + width,    currentY,               10).tex(1, 0)  .endVertex();
+                    buf.pos(offset, offsetX,               currentY,               10).tex(0, 0)  .endVertex();
                 });
                 tempY += heightSplit;
             } else {
                 //Draw lower half and upper next half of the sequence
                 TexturesAS.TEX_OVERLAY_ITEM_FRAME_EXTENSION.bindTexture();
                 RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX, buf -> {
-                    buf.pos(offsetX,            currentY + heightNormal, 10).tex(0, 1).endVertex();
-                    buf.pos(offsetX + width, currentY + heightNormal, 10).tex(1, 1).endVertex();
-                    buf.pos(offsetX + width,    currentY,                10).tex(1, 0).endVertex();
-                    buf.pos(offsetX,               currentY,                10).tex(0, 0).endVertex();
+                    Matrix4f offset = renderStack.getLast().getMatrix();
+                    buf.pos(offset, offsetX,            currentY + heightNormal, 10).tex(0, 1).endVertex();
+                    buf.pos(offset, offsetX + width, currentY + heightNormal, 10).tex(1, 1).endVertex();
+                    buf.pos(offset, offsetX + width,    currentY,                10).tex(1, 0).endVertex();
+                    buf.pos(offset, offsetX,               currentY,                10).tex(0, 0).endVertex();
                 });
                 tempY += heightNormal;
             }
@@ -76,10 +82,11 @@ public class RenderingOverlayUtils {
                 //Draw lower half of the slot
                 TexturesAS.TEX_OVERLAY_ITEM_FRAME.bindTexture();
                 RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX, buf -> {
-                    buf.pos(offsetX,            drawY + heightSplit, 10).tex(0, 1)  .endVertex();
-                    buf.pos(offsetX + width, drawY + heightSplit, 10).tex(1, 1)  .endVertex();
-                    buf.pos(offsetX + width,    drawY,               10).tex(1, 0.5F).endVertex();
-                    buf.pos(offsetX,               drawY,               10).tex(0, 0.5F).endVertex();
+                    Matrix4f offset = renderStack.getLast().getMatrix();
+                    buf.pos(offset, offsetX,            drawY + heightSplit, 10).tex(0, 1)  .endVertex();
+                    buf.pos(offset, offsetX + width, drawY + heightSplit, 10).tex(1, 1)  .endVertex();
+                    buf.pos(offset, offsetX + width,    drawY,               10).tex(1, 0.5F).endVertex();
+                    buf.pos(offset, offsetX,               drawY,               10).tex(0, 0.5F).endVertex();
                 });
                 tempY += heightSplit;
             }
@@ -91,15 +98,17 @@ public class RenderingOverlayUtils {
         //Draw itemstacks on frame
         tempY = offsetY;
         for (Tuple<ItemStack, Integer> stackTpl : itemStacks) {
-            itemRender.zLevel = -250;
-            itemRender.renderItemAndEffectIntoGUI(Minecraft.getInstance().player, stackTpl.getA(), offsetX + 5, tempY + 5);
-            itemRender.zLevel = 0;
+            renderStack.push();
+            renderStack.translate(offsetX + 5, tempY + 5, 0);
+            RenderingUtils.renderItemStackGUI(renderStack, stackTpl.getA(), null);
+            renderStack.pop();
+
             tempY += heightNormal;
         }
 
         //Draw itemstack counts
-        RenderSystem.pushMatrix();
-        RenderSystem.translated(offsetX + 14, offsetY + 16, 0);
+        renderStack.push();
+        renderStack.translate(offsetX + 14, offsetY + 16, 0);
         int txtColor = 0x00DDDDDD;
         for (Tuple<ItemStack, Integer> stackTpl : itemStacks) {
             ItemStack stack = stackTpl.getA();
@@ -111,20 +120,21 @@ public class RenderingOverlayUtils {
             if (stackTpl.getB() == -1) {
                 amountStr = "\u221E"; //+Inf
             }
+            ITextProperties prop = new StringTextComponent(amountStr);
+            int length = fontRenderer.getStringPropertyWidth(prop);
 
-            RenderSystem.pushMatrix();
-            RenderSystem.translated(-fontRenderer.getStringWidth(amountStr) / 3, 0, 0);
-            RenderSystem.scaled(0.7, 0.7, 0.7);
+            renderStack.push();
+            renderStack.translate(-length / 3F, 0, 500);
+            renderStack.scale(0.7F, 0.7F, 1F);
             if (amountStr.length() > 3) {
-                RenderSystem.scaled(0.9, 0.9, 0.9);
+                renderStack.scale(0.9F, 0.9F, 1F);
             }
-            RenderingDrawUtils.renderStringAtCurrentPos(fr, amountStr, txtColor);
-            RenderSystem.popMatrix();
+            RenderingDrawUtils.renderStringAt(fr, renderStack, prop, txtColor);
+            renderStack.pop();
 
-            RenderSystem.translated(0, heightNormal, 0);
+            renderStack.translate(0, heightNormal, 0);
         }
-
-        RenderSystem.popMatrix();
+        renderStack.pop();
     }
 
 }

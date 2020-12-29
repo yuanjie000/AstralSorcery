@@ -23,19 +23,22 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.IReorderingProcessor;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.math.vector.Matrix3f;
+import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.util.text.ITextProperties;
+import net.minecraft.util.text.LanguageMap;
 import net.minecraft.util.text.StringTextComponent;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
 import java.awt.*;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
-import java.util.Random;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -47,40 +50,67 @@ import java.util.Random;
 public class RenderingDrawUtils {
 
     private static final Random rand = new Random();
+    private static final MatrixStack EMPTY = new MatrixStack();
 
-    public static void renderStringCentered(@Nullable FontRenderer fr, String str, int x, int y, float scale, int color) {
+    public static void renderStringCentered(@Nullable FontRenderer fr, MatrixStack renderStack, ITextProperties text, int x, int y, float scale, int color) {
         if (fr == null) {
             fr = Minecraft.getInstance().fontRenderer;
         }
 
-        float strLength = fr.getStringWidth(str) * scale;
+        float strLength = fr.getStringPropertyWidth(text) * scale;
         float offsetLeft = x - strLength;
 
-        RenderSystem.pushMatrix();
-        RenderSystem.translatef(offsetLeft, y, 0);
-        RenderSystem.scalef(scale, scale, scale);
-        renderStringAtCurrentPos(fr, str, color);
-        RenderSystem.popMatrix();
+        renderStack.push();
+        renderStack.translate(offsetLeft, y, 0);
+        renderStack.scale(scale, scale, scale);
+        renderStringAt(fr, renderStack, text, color);
+        renderStack.pop();
     }
 
-    public static float renderStringAtCurrentPos(@Nullable FontRenderer fr, String str, int color) {
-        return renderStringAtPos(0, 0, 0, fr, str, color, false);
+    public static float renderString(ITextProperties text) {
+        return renderStringAt(text, EMPTY, Minecraft.getInstance().fontRenderer, Color.WHITE.getRGB(), false);
     }
 
-    public static float renderStringWithShadowAtCurrentPos(@Nullable FontRenderer fr, String str, int color) {
-        return renderStringAtPos(0, 0, 0, fr, str, color, true);
+    public static float renderString(IReorderingProcessor text) {
+        return renderStringAt(text, EMPTY, Minecraft.getInstance().fontRenderer, Color.WHITE.getRGB(), false);
     }
 
-    public static float renderStringAtPos(float x, float y, float zLevel, @Nullable FontRenderer fr, String str, int color, boolean dropShadow) {
+    public static float renderString(ITextProperties text, int color) {
+        return renderStringAt(text, EMPTY, Minecraft.getInstance().fontRenderer, color, false);
+    }
+
+    public static float renderString(IReorderingProcessor text, int color) {
+        return renderStringAt(text, EMPTY, Minecraft.getInstance().fontRenderer, color, false);
+    }
+
+    public static float renderString(@Nullable FontRenderer fr, ITextProperties text, int color) {
+        return renderStringAt(text, EMPTY, fr, color, false);
+    }
+
+    public static float renderString(@Nullable FontRenderer fr, IReorderingProcessor text, int color) {
+        return renderStringAt(text, EMPTY, fr, color, false);
+    }
+
+    public static float renderStringAt(@Nullable FontRenderer fr, MatrixStack renderStack, ITextProperties text, int color) {
+        return renderStringAt(text, renderStack, fr, color, true);
+    }
+
+    public static float renderStringAt(@Nullable FontRenderer fr, MatrixStack renderStack, IReorderingProcessor text, int color) {
+        return renderStringAt(text, renderStack, fr, color, true);
+    }
+
+    public static float renderStringAt(ITextProperties text, MatrixStack renderStack, @Nullable FontRenderer fr, int color, boolean dropShadow) {
+        return renderStringAt(LanguageMap.getInstance().func_241870_a(text), renderStack, fr, color, dropShadow);
+    }
+
+    public static float renderStringAt(IReorderingProcessor text, MatrixStack renderStack, @Nullable FontRenderer fr, int color, boolean dropShadow) {
         if (fr == null) {
             fr = Minecraft.getInstance().fontRenderer;
         }
         IRenderTypeBuffer.Impl buffer = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
-        MatrixStack renderStack = new MatrixStack();
-        renderStack.translate(x, y, zLevel);
-        int length = fr.renderString(str, 0, 0, color, dropShadow, renderStack.getLast().getMatrix(), buffer, false, 0, LightmapUtil.getPackedFullbrightCoords());
+        int length = fr.func_238416_a_(text, 0, 0, color, dropShadow, renderStack.getLast().getMatrix(), buffer, false, 0, LightmapUtil.getPackedFullbrightCoords());
         buffer.finish();
-        return x + length;
+        return length;
     }
 
     public static Rectangle drawInfoStar(MatrixStack renderStack, IDrawRenderTypeBuffer buffer, float widthHeightBase, float pTicks) {
@@ -113,42 +143,32 @@ public class RenderingDrawUtils {
         vb.pos(matr, (float) offset.getX(), (float) offset.getY(), 0).tex(0, 0).endVertex();
     }
 
-    public static void renderBlueTooltipString(float x, float y, float zLevel, List<String> tooltipData, FontRenderer fontRenderer, boolean isFirstLineHeadline) {
-        List<Tuple<ItemStack, ITextComponent>> stackTooltip = MapStream.ofValues(tooltipData, t -> ItemStack.EMPTY)
-                .mapValue(tip -> (ITextComponent) new StringTextComponent(tip))
-                .toTupleList();
-        renderBlueTooltip(x, y, zLevel, stackTooltip, fontRenderer, isFirstLineHeadline);
+    public static void renderBlueTooltipComponents(MatrixStack renderStack, float x, float y, float zLevel,
+                                                   List<ITextProperties> tooltipData, FontRenderer fontRenderer, boolean isFirstLineHeadline) {
+        List<Tuple<ItemStack, ITextProperties>> stackTooltip = MapStream.ofValues(tooltipData, t -> ItemStack.EMPTY).toTupleList();
+        renderBlueTooltip(renderStack, x, y, zLevel, stackTooltip, fontRenderer, isFirstLineHeadline);
     }
 
-    public static void renderBlueTooltipComponents(float x, float y, float zLevel, List<ITextComponent> tooltipData, FontRenderer fontRenderer, boolean isFirstLineHeadline) {
-        List<Tuple<ItemStack, ITextComponent>> stackTooltip = MapStream.ofValues(tooltipData, t -> ItemStack.EMPTY).toTupleList();
-        renderBlueTooltip(x, y, zLevel, stackTooltip, fontRenderer, isFirstLineHeadline);
+    public static void renderBlueTooltip(MatrixStack renderStack, float x, float y, float zLevel,
+                                         List<Tuple<ItemStack, ITextProperties>> tooltipData, FontRenderer fontRenderer, boolean isFirstLineHeadline) {
+        renderTooltip(renderStack, x, y, zLevel, tooltipData, fontRenderer, isFirstLineHeadline, 0xFF000027, 0xFF000044, Color.WHITE);
     }
 
-    public static void renderBlueTooltip(float x, float y, float zLevel, List<Tuple<ItemStack, ITextComponent>> tooltipData, FontRenderer fontRenderer, boolean isFirstLineHeadline) {
-        renderTooltip(x, y, zLevel, tooltipData, 0xFF000027, 0xFF000044, Color.WHITE, fontRenderer, isFirstLineHeadline);
-    }
-
-    public static void renderBlueStackTooltip(float x, float y, float zLevel, List<Tuple<ItemStack, String>> tooltipData, FontRenderer fontRenderer, boolean isFirstLineHeadline) {
-        List<Tuple<ItemStack, ITextComponent>> stackTooltip = MapStream.of(tooltipData)
-                .mapValue(str -> (ITextComponent) new StringTextComponent(str))
-                .toTupleList();
-        renderTooltip(x, y, zLevel, stackTooltip, 0xFF000027, 0xFF000044, Color.WHITE, fontRenderer, isFirstLineHeadline);
-    }
-
-    public static void renderTooltip(float x, float y, float zLevel, List<Tuple<ItemStack, ITextComponent>> tooltipData, int color, int colorFade, Color strColor, FontRenderer fontRenderer, boolean isFirstLineHeadline) {
+    public static void renderTooltip(MatrixStack renderStack, float x, float y, float zLevel,
+                                     List<Tuple<ItemStack, ITextProperties>> tooltipData, FontRenderer fontRenderer, boolean isFirstLineHeadline,
+                                     int color, int colorFade, Color strColor) {
         int stackBoxSize = 18;
 
         if (!tooltipData.isEmpty()) {
             boolean anyItemFound = false;
 
             int maxWidth = 0;
-            for (Tuple<ItemStack, ITextComponent> toolTip : tooltipData) {
+            for (Tuple<ItemStack, ITextProperties> toolTip : tooltipData) {
                 FontRenderer customFR = toolTip.getA().getItem().getFontRenderer(toolTip.getA());
                 if (customFR == null) {
                     customFR = fontRenderer;
                 }
-                int width = customFR.getStringWidth(toolTip.getB().getFormattedText());
+                int width = customFR.getStringPropertyWidth(toolTip.getB());
                 if (!toolTip.getA().isEmpty()) {
                     anyItemFound = true;
                 }
@@ -164,13 +184,18 @@ public class RenderingDrawUtils {
             }
 
             int formatWidth = anyItemFound ? maxWidth - stackBoxSize : maxWidth;
-            List<Tuple<ItemStack, List<String>>> lengthLimitedToolTip = new LinkedList<>();
-            for (Tuple<ItemStack, ITextComponent> toolTip : tooltipData) {
+            List<Tuple<ItemStack, List<IReorderingProcessor>>> lengthLimitedToolTip = new LinkedList<>();
+            for (Tuple<ItemStack, ITextProperties> toolTip : tooltipData) {
                 FontRenderer customFR = toolTip.getA().getItem().getFontRenderer(toolTip.getA());
                 if (customFR == null) {
                     customFR = fontRenderer;
                 }
-                lengthLimitedToolTip.add(new Tuple<>(toolTip.getA(), customFR.listFormattedStringToWidth(toolTip.getB().getFormattedText(), formatWidth)));
+
+                List<IReorderingProcessor> textLines = customFR.trimStringToWidth(toolTip.getB(), formatWidth);
+                if (textLines.isEmpty()) {
+                    textLines = Collections.singletonList(IReorderingProcessor.field_242232_a);
+                }
+                lengthLimitedToolTip.add(new Tuple<>(toolTip.getA(), textLines));
             }
 
             float pX = x + 12;
@@ -180,9 +205,9 @@ public class RenderingDrawUtils {
                 if (lengthLimitedToolTip.size() > 1 && isFirstLineHeadline) {
                     sumLineHeight += 2;
                 }
-                Iterator<Tuple<ItemStack, List<String>>> iterator = lengthLimitedToolTip.iterator();
+                Iterator<Tuple<ItemStack, List<IReorderingProcessor>>> iterator = lengthLimitedToolTip.iterator();
                 while (iterator.hasNext()) {
-                    Tuple<ItemStack, List<String>> toolTip = iterator.next();
+                    Tuple<ItemStack, List<IReorderingProcessor>> toolTip = iterator.next();
                     int segmentHeight = 0;
                     if (!toolTip.getA().isEmpty()) {
                         segmentHeight += 2;
@@ -198,70 +223,81 @@ public class RenderingDrawUtils {
                 }
             }
 
-            drawGradientRect(zLevel, pX - 3,           pY - 4,                 pX + maxWidth + 3, pY - 3,                 color, colorFade);
-            drawGradientRect(zLevel, pX - 3,           pY + sumLineHeight + 3, pX + maxWidth + 3, pY + sumLineHeight + 4, color, colorFade);
-            drawGradientRect(zLevel, pX - 3,           pY - 3,                 pX + maxWidth + 3, pY + sumLineHeight + 3, color, colorFade);
-            drawGradientRect(zLevel, pX - 4,           pY - 3,                 pX - 3,           pY + sumLineHeight + 3, color, colorFade);
-            drawGradientRect(zLevel, pX + maxWidth + 3,pY - 3,                 pX + maxWidth + 4, pY + sumLineHeight + 3, color, colorFade);
+            drawGradientRect(renderStack, zLevel, pX - 3,           pY - 4,                 pX + maxWidth + 3, pY - 3,                 color, colorFade);
+            drawGradientRect(renderStack, zLevel, pX - 3,           pY + sumLineHeight + 3, pX + maxWidth + 3, pY + sumLineHeight + 4, color, colorFade);
+            drawGradientRect(renderStack, zLevel, pX - 3,           pY - 3,                 pX + maxWidth + 3, pY + sumLineHeight + 3, color, colorFade);
+            drawGradientRect(renderStack, zLevel, pX - 4,           pY - 3,                 pX - 3,           pY + sumLineHeight + 3, color, colorFade);
+            drawGradientRect(renderStack, zLevel, pX + maxWidth + 3,pY - 3,                 pX + maxWidth + 4, pY + sumLineHeight + 3, color, colorFade);
 
             int col = (color & 0x00FFFFFF) | color & 0xFF000000;
-            drawGradientRect(zLevel, pX - 3,           pY - 3 + 1,             pX - 3 + 1,       pY + sumLineHeight + 3 - 1, color, col);
-            drawGradientRect(zLevel, pX + maxWidth + 2,pY - 3 + 1,             pX + maxWidth + 3, pY + sumLineHeight + 3 - 1, color, col);
-            drawGradientRect(zLevel, pX - 3,           pY - 3,                 pX + maxWidth + 3, pY - 3 + 1,                 col,   col);
-            drawGradientRect(zLevel, pX - 3,           pY + sumLineHeight + 2, pX + maxWidth + 3, pY + sumLineHeight + 3,     color, color);
+            drawGradientRect(renderStack, zLevel, pX - 3,           pY - 3 + 1,             pX - 3 + 1,       pY + sumLineHeight + 3 - 1, color, col);
+            drawGradientRect(renderStack, zLevel, pX + maxWidth + 2,pY - 3 + 1,             pX + maxWidth + 3, pY + sumLineHeight + 3 - 1, color, col);
+            drawGradientRect(renderStack, zLevel, pX - 3,           pY - 3,                 pX + maxWidth + 3, pY - 3 + 1,                 col,   col);
+            drawGradientRect(renderStack, zLevel, pX - 3,           pY + sumLineHeight + 2, pX + maxWidth + 3, pY + sumLineHeight + 3,     color, color);
 
             int offset = anyItemFound ? stackBoxSize : 0;
 
+            renderStack.push();
+            renderStack.translate(pX, pY, 0);
             boolean first = true;
-            for (Tuple<ItemStack, List<String>> toolTip : lengthLimitedToolTip) {
+            for (Tuple<ItemStack, List<IReorderingProcessor>> toolTip : lengthLimitedToolTip) {
                 int minYShift = 10;
                 if (!toolTip.getA().isEmpty()) {
-                    RenderingUtils.renderItemStack(Minecraft.getInstance().getItemRenderer(), toolTip.getA(), Math.round(pX), Math.round(pY), null);
+                    renderStack.push();
+                    renderStack.translate(0, 0, zLevel);
+                    RenderingUtils.renderItemStackGUI(renderStack, toolTip.getA(), null);
+                    renderStack.pop();
+
                     minYShift = stackBoxSize;
-                    pY += 2;
+                    renderStack.translate(0, 2, 0);
                 }
-                for (String str : toolTip.getB()) {
+                for (IReorderingProcessor text : toolTip.getB()) {
                     FontRenderer customFR = toolTip.getA().getItem().getFontRenderer(toolTip.getA());
                     if (customFR == null) {
                         customFR = fontRenderer;
                     }
-                    renderStringAtPos(pX + offset, pY, zLevel, customFR, str, strColor.getRGB(), false);
-                    pY += 10;
+                    renderStack.push();
+                    renderStack.translate(offset, 0, zLevel);
+                    renderStringAt(text, renderStack, customFR, strColor.getRGB(), false);
+                    renderStack.pop();
+
+                    renderStack.translate(0, 10, 0);
                     minYShift -= 10;
                 }
                 if (minYShift > 0) {
-                    pY += minYShift;
+                    renderStack.translate(0, minYShift, 0);
                 }
                 if (isFirstLineHeadline && first) {
-                    pY += 2;
+                    renderStack.translate(0, 2, 0);
                 }
                 first = false;
             }
+            renderStack.pop();
         }
     }
 
-    public static void renderBlueTooltipBox(int x, int y, int width, int height) {
-        renderTooltipBox(x, y, width, height, 0x000027, 0x000044);
+    public static void renderBlueTooltipBox(MatrixStack renderStack, int x, int y, int width, int height) {
+        renderTooltipBox(renderStack, x, y, width, height, 0x000027, 0x000044);
     }
 
-    public static void renderTooltipBox(int x, int y, int width, int height, int color, int colorFade) {
+    public static void renderTooltipBox(MatrixStack renderStack, int x, int y, int width, int height, int color, int colorFade) {
         int pX = x + 12;
         int pY = y - 12;
 
-        drawGradientRect(0, pX - 3,           pY - 4,          pX + width + 3, pY - 3,         color, colorFade);
-        drawGradientRect(0, pX - 3,           pY + height + 3, pX + width + 3, pY + height + 4, color, colorFade);
-        drawGradientRect(0, pX - 3,           pY - 3,          pX + width + 3, pY + height + 3, color, colorFade);
-        drawGradientRect(0, pX - 4,           pY - 3,          pX - 3,         pY + height + 3, color, colorFade);
-        drawGradientRect(0, pX + width + 3,   pY - 3,          pX + width + 4, pY + height + 3, color, colorFade);
+        drawGradientRect(renderStack, 0, pX - 3,           pY - 4,          pX + width + 3, pY - 3,         color, colorFade);
+        drawGradientRect(renderStack, 0, pX - 3,           pY + height + 3, pX + width + 3, pY + height + 4, color, colorFade);
+        drawGradientRect(renderStack, 0, pX - 3,           pY - 3,          pX + width + 3, pY + height + 3, color, colorFade);
+        drawGradientRect(renderStack, 0, pX - 4,           pY - 3,          pX - 3,         pY + height + 3, color, colorFade);
+        drawGradientRect(renderStack, 0, pX + width + 3,   pY - 3,          pX + width + 4, pY + height + 3, color, colorFade);
 
         int col = (color & 0x00FFFFFF) | color & 0xFF000000;
-        drawGradientRect(0, pX - 3,           pY - 3 + 1,      pX - 3 + 1,     pY + height + 3 - 1, color, col);
-        drawGradientRect(0, pX + width + 2,   pY - 3 + 1,      pX + width + 3, pY + height + 3 - 1, color, col);
-        drawGradientRect(0, pX - 3,           pY - 3,          pX + width + 3, pY - 3 + 1,          col,   col);
-        drawGradientRect(0, pX - 3,           pY + height + 2, pX + width + 3, pY + height + 3,     color, color);
+        drawGradientRect(renderStack, 0, pX - 3,           pY - 3 + 1,      pX - 3 + 1,     pY + height + 3 - 1, color, col);
+        drawGradientRect(renderStack, 0, pX + width + 2,   pY - 3 + 1,      pX + width + 3, pY + height + 3 - 1, color, col);
+        drawGradientRect(renderStack, 0, pX - 3,           pY - 3,          pX + width + 3, pY - 3 + 1,          col,   col);
+        drawGradientRect(renderStack, 0, pX - 3,           pY + height + 2, pX + width + 3, pY + height + 3,     color, color);
     }
 
-    public static void drawGradientRect(float zLevel, float left, float top, float right, float bottom, int startColor, int endColor) {
+    public static void drawGradientRect(MatrixStack renderStack, float zLevel, float left, float top, float right, float bottom, int startColor, int endColor) {
         float startAlpha = (float) (startColor >> 24 & 255) / 255.0F;
         float startRed   = (float) (startColor >> 16 & 255) / 255.0F;
         float startGreen = (float) (startColor >>  8 & 255) / 255.0F;
@@ -276,10 +312,11 @@ public class RenderingDrawUtils {
         RenderSystem.shadeModel(GL11.GL_SMOOTH);
 
         RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR, buf -> {
-            buf.pos(right,    top, zLevel).color(startRed, startGreen, startBlue, startAlpha).endVertex();
-            buf.pos( left,    top, zLevel).color(startRed, startGreen, startBlue, startAlpha).endVertex();
-            buf.pos( left, bottom, zLevel).color(  endRed,   endGreen,   endBlue,   endAlpha).endVertex();
-            buf.pos(right, bottom, zLevel).color(  endRed,   endGreen,   endBlue,   endAlpha).endVertex();
+            Matrix4f offset = renderStack.getLast().getMatrix();
+            buf.pos(offset, right,    top, zLevel).color(startRed, startGreen, startBlue, startAlpha).endVertex();
+            buf.pos(offset,  left,    top, zLevel).color(startRed, startGreen, startBlue, startAlpha).endVertex();
+            buf.pos(offset,  left, bottom, zLevel).color(  endRed,   endGreen,   endBlue,   endAlpha).endVertex();
+            buf.pos(offset, right, bottom, zLevel).color(  endRed,   endGreen,   endBlue,   endAlpha).endVertex();
         });
 
         RenderSystem.shadeModel(GL11.GL_FLAT);
@@ -352,7 +389,7 @@ public class RenderingDrawUtils {
         float arXY = ri.getRotationXY();
         float arXZ = ri.getRotationXZ();
 
-        Vec3d view = ari.getProjectedView();
+        Vector3d view = ari.getProjectedView();
         Vector3f look = ari.getViewVector();
 
         Vector3 iPos = new Vector3(view);

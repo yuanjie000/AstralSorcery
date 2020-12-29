@@ -70,7 +70,7 @@ public class RenderEntityGrapplingHook extends EntityRenderer<EntityGrapplingHoo
         RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
             RenderingDrawUtils.renderFacingSpriteVB(buf, matrixStack,
                     entityPos.getX(), entityPos.getY(), entityPos.getZ(),
-                    2.5F, 0F,
+                    1.3F, 0F,
                     SpritesAS.SPR_GRAPPLING_HOOK, ClientScheduler.getClientTick() + entity.ticksExisted,
                     255, 255, 255, alphaMultiplier);
         });
@@ -84,7 +84,7 @@ public class RenderEntityGrapplingHook extends EntityRenderer<EntityGrapplingHoo
                 Vector3 at = pos.multiply(2).add(entityPos);
                 RenderingDrawUtils.renderFacingFullQuadVB(buf, matrixStack,
                         at.getX(), at.getY(), at.getZ(),
-                        0.5F, 0F,
+                        0.3F, 0F,
                         50, 40, 180, (int) (alphaMultiplier * 0.8F));
             }
         });

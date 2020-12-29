@@ -17,10 +17,10 @@ import net.minecraft.advancements.criterion.StatePropertiesPredicate;
 import net.minecraft.block.Block;
 import net.minecraft.data.loot.BlockLootTables;
 import net.minecraft.item.Items;
-import net.minecraft.world.storage.loot.*;
-import net.minecraft.world.storage.loot.conditions.BlockStateProperty;
-import net.minecraft.world.storage.loot.functions.ExplosionDecay;
-import net.minecraft.world.storage.loot.functions.SetCount;
+import net.minecraft.loot.*;
+import net.minecraft.loot.conditions.BlockStateProperty;
+import net.minecraft.loot.functions.ExplosionDecay;
+import net.minecraft.loot.functions.SetCount;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.stream.Collectors;
@@ -85,6 +85,7 @@ public class BlockLootTableProvider extends BlockLootTables {
                     );
         });
         this.registerDropSelfLootTable(STARMETAL_ORE);
+        this.registerDropSelfLootTable(STARMETAL);
         this.registerLootTable(GLOW_FLOWER, (block) -> {
             return droppingWithShears(block,
                     ItemLootEntry.builder(Items.GLOWSTONE_DUST)

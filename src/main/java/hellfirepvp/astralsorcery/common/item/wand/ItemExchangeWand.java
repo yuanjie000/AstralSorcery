@@ -51,10 +51,7 @@ import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.*;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -87,7 +84,7 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
     @Override
     @OnlyIn(Dist.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
-        tooltip.add(getSizeMode(stack).getDisplay().setStyle(new Style().setColor(TextFormatting.GOLD)));
+        tooltip.add(getSizeMode(stack).getDisplay().mergeStyle(TextFormatting.GOLD));
     }
 
     @Override
@@ -138,6 +135,7 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
             return true;
         }
 
+        RenderSystem.enableTexture();
         BlockAtlasTexture.getInstance().bindTexture();
 
         int[] fullBright = new int[] { 15, 15 };
@@ -168,9 +166,9 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean renderOverlay(ItemStack stack, float pTicks) {
+    public boolean renderOverlay(MatrixStack renderStack, ItemStack stack, float pTicks) {
         List<Tuple<ItemStack, Integer>> foundStacks = ItemBlockStorage.getInventoryMatchingItemStacks(Minecraft.getInstance().player, stack);
-        RenderingOverlayUtils.renderDefaultItemDisplay(foundStacks);
+        RenderingOverlayUtils.renderDefaultItemDisplay(renderStack, foundStacks);
         return true;
     }
 
@@ -213,22 +211,17 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
             }
 
             BlockState prevState = world.getBlockState(placePos);
-            if (((ServerPlayerEntity) player).interactionManager.tryHarvestBlock(placePos)) {
-                if (MiscUtils.canPlayerPlaceBlockPos(player, stateToPlace, placePos, Direction.UP)) {
-                    if (AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_EXCHANGE, false) &&
-                            world.setBlockState(placePos, stateToPlace)) {
-                        if (!player.isCreative()) {
-                            ItemUtils.consumeFromPlayerInventory(player, stack, extractable, false);
-                        }
-
-                        PktPlayEffect ev = new PktPlayEffect(PktPlayEffect.Type.BLOCK_EFFECT)
-                                .addData(buf -> {
-                                    ByteBufUtils.writePos(buf, placePos);
-                                    ByteBufUtils.writeBlockState(buf, prevState);
-                                });
-                        PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 32));
-                    }
-                }
+            if ((player.isCreative() || ItemUtils.consumeFromPlayerInventory(player, stack, extractable, false)) &&
+                    AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_EXCHANGE, false) &&
+                    ((ServerPlayerEntity) player).interactionManager.tryHarvestBlock(placePos) &&
+                    MiscUtils.canPlayerPlaceBlockPos(player, stateToPlace, placePos, Direction.UP) &&
+                    world.setBlockState(placePos, stateToPlace)) {
+                PktPlayEffect ev = new PktPlayEffect(PktPlayEffect.Type.BLOCK_EFFECT)
+                        .addData(buf -> {
+                            ByteBufUtils.writePos(buf, placePos);
+                            ByteBufUtils.writeBlockState(buf, prevState);
+                        });
+                PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 32));
             }
         }
 
@@ -341,11 +334,11 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
             return searchRadius;
         }
 
-        public ITextComponent getName() {
+        public IFormattableTextComponent getName() {
             return new TranslationTextComponent("astralsorcery.misc.exchange.size." + this.searchRadius);
         }
 
-        public ITextComponent getDisplay() {
+        public IFormattableTextComponent getDisplay() {
             return new TranslationTextComponent("astralsorcery.misc.exchange.size", this.getName());
         }
 

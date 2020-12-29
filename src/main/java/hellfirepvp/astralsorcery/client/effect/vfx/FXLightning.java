@@ -16,8 +16,8 @@ import hellfirepvp.astralsorcery.client.effect.context.base.BatchRenderContext;
 import hellfirepvp.astralsorcery.client.util.RenderingVectorUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.Matrix4f;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.vector.Matrix4f;
 
 import java.awt.*;
 import java.util.LinkedList;
@@ -88,7 +88,7 @@ public class FXLightning extends EntityVisualFX {
         rootVertices.add(this.root);
 
         double l = directionVector.length();
-        int iterations = MathHelper.floor(Math.round(Math.sqrt(l)));
+        int iterations = Math.min(MathHelper.floor(Math.round(Math.sqrt(l))), 200);
         for (int i = 0; i < iterations; i++) {
             LinkedList<LightningVertex> newRootVertices = new LinkedList<>();
             for (LightningVertex sourceVertex : rootVertices) {
@@ -127,30 +127,31 @@ public class FXLightning extends EntityVisualFX {
         }
 
         Color c = this.getColor(pTicks);
+        float alpha = this.getAlpha(pTicks);
         bufRenderDepth = Math.min(1F, (age + pTicks) / (buildSpeed * 20F));
-        renderRec(this.root, vb, renderStack, pTicks, c.getRed() / 255F, c.getGreen() / 255F, c.getBlue() / 255F);
+        renderRec(this.root, vb, renderStack, pTicks, c.getRed() / 255F, c.getGreen() / 255F, c.getBlue() / 255F, alpha / 255F);
     }
 
-    private void renderRec(LightningVertex root, IVertexBuilder vb, MatrixStack renderStack, float pTicks, float r, float g, float b) {
+    private void renderRec(LightningVertex root, IVertexBuilder vb, MatrixStack renderStack, float pTicks, float r, float g, float b, float a) {
         int allDepth = root.followingDepth;
         boolean mayRenderNext = 1F - (((float) root.followingDepth) / ((float) allDepth)) <= bufRenderDepth;
         Vector3 playerOffset = RenderingVectorUtils.getStandardTranslationRemovalVector(pTicks);
         for (LightningVertex next : root.next) {
             Vector3 from = root.offset.clone().subtract(playerOffset);
             Vector3 to = next.offset.clone().subtract(playerOffset);
-            drawLine(from, to, vb, renderStack, r, g, b);
+            drawLine(from, to, vb, renderStack, r, g, b, a);
             if (mayRenderNext) {
-                renderRec(next, vb, renderStack, pTicks, r, g, b);
+                renderRec(next, vb, renderStack, pTicks, r, g, b, a);
             }
         }
     }
 
-    private void drawLine(Vector3 from, Vector3 to, IVertexBuilder vb, MatrixStack renderStack, float r, float g, float b) {
-        renderCurrentTextureAroundAxis(from, to, Math.toRadians(0F),  0.035F, vb, renderStack, r, g, b);
-        renderCurrentTextureAroundAxis(from, to, Math.toRadians(90F), 0.035F, vb, renderStack, r, g, b);
+    private void drawLine(Vector3 from, Vector3 to, IVertexBuilder vb, MatrixStack renderStack, float r, float g, float b, float a) {
+        renderCurrentTextureAroundAxis(from, to, Math.toRadians(0F),  0.035F, vb, renderStack, r, g, b, a);
+        renderCurrentTextureAroundAxis(from, to, Math.toRadians(90F), 0.035F, vb, renderStack, r, g, b, a);
     }
 
-    private void renderCurrentTextureAroundAxis(Vector3 from, Vector3 to, double angle, double size, IVertexBuilder buf, MatrixStack renderStack, float r, float g, float b) {
+    private void renderCurrentTextureAroundAxis(Vector3 from, Vector3 to, double angle, double size, IVertexBuilder buf, MatrixStack renderStack, float r, float g, float b, float a) {
         Vector3 aim = to.clone().subtract(from).normalize();
         Vector3 aimPerp = aim.clone().perpendicular().normalize();
         Vector3 perp = aimPerp.clone().rotate(angle, aim).normalize();
@@ -159,13 +160,13 @@ public class FXLightning extends EntityVisualFX {
 
         Matrix4f matr = renderStack.getLast().getMatrix();
         Vector3 vec = from.clone().add(perpFrom.clone().multiply(-1));
-        vec.drawPos(matr, buf).color(r, g, b, 1F).tex(1, 1).endVertex();
+        vec.drawPos(matr, buf).color(r, g, b, a).tex(1, 1).endVertex();
         vec = from.clone().add(perpFrom);
-        vec.drawPos(matr, buf).color(r, g, b, 1F).tex(1, 0).endVertex();
+        vec.drawPos(matr, buf).color(r, g, b, a).tex(1, 0).endVertex();
         vec = to.clone().add(perpTo);
-        vec.drawPos(matr, buf).color(r, g, b, 1F).tex(0, 0).endVertex();
+        vec.drawPos(matr, buf).color(r, g, b, a).tex(0, 0).endVertex();
         vec = to.clone().add(perpTo.clone().multiply(-1));
-        vec.drawPos(matr, buf).color(r, g, b, 1F).tex(0, 1).endVertex();
+        vec.drawPos(matr, buf).color(r, g, b, a).tex(0, 1).endVertex();
     }
 
     @Override

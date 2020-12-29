@@ -15,6 +15,7 @@ import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.constellation.mantle.effect.MantleEffectPelotrio;
 import hellfirepvp.astralsorcery.common.entity.goal.SpectralToolBreakBlockGoal;
+import hellfirepvp.astralsorcery.common.entity.goal.SpectralToolBreakLogGoal;
 import hellfirepvp.astralsorcery.common.entity.goal.SpectralToolGoal;
 import hellfirepvp.astralsorcery.common.entity.goal.SpectralToolMeleeAttackGoal;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
@@ -22,6 +23,8 @@ import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.entity.*;
+import net.minecraft.entity.ai.attributes.AttributeModifierMap;
+import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.controller.FlyingMovementController;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -29,14 +32,12 @@ import net.minecraft.item.Items;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.function.BiFunction;
 
 /**
@@ -77,6 +78,12 @@ public class EntitySpectralTool extends FlyingEntity {
         return (type, world) -> new EntitySpectralTool(world);
     }
 
+    public static AttributeModifierMap.MutableAttribute createAttributes() {
+        return MobEntity.func_233666_p_()
+                .createMutableAttribute(Attributes.MAX_HEALTH, 3)
+                .createMutableAttribute(Attributes.FLYING_SPEED, 0.85);
+    }
+
     @Override
     protected void registerData() {
         super.registerData();
@@ -85,19 +92,8 @@ public class EntitySpectralTool extends FlyingEntity {
     }
 
     @Override
-    protected void registerAttributes() {
-        super.registerAttributes();
-
-        this.getAttributes().registerAttribute(SharedMonsterAttributes.FLYING_SPEED);
-
-        this.getAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(3.0);
-        this.getAttribute(SharedMonsterAttributes.FLYING_SPEED).setBaseValue(0.85);
-    }
-
-    @Nullable
-    @Override
-    public AxisAlignedBB getCollisionBoundingBox() {
-        return null;
+    public boolean canCollide(Entity entity) {
+        return !(entity instanceof PlayerEntity);
     }
 
     @Override
@@ -220,7 +216,7 @@ public class EntitySpectralTool extends FlyingEntity {
             return new ToolTask(MantleEffectPelotrio.CONFIG.durationAxe.get(),
                     MantleEffectPelotrio.CONFIG.speedAxe.get(),
                     new ItemStack(Items.DIAMOND_AXE),
-                    SpectralToolBreakBlockGoal::new);
+                    SpectralToolBreakLogGoal::new);
         }
 
         public static ToolTask createAttackTask() {

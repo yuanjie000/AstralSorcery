@@ -12,6 +12,8 @@ import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.event.EventFlags;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
+import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
@@ -51,7 +53,7 @@ public class KeyDigTypes extends KeyPerk {
         PlayerEntity player = event.getPlayer();
         LogicalSide side = this.getSide(player);
         PlayerProgress prog = ResearchHelper.getProgress(player, side);
-        if (prog.hasPerkEffect(this)) {
+        if (prog.getPerkData().hasPerkEffect(this)) {
             ItemStack heldMainHand = player.getHeldItemMainhand();
             if (!heldMainHand.isEmpty() && heldMainHand.getItem().getToolTypes(heldMainHand).contains(ToolType.PICKAXE)) {
                 ToolType requiredTool = event.getTargetBlock().getHarvestTool();
@@ -66,7 +68,7 @@ public class KeyDigTypes extends KeyPerk {
         PlayerEntity player = event.getPlayer();
         LogicalSide side = this.getSide(player);
         PlayerProgress prog = ResearchHelper.getProgress(player, side);
-        if (prog.hasPerkEffect(this)) {
+        if (prog.getPerkData().hasPerkEffect(this)) {
             BlockState broken = event.getState();
             ItemStack playerMainHand = player.getHeldItemMainhand();
             if (!playerMainHand.isEmpty()) {
@@ -74,7 +76,11 @@ public class KeyDigTypes extends KeyPerk {
                     if (!broken.isToolEffective(ToolType.PICKAXE) &&
                             (broken.isToolEffective(ToolType.AXE) || broken.isToolEffective(ToolType.SHOVEL))) {
                         EventFlags.CHECK_BREAK_SPEED.executeWithFlag(() -> {
-                            event.setNewSpeed(Math.max(event.getNewSpeed(), playerMainHand.getDestroySpeed(Blocks.STONE.getDefaultState())));
+                            MiscUtils.tryMultiple(
+                                    () -> player.getDigSpeed(Blocks.STONE.getDefaultState(), event.getPos()),
+                                    () -> player.getDigSpeed(Blocks.STONE.getDefaultState(), null),
+                                    () -> BlockUtils.getSimpleBreakSpeed(player, playerMainHand, Blocks.STONE.getDefaultState())
+                            ).ifPresent(speed -> event.setNewSpeed(Math.max(event.getNewSpeed(), speed)));
                         });
                     }
                 }

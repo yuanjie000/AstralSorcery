@@ -56,7 +56,7 @@ public class CrystalCalculations {
         return calculate(1.0F, attributes, ctx);
     }
 
-    // Range: 1.0 - 7.53375
+    // Range: 1.0 - 5.985
     public static double getRitualCostReductionFactor(StarlightReceiverRitualPedestal pedestal,
                                                       CrystalAttributes attributes) {
         CalculationContext ctx = CalculationContext.Builder.newBuilder()
@@ -99,6 +99,14 @@ public class CrystalCalculations {
     public static float getThroughputMultiplier(CrystalAttributes attributes) {
         CalculationContext ctx = CalculationContext.Builder.newBuilder()
                 .addUsage(USE_LENS_TRANSFER)
+                .build();
+        return MathHelper.clamp((float) calculate(1F, attributes, ctx), 0F, 1F);
+    }
+
+    // Range: 1.0 - 1.6
+    public static float getThroughputEffectMultiplier(CrystalAttributes attributes) {
+        CalculationContext ctx = CalculationContext.Builder.newBuilder()
+                .addUsage(USE_LENS_EFFECT)
                 .build();
         return MathHelper.clamp((float) calculate(1F, attributes, ctx), 0F, 1F);
     }

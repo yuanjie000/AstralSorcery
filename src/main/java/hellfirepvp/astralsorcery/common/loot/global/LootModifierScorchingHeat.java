@@ -17,11 +17,11 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.loot.LootContext;
+import net.minecraft.loot.LootParameterSets;
+import net.minecraft.loot.LootParameters;
+import net.minecraft.loot.conditions.ILootCondition;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.storage.loot.LootContext;
-import net.minecraft.world.storage.loot.LootParameterSets;
-import net.minecraft.world.storage.loot.LootParameters;
-import net.minecraft.world.storage.loot.conditions.ILootCondition;
 import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
 import net.minecraftforge.common.loot.LootModifier;
 import net.minecraftforge.fml.hooks.BasicEventHooks;
@@ -83,6 +83,11 @@ public class LootModifierScorchingHeat extends LootModifier {
         @Override
         public LootModifierScorchingHeat read(ResourceLocation location, JsonObject object, ILootCondition[] lootConditions) {
             return new LootModifierScorchingHeat(lootConditions);
+        }
+
+        @Override
+        public JsonObject write(LootModifierScorchingHeat instance) {
+            return this.makeConditions(instance.conditions);
         }
     }
 }

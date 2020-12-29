@@ -16,10 +16,11 @@ import hellfirepvp.astralsorcery.common.starlight.network.TransmissionChain;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.StringNBT;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.World;
 
 import java.util.*;
 
@@ -32,31 +33,31 @@ import java.util.*;
  */
 public class DataLightConnections extends AbstractData {
 
-    private final Map<DimensionType, Map<BlockPos, Set<BlockPos>>> serverPosBuffer = new HashMap<>();
+    private final Map<RegistryKey<World>, Map<BlockPos, Set<BlockPos>>> serverPosBuffer = new HashMap<>();
 
     //Boolean flag: true=addition, false=removal
-    private final Map<DimensionType, LinkedList<Tuple<TransmissionChain.LightConnection, Boolean>>> serverChangeBuffer = new HashMap<>();
-    private final Set<DimensionType> dimensionClearBuffer = new HashSet<>();
+    private final Map<RegistryKey<World>, LinkedList<Tuple<TransmissionChain.LightConnection, Boolean>>> serverChangeBuffer = new HashMap<>();
+    private final Set<RegistryKey<World>> dimensionClearBuffer = new HashSet<>();
 
     private DataLightConnections(ResourceLocation key) {
         super(key);
     }
 
-    public void updateNewConnectionsThreaded(DimensionType dimType, List<TransmissionChain.LightConnection> newlyAddedConnections) {
-        Map<BlockPos, Set<BlockPos>> posBufferDim = serverPosBuffer.computeIfAbsent(dimType, k -> new HashMap<>());
+    public void updateNewConnectionsThreaded(RegistryKey<World> dim, List<TransmissionChain.LightConnection> newlyAddedConnections) {
+        Map<BlockPos, Set<BlockPos>> posBufferDim = serverPosBuffer.computeIfAbsent(dim, k -> new HashMap<>());
         for (TransmissionChain.LightConnection c : newlyAddedConnections) {
             BlockPos start = c.getStart();
             Set<BlockPos> endpoints = posBufferDim.computeIfAbsent(start, k -> new HashSet<>());
             endpoints.add(c.getEnd());
         }
-        notifyConnectionAdd(dimType, newlyAddedConnections);
+        notifyConnectionAdd(dim, newlyAddedConnections);
         if (newlyAddedConnections.size() > 0) {
             markDirty();
         }
     }
 
-    public void removeOldConnectionsThreaded(DimensionType dimType, List<TransmissionChain.LightConnection> invalidConnections) {
-        Map<BlockPos, Set<BlockPos>> posBufferDim = serverPosBuffer.get(dimType);
+    public void removeOldConnectionsThreaded(RegistryKey<World> dim, List<TransmissionChain.LightConnection> invalidConnections) {
+        Map<BlockPos, Set<BlockPos>> posBufferDim = serverPosBuffer.get(dim);
         if (posBufferDim != null) {
             for (TransmissionChain.LightConnection c : invalidConnections) {
                 BlockPos start = c.getStart();
@@ -70,16 +71,16 @@ public class DataLightConnections extends AbstractData {
                 }
             }
         }
-        notifyConnectionRemoval(dimType, invalidConnections);
+        notifyConnectionRemoval(dim, invalidConnections);
         if (invalidConnections.size() > 0) {
             markDirty();
         }
     }
 
     @Override
-    public void clear(DimensionType dimType) {
-        if (this.serverPosBuffer.remove(dimType) != null) {
-            this.dimensionClearBuffer.add(dimType);
+    public void clear(RegistryKey<World> dim) {
+        if (this.serverPosBuffer.remove(dim) != null) {
+            this.dimensionClearBuffer.add(dim);
             markDirty();
         }
     }
@@ -91,16 +92,16 @@ public class DataLightConnections extends AbstractData {
         this.serverPosBuffer.clear();
     }
 
-    private void notifyConnectionAdd(DimensionType dimType, List<TransmissionChain.LightConnection> added) {
-        LinkedList<Tuple<TransmissionChain.LightConnection, Boolean>> ch = serverChangeBuffer.computeIfAbsent(dimType, k -> new LinkedList<>());
+    private void notifyConnectionAdd(RegistryKey<World> dim, List<TransmissionChain.LightConnection> added) {
+        LinkedList<Tuple<TransmissionChain.LightConnection, Boolean>> ch = serverChangeBuffer.computeIfAbsent(dim, k -> new LinkedList<>());
         for (TransmissionChain.LightConnection l : added) {
             ch.add(new Tuple<>(l, true));
         }
-        this.dimensionClearBuffer.remove(dimType);
+        this.dimensionClearBuffer.remove(dim);
     }
 
-    private void notifyConnectionRemoval(DimensionType dimType, List<TransmissionChain.LightConnection> removal) {
-        LinkedList<Tuple<TransmissionChain.LightConnection, Boolean>> ch = serverChangeBuffer.computeIfAbsent(dimType, k -> new LinkedList<>());
+    private void notifyConnectionRemoval(RegistryKey<World> dim, List<TransmissionChain.LightConnection> removal) {
+        LinkedList<Tuple<TransmissionChain.LightConnection, Boolean>> ch = serverChangeBuffer.computeIfAbsent(dim, k -> new LinkedList<>());
         for (TransmissionChain.LightConnection l : removal) {
             ch.add(new Tuple<>(l, false));
         }
@@ -108,8 +109,8 @@ public class DataLightConnections extends AbstractData {
 
     @Override
     public void writeAllDataToPacket(CompoundNBT compound) {
-        for (DimensionType dimType : serverPosBuffer.keySet()) {
-            Map<BlockPos, Set<BlockPos>> dat = serverPosBuffer.get(dimType);
+        for (RegistryKey<World> dim : serverPosBuffer.keySet()) {
+            Map<BlockPos, Set<BlockPos>> dat = serverPosBuffer.get(dim);
             ListNBT dataList = new ListNBT();
             for (BlockPos start : dat.keySet()) {
                 Set<BlockPos> endPositions = dat.get(start);
@@ -125,24 +126,24 @@ public class DataLightConnections extends AbstractData {
                 }
             }
 
-            compound.put(dimType.getRegistryName().toString(), dataList);
+            compound.put(dim.getLocation().toString(), dataList);
         }
     }
 
     @Override
     public void writeDiffDataToPacket(CompoundNBT compound) {
         ListNBT clearList = new ListNBT();
-        for (DimensionType dimType : this.dimensionClearBuffer) {
-            clearList.add(StringNBT.valueOf(dimType.getRegistryName().toString()));
+        for (RegistryKey<World> dim : this.dimensionClearBuffer) {
+            clearList.add(StringNBT.valueOf(dim.getLocation().toString()));
         }
         compound.put("clear", clearList);
 
-        for (DimensionType dimType : serverChangeBuffer.keySet()) {
-            if (this.dimensionClearBuffer.contains(dimType)) {
+        for (RegistryKey<World> dim : serverChangeBuffer.keySet()) {
+            if (this.dimensionClearBuffer.contains(dim)) {
                 continue;
             }
 
-            LinkedList<Tuple<TransmissionChain.LightConnection, Boolean>> changes = serverChangeBuffer.get(dimType);
+            LinkedList<Tuple<TransmissionChain.LightConnection, Boolean>> changes = serverChangeBuffer.get(dim);
             if (!changes.isEmpty()) {
                 ListNBT list = new ListNBT();
                 for (Tuple<TransmissionChain.LightConnection, Boolean> tuple : changes) {
@@ -152,7 +153,7 @@ public class DataLightConnections extends AbstractData {
                     connection.putBoolean("connect", tuple.getB());
                     list.add(connection);
                 }
-                compound.put(dimType.getRegistryName().toString(), list);
+                compound.put(dim.getLocation().toString(), list);
             }
         }
 

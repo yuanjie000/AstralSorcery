@@ -27,6 +27,7 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.base.SimpleTransm
 import hellfirepvp.astralsorcery.common.starlight.transmission.registry.TransmissionProvider;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import hellfirepvp.astralsorcery.common.util.PartialEffectExecutor;
 import hellfirepvp.astralsorcery.common.util.RaytraceAssist;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
@@ -36,7 +37,7 @@ import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.ISeedReader;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.LogicalSide;
@@ -101,14 +102,14 @@ public class StarlightReceiverRitualPedestal extends SimpleTransmissionReceiver<
     private void doRitualEffect(World world) {
         ConstellationEffectProperties properties = this.effect.createProperties(this.getMirrorCount());
         if (this.channelingTrait != null) {
-            properties.modify(this.channelingTrait);
+            this.channelingTrait.affectConstellationEffect(properties);
         }
         properties.multiplySize(CrystalCalculations.getRitualEffectRangeFactor(this, this.attributes));
 
-        double maxDrain = 15;
+        float maxDrain = 12;
         maxDrain *= CrystalCalculations.getRitualCostReductionFactor(this, this.attributes);
         maxDrain /= Math.max(1F, ((float) (this.getMirrorCount() - 1)) * 0.33F);
-        int ritualStrength = MathHelper.ceil(collectedStarlight * properties.getPotency() / maxDrain);
+        float ritualStrength = ((float) collectedStarlight) / maxDrain;
 
         BlockPos to = getLocationPos();
         if (this.ritualLinkPos != null) {
@@ -123,17 +124,16 @@ public class StarlightReceiverRitualPedestal extends SimpleTransmissionReceiver<
             return;
         }
 
-        ritualStrength = MathHelper.floor(ritualStrength * properties.getEffectAmplifier());
-        double executeTimes = Math.atan(ritualStrength / 10.0) * 4.0;
+        float max = 10F * properties.getEffectAmplifier();
+        float stretch = 10F / properties.getPotency();
+
+        float executeTimes = (float) Math.atan(ritualStrength / stretch) * max;
         if (properties.isCorrupted()) {
-            executeTimes *= Math.max(rand.nextDouble() * 1.4, 0.2);
+            executeTimes *= Math.max(rand.nextDouble() * 1.4, 0.1);
         }
-        while (executeTimes > 0) {
-            boolean execute = executeTimes >= 1 || rand.nextFloat() < executeTimes;
-            executeTimes--;
-            if (!execute) {
-                continue;
-            }
+        PartialEffectExecutor exec = new PartialEffectExecutor(executeTimes, rand);
+        while (exec.canExecute()) {
+            exec.markExecution();
             if (this.effect.getConfig().enabled.get()) {
                 boolean didEffectExecute;
                 if (this.effect.needsChunkToBeLoaded()) {
@@ -158,23 +158,28 @@ public class StarlightReceiverRitualPedestal extends SimpleTransmissionReceiver<
             return;
         }
 
-        double collected = 0.25 + (0.75 * DayTimeHelper.getCurrentDaytimeDistribution(world));
+        double collected = 1.3;
+        collected *= 0.25 + (0.75 * DayTimeHelper.getCurrentDaytimeDistribution(world));
 
         if (this.noiseDistribution == -1) {
-            this.noiseDistribution = SkyCollectionHelper.getSkyNoiseDistribution(world, this.getLocationPos());
+            if (world instanceof ISeedReader) {
+                this.noiseDistribution = SkyCollectionHelper.getSkyNoiseDistribution((ISeedReader) world, this.getLocationPos());
+            } else {
+                this.noiseDistribution = 0.3F;
+            }
         }
 
         collected *= CrystalCalculations.getCrystalCollectionRate(attributes);
-        collected *= 0.2F + (0.8F * ctx.getDistributionHandler().getDistribution(this.channelingType));
+        collected *= 0.4F + (0.6F * ctx.getDistributionHandler().getDistribution(this.channelingType));
         collected *= 1F + (0.5F * this.noiseDistribution);
 
-        this.collectedStarlight += collected / 2F;
+        this.collectedStarlight += collected;
     }
 
     @Override
     public void onStarlightReceive(World world, IWeakConstellation type, double amount) {
         if (this.channelingType != null && this.hasMultiblock && this.channelingType.equals(type)) {
-            this.collectedStarlight += amount;
+            this.collectedStarlight += amount / 2;
             this.findNextMirror(world);
         }
     }
@@ -252,7 +257,7 @@ public class StarlightReceiverRitualPedestal extends SimpleTransmissionReceiver<
 
         long seed = 3451968351053166105L;
         seed |= this.getLocationPos().toLong() * 31;
-        seed |= this.channelingType.getConstellationName().getFormattedText().hashCode() * 31;
+        seed |= this.channelingType.getSimpleName().hashCode() * 31;
         Random r = new Random(seed);
         for (int i = 0; i < this.getMirrorCount(); i++) {
             r.nextInt(TileRitualPedestal.RITUAL_CIRCLE_OFFSETS.size());

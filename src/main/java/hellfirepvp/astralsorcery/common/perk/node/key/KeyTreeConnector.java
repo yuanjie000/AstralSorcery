@@ -8,8 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.perk.node.key;
 
-import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
-import hellfirepvp.astralsorcery.common.data.research.ResearchManager;
+import hellfirepvp.astralsorcery.AstralSorcery;
+import hellfirepvp.astralsorcery.common.data.research.*;
 import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.perk.PerkTree;
 import hellfirepvp.astralsorcery.common.perk.node.MajorPerk;
@@ -40,13 +40,14 @@ public class KeyTreeConnector extends MajorPerk {
 
     @Override
     public boolean mayUnlockPerk(PlayerProgress progress, PlayerEntity player) {
-        if (!progress.hasFreeAllocationPoint(player, getSide(player)) ||
+        if (!progress.getPerkData().hasFreeAllocationPoint(player, getSide(player)) ||
                 !canSee(player, progress)) return false;
+        PlayerPerkData perkData = progress.getPerkData();
 
         LogicalSide side = getSide(player);
         boolean hasAllAdjacent = true;
         for (AbstractPerk otherPerks : PerkTree.PERK_TREE.getConnectedPerks(side, this)) {
-            if (!progress.hasPerkUnlocked(otherPerks)) {
+            if (!perkData.hasPerkAllocation(otherPerks, PerkAllocationType.UNLOCKED)) {
                 hasAllAdjacent = false;
                 break;
             }
@@ -55,35 +56,39 @@ public class KeyTreeConnector extends MajorPerk {
             return PerkTree.PERK_TREE.getPerkPoints(getSide(player)).stream()
                     .map(PerkTreePoint::getPerk)
                     .filter(perk -> perk instanceof KeyTreeConnector)
-                    .anyMatch(progress::hasPerkUnlocked);
+                    .anyMatch(perk -> perkData.hasPerkAllocation(perk, PerkAllocationType.UNLOCKED));
         } else {
             return true;
         }
     }
 
     @Override
-    public void onUnlockPerkServer(@Nullable PlayerEntity player, PlayerProgress progress, CompoundNBT dataStorage) {
-        super.onUnlockPerkServer(player, progress, dataStorage);
+    public void onUnlockPerkServer(@Nullable PlayerEntity player, PerkAllocationType allocationType, PlayerProgress progress, CompoundNBT dataStorage) {
+        super.onUnlockPerkServer(player, allocationType, progress, dataStorage);
 
-        ListNBT listTokens = new ListNBT();
-        for (AbstractPerk otherPerk : PerkTree.PERK_TREE.getConnectedPerks(LogicalSide.SERVER, this)) {
-            if (ResearchManager.forceApplyPerk(player, otherPerk)) {
-                String token = "connector-tk-" + otherPerk.getRegistryName().toString();
-                if (ResearchManager.grantFreePerkPoint(player, token)) {
-                    listTokens.add(StringNBT.valueOf(token));
+        if (allocationType == PerkAllocationType.UNLOCKED) {
+            ListNBT listTokens = new ListNBT();
+            for (AbstractPerk otherPerk : PerkTree.PERK_TREE.getConnectedPerks(LogicalSide.SERVER, this)) {
+                if (ResearchManager.forceApplyPerk(player, otherPerk, PlayerPerkAllocation.unlock())) {
+                    ResourceLocation token = AstralSorcery.key("connector_tk_" + otherPerk.getRegistryName().getPath());
+                    if (ResearchManager.grantFreePerkPoint(player, token)) {
+                        listTokens.add(StringNBT.valueOf(token.toString()));
+                    }
                 }
             }
+            dataStorage.put("pointtokens", listTokens);
         }
-        dataStorage.put("pointtokens", listTokens);
     }
 
     @Override
-    public void onRemovePerkServer(PlayerEntity player, PlayerProgress progress, CompoundNBT dataStorage) {
-        super.onRemovePerkServer(player, progress, dataStorage);
+    public void onRemovePerkServer(PlayerEntity player, PerkAllocationType allocationType, PlayerProgress progress, CompoundNBT dataStorage) {
+        super.onRemovePerkServer(player, allocationType, progress, dataStorage);
 
-        ListNBT list = dataStorage.getList("pointtokens", Constants.NBT.TAG_STRING);
-        for (int i = 0; i < list.size(); i++) {
-            ResearchManager.revokeFreePoint(player, list.getString(i));
+        if (allocationType == PerkAllocationType.UNLOCKED) {
+            ListNBT list = dataStorage.getList("pointtokens", Constants.NBT.TAG_STRING);
+            for (int i = 0; i < list.size(); i++) {
+                ResearchManager.revokeFreePoint(player, new ResourceLocation(list.getString(i)));
+            }
         }
     }
 

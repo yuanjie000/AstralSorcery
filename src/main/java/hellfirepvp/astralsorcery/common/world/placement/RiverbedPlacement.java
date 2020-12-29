@@ -8,9 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.world.placement;
 
-import com.mojang.datafixers.Dynamic;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import hellfirepvp.astralsorcery.common.world.config.ReplacingFeaturePlacementConfig;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.fluid.Fluid;
@@ -18,15 +16,12 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.GenerationSettings;
+import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.gen.feature.WorldDecoratingHelper;
+import net.minecraft.world.gen.placement.NoPlacementConfig;
 import net.minecraft.world.gen.placement.Placement;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -34,48 +29,40 @@ import java.util.stream.Stream;
  * The complete source code for this mod can be found on github.
  * Class: RiverbedPlacement
  * Created by HellFirePvP
- * Date: 25.07.2019 / 07:55
+ * Date: 20.11.2020 / 17:10
  */
-public class RiverbedPlacement extends Placement<ReplacingFeaturePlacementConfig> {
+public class RiverbedPlacement extends Placement<NoPlacementConfig> {
 
-    public RiverbedPlacement(Function<Dynamic<?>, ? extends ReplacingFeaturePlacementConfig> cfgSupplier) {
-        super(cfgSupplier);
-    }
-
-    public RiverbedPlacement(ReplacingFeaturePlacementConfig config) {
-        super(dyn -> config);
+    public RiverbedPlacement() {
+        super(NoPlacementConfig.CODEC);
     }
 
     @Override
-    public Stream<BlockPos> getPositions(IWorld worldIn, ChunkGenerator<? extends GenerationSettings> generatorIn, Random random, ReplacingFeaturePlacementConfig configIn, BlockPos pos) {
-        if (!configIn.canGenerateAtAll() || random.nextInt(Math.max(configIn.getGenerationChance(), 1)) != 0) {
-            return Stream.empty();
+    public Stream<BlockPos> getPositions(WorldDecoratingHelper helper, Random rand, NoPlacementConfig config, BlockPos pos) {
+        int x = rand.nextInt(16) + pos.getX();
+        int z = rand.nextInt(16) + pos.getZ();
+        int y = helper.func_242893_a(Heightmap.Type.OCEAN_FLOOR_WG, x, z);
+        if (y <= 0) {
+            return Stream.of();
         }
 
-        List<BlockPos> result = new ArrayList<>();
-        for (int i = 0; i < configIn.getGenerationAmount(); i++) {
-            BlockPos at = pos.add(random.nextInt(16), configIn.getRandomY(random), random.nextInt(16));
+        BlockPos floor = new BlockPos(x, y - 4, z);
 
-            if (!configIn.canPlace(worldIn, generatorIn.getBiomeProvider(), at, random)) {
-                continue;
-            }
-
-            boolean foundWater = false;
-            for (int yy = 0; yy < 3; yy++) {
-                BlockPos check = at.offset(Direction.UP, yy);
-                BlockState bs = worldIn.getBlockState(check);
-                Block block = bs.getBlock();
-                Fluid f;
-                if ((f = MiscUtils.tryGetFuild(bs)) != null && f.isIn(FluidTags.WATER) || block.isIn(BlockTags.ICE)) {
-                    foundWater = true;
-                    at = check.down();
-                    break;
-                }
-            }
-            if (foundWater) {
-                result.add(at);
+        boolean foundWater = false;
+        for (int yy = 0; yy < 5; yy++) {
+            BlockPos check = floor.offset(Direction.UP, yy);
+            BlockState state = helper.func_242894_a(check);
+            Block block = state.getBlock();
+            Fluid f;
+            if ((f = MiscUtils.tryGetFuild(state)) != null && f.isIn(FluidTags.WATER) || block.isIn(BlockTags.ICE)) {
+                foundWater = true;
+                floor = check.down();
+                break;
             }
         }
-        return result.stream();
+        if (foundWater && BlockTags.SAND.contains(helper.func_242894_a(floor).getBlock())) {
+            return Stream.of(floor);
+        }
+        return Stream.of();
     }
 }

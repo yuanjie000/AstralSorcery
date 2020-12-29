@@ -14,6 +14,7 @@ import hellfirepvp.astralsorcery.common.data.config.entry.GeneralConfig;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
+import hellfirepvp.astralsorcery.common.util.PartialEffectExecutor;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
@@ -21,7 +22,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
+import net.minecraft.world.World;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -50,24 +51,23 @@ public class ItemColoredLensDamage extends ItemColoredLens {
         }
 
         @Override
-        public void entityInBeam(IWorld world, Vector3 origin, Vector3 target, Entity entity, float beamStrength) {
+        public void entityInBeam(World world, Vector3 origin, Vector3 target, Entity entity, PartialEffectExecutor executor) {
             if (world.isRemote() || !(entity instanceof LivingEntity)) {
                 return;
             }
-            if (random.nextFloat() > beamStrength) {
-                return;
-            }
-            if (entity instanceof PlayerEntity) {
-                if (!GeneralConfig.CONFIG.doColoredLensesAffectPlayers.get() ||
-                        entity.getServer() == null ||
-                        !entity.getServer().isPVPEnabled()) {
-                    return;
+            executor.executeAll(() -> {
+                if (entity instanceof PlayerEntity) {
+                    if (!GeneralConfig.CONFIG.doColoredLensesAffectPlayers.get() ||
+                            entity.getServer() == null ||
+                            !entity.getServer().isPVPEnabled()) {
+                        return;
+                    }
                 }
-            }
-            DamageUtil.attackEntityFrom(entity, CommonProxy.DAMAGE_SOURCE_STELLAR, 7F * beamStrength);
+                DamageUtil.attackEntityFrom(entity, CommonProxy.DAMAGE_SOURCE_STELLAR, 1.5F);
+            });
         }
 
         @Override
-        public void blockInBeam(IWorld world, BlockPos pos, BlockState state, float beamStrength) {}
+        public void blockInBeam(World world, BlockPos pos, BlockState state, PartialEffectExecutor executor) {}
     }
 }

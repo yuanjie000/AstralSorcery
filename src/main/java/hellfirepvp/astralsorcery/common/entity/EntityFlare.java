@@ -31,6 +31,8 @@ import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
 import net.minecraft.entity.*;
+import net.minecraft.entity.ai.attributes.AttributeModifierMap;
+import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.monster.PhantomEntity;
 import net.minecraft.entity.passive.BatEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -38,7 +40,7 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
@@ -72,6 +74,11 @@ public class EntityFlare extends FlyingEntity {
 
     public static EntityType.IFactory<EntityFlare> factory() {
         return (type, world) -> new EntityFlare(world);
+    }
+
+    public static AttributeModifierMap.MutableAttribute createAttributes() {
+        return MobEntity.func_233666_p_()
+                .createMutableAttribute(Attributes.MAX_HEALTH, 1);
     }
 
     public static void spawnAmbientFlare(World world, BlockPos at) {
@@ -115,12 +122,6 @@ public class EntityFlare extends FlyingEntity {
             return null;
         }
         return (LivingEntity) e;
-    }
-
-    @Override
-    protected void registerAttributes() {
-        super.registerAttributes();
-        this.getAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(1.0D);
     }
 
     @Override
@@ -259,7 +260,7 @@ public class EntityFlare extends FlyingEntity {
 
     private void doMovement() {
         if (this.currentMoveTarget != null) {
-            Vec3d motion = this.getMotion();
+            Vector3d motion = this.getMotion();
             double motionX = (Math.signum(this.currentMoveTarget.getX() - this.getPosX()) * 0.5D - motion.getX()) * (this.isAmbient() ? 0.01D : 0.025D);
             double motionY = (Math.signum(this.currentMoveTarget.getY() - this.getPosY()) * 0.7D - motion.getY()) * (this.isAmbient() ? 0.01D : 0.025D);
             double motionZ = (Math.signum(this.currentMoveTarget.getZ() - this.getPosZ()) * 0.5D - motion.getZ()) * (this.isAmbient() ? 0.01D : 0.025D);

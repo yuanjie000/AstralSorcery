@@ -17,7 +17,7 @@ import net.minecraft.block.AirBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.state.IProperty;
+import net.minecraft.state.Property;
 import net.minecraft.util.JSONUtils;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -25,6 +25,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -47,11 +48,11 @@ public class BlockStateHelper {
     @Nonnull
     public static <V extends Comparable<V>> String serialize(@Nonnull BlockState state) {
         StringBuilder name = new StringBuilder(state.getBlock().getRegistryName().toString());
-        List<IProperty<?>> props = new ArrayList<>(state.getProperties());
+        List<Property<?>> props = new ArrayList<>(state.getProperties());
         if (!props.isEmpty()) {
             name.append('[');
             for (int i = 0; i < props.size(); i++) {
-                IProperty<V> prop = (IProperty<V>) props.get(i);
+                Property<V> prop = (Property<V>) props.get(i);
                 if (i > 0) {
                     name.append(',');
                 }
@@ -70,8 +71,8 @@ public class BlockStateHelper {
         object.addProperty("block", state.getBlock().getRegistryName().toString());
         if (serializeProperties && !state.getProperties().isEmpty()) {
             JsonArray properties = new JsonArray();
-            for (IProperty<?> property : state.getProperties()) {
-                IProperty<V> prop = (IProperty<V>) property;
+            for (Property<?> property : state.getProperties()) {
+                Property<V> prop = (Property<V>) property;
 
                 JsonObject objProperty = new JsonObject();
                 objProperty.addProperty("name", prop.getName());
@@ -95,9 +96,9 @@ public class BlockStateHelper {
         boolean hasProperties = isMissingStateInformation(serialized);
         ResourceLocation key;
         if (hasProperties) {
-            key = new ResourceLocation(serialized.substring(0, propIndex).toLowerCase());
+            key = new ResourceLocation(serialized.substring(0, propIndex).toLowerCase(Locale.ROOT));
         } else {
-            key = new ResourceLocation(serialized.toLowerCase());
+            key = new ResourceLocation(serialized.toLowerCase(Locale.ROOT));
         }
         Block block = ForgeRegistries.BLOCKS.getValue(key);
         BlockState state = block.getDefaultState();
@@ -107,7 +108,7 @@ public class BlockStateHelper {
                 List<String> propertyValues = PROP_ELEMENT_SPLITTER.splitToList(serializedProperty);
                 String name = propertyValues.get(0);
                 String strValue = propertyValues.get(1);
-                IProperty<T> property = (IProperty<T>) MiscUtils.iterativeSearch(state.getProperties(), prop -> prop.getName().equalsIgnoreCase(name));
+                Property<T> property = (Property<T>) MiscUtils.iterativeSearch(state.getProperties(), prop -> prop.getName().equalsIgnoreCase(name));
                 if (property != null) {
                     Optional<T> value = property.parseValue(strValue);
                     if (value.isPresent()) {
@@ -135,7 +136,7 @@ public class BlockStateHelper {
             for (JsonElement elemProperty : properties) {
                 JsonObject objProperty = JSONUtils.getJsonObject(elemProperty, "properties[?]");
                 String propName = JSONUtils.getString(objProperty, "name");
-                IProperty<T> property = (IProperty<T>) MiscUtils.iterativeSearch(state.getProperties(), prop -> prop.getName().equalsIgnoreCase(propName));
+                Property<T> property = (Property<T>) MiscUtils.iterativeSearch(state.getProperties(), prop -> prop.getName().equalsIgnoreCase(propName));
                 if (property != null) {
                     String propValue = JSONUtils.getString(objProperty, "value");
                     Optional<T> value = property.parseValue(propValue);

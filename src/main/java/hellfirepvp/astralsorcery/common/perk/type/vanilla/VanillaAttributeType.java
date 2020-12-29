@@ -13,9 +13,9 @@ import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.source.ModifierSource;
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
+import net.minecraft.entity.ai.attributes.Attribute;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.IAttribute;
-import net.minecraft.entity.ai.attributes.IAttributeInstance;
+import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.LogicalSide;
@@ -54,7 +54,7 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
     public void onModeApply(PlayerEntity player, ModifierType mode, LogicalSide side) {
         super.onModeApply(player, mode, side);
 
-        IAttributeInstance attr = player.getAttributes().getAttributeInstance(getAttribute());
+        ModifiableAttributeInstance attr = player.getAttributeManager().createInstanceIfAbsent(getAttribute());
         if (attr == null) {
             return;
         }
@@ -74,13 +74,13 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
 
         switch (mode) {
             case ADDITION:
-                attr.applyModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Add", this, mode, player, side));
+                attr.applyNonPersistentModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Add", this, mode, player, side));
                 break;
             case ADDED_MULTIPLY:
-                attr.applyModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Multiply Add", this, mode, player, side));
+                attr.applyNonPersistentModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Multiply Add", this, mode, player, side));
                 break;
             case STACKING_MULTIPLY:
-                attr.applyModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Stack Add", this, mode, player, side));
+                attr.applyNonPersistentModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Stack Add", this, mode, player, side));
                 break;
             default:
                 break;
@@ -91,28 +91,16 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
     public void onModeRemove(PlayerEntity player, ModifierType mode, LogicalSide side, boolean removedCompletely) {
         super.onModeRemove(player, mode, side, removedCompletely);
 
-        IAttributeInstance attr = player.getAttributes().getAttributeInstance(getAttribute());
+        ModifiableAttributeInstance attr = player.getAttributeManager().createInstanceIfAbsent(getAttribute());
         if (attr == null) {
             return;
         }
 
-        switch (mode) {
-            case ADDITION:
-                attr.removeModifier(getID(mode));
-                break;
-            case ADDED_MULTIPLY:
-                attr.removeModifier(getID(mode));
-                break;
-            case STACKING_MULTIPLY:
-                attr.removeModifier(getID(mode));
-                break;
-            default:
-                break;
-        }
+        attr.removeModifier(getID(mode));
     }
 
     public void refreshAttribute(PlayerEntity player) {
-        IAttributeInstance attr = player.getAttributes().getAttributeInstance(getAttribute());
+        ModifiableAttributeInstance attr = player.getAttributeManager().createInstanceIfAbsent(getAttribute());
         if (attr == null) {
             return;
         }
@@ -131,7 +119,7 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
     public abstract String getDescription();
 
     @Nonnull
-    public abstract IAttribute getAttribute();
+    public abstract Attribute getAttribute();
 
     static class DynamicAttributeModifier extends AttributeModifier {
 
@@ -144,8 +132,7 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
         }
 
         public DynamicAttributeModifier(UUID idIn, String nameIn, PerkAttributeType type, Operation operationIn, PlayerEntity player, LogicalSide side) {
-            super(idIn, nameIn, 0, operationIn);
-            this.setSaved(false);
+            super(idIn, nameIn, operationIn == Operation.MULTIPLY_TOTAL ? 1 : 0, operationIn);
             this.player = player;
             this.side = side;
             this.type = type;

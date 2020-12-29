@@ -11,7 +11,6 @@ package hellfirepvp.astralsorcery.client.event.effect;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
-import hellfirepvp.astralsorcery.client.lib.RenderTypesAS;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.util.*;
 import hellfirepvp.astralsorcery.common.constellation.IConstellation;
@@ -23,8 +22,6 @@ import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.DyeColor;
@@ -33,11 +30,11 @@ import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.TickEvent;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL11C;
 
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -64,9 +61,9 @@ public class GatewayUIRenderHandler implements ITickHandler {
         return INSTANCE;
     }
 
-    public GatewayUI getOrCreateUI(IWorld world, BlockPos pos, Vector3 renderPos) {
+    public GatewayUI getOrCreateUI(World world, BlockPos pos, Vector3 renderPos) {
         if (currentUI == null ||
-                !currentUI.getDimType().equals(world.getDimension().getType().getRegistryName()) ||
+                !currentUI.getDimType().equals(world.getDimensionKey()) ||
                 !currentUI.getPos().equals(pos)) {
             currentUI = GatewayUI.create(world, pos, renderPos, 5.5D);
         }
@@ -88,7 +85,7 @@ public class GatewayUIRenderHandler implements ITickHandler {
         TileCelestialGateway gateway;
         if (world == null ||
                 this.currentUI.getVisibleTicks() <= 0 ||
-                !this.currentUI.getDimType().equals(world.getDimension().getType().getRegistryName()) ||
+                !this.currentUI.getDimType().equals(world.getDimensionKey()) ||
                 (gateway = MiscUtils.getTileAt(world, this.currentUI.getPos(), TileCelestialGateway.class, true)) == null ||
                 !gateway.doesSeeSky() ||
                 !gateway.hasMultiblock()) {
@@ -109,6 +106,12 @@ public class GatewayUIRenderHandler implements ITickHandler {
         double dst = renderOffset.distance(Vector3.atEntityCorner(player).addY(1.5));
         if(dst > 3) {
             return;
+        }
+
+        if (Minecraft.isFabulousGraphicsEnabled()) {
+            //If you found this while wanting to report seeing stars behind blocks on the gateway:
+            //Yes i am aware of it, it'd need a ton of work to fix. So i'll fix it eventually, not right now.
+            RenderSystem.clear(GL11C.GL_DEPTH_BUFFER_BIT, Minecraft.IS_RUNNING_ON_MAC);
         }
 
         this.renderGatewayShieldOverlay(renderStack, renderOffset, dst, pTicks);
@@ -133,7 +136,6 @@ public class GatewayUIRenderHandler implements ITickHandler {
         Color c = ColorsAS.CONSTELLATION_TYPE_MAJOR;
         float alpha = MathHelper.clamp(1F - ((float) (distance / 2D)), 0F, 1F);
 
-        IRenderTypeBuffer.Impl drawBuffers = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
         node.getAllowedUsers().forEach((index, playerRef) -> {
             BlockPos drawPos = TileCelestialGateway.getAllowedUserOffset(index).add(node.getPos());
             Vector3 at = new Vector3(drawPos)
@@ -141,16 +143,15 @@ public class GatewayUIRenderHandler implements ITickHandler {
                     .subtract(RenderingVectorUtils.getStandardTranslationRemovalVector(pTicks));
             IConstellation cst = this.getCurrentUI().getGeneratedConstellation(playerRef.getPlayerUUID());
             if (cst != null) {
-                RenderingConstellationUtils.renderConstellationIntoWorldFlat(c, cst, renderStack, drawBuffers, at, 1.2, 1, alpha);
+                RenderingConstellationUtils.renderConstellationIntoWorldFlat(c, cst, renderStack, at, 1.2, 1, alpha);
 
                 UUID targetUUID = playerRef.getPlayerUUID();
                 if ((node.getOwner().getPlayerUUID().equals(currentUUID) || targetUUID.equals(currentUUID)) && drawPos.equals(blockSelected)) {
-                    RenderingUtils.renderInWorldText(playerRef.getPlayerName().getFormattedText(), c, 1 / 48F, at.clone().addY(0.2),
+                    RenderingUtils.renderInWorldText(playerRef.getPlayerName(), c, 1 / 48F, at.clone().addY(0.2),
                             renderStack, pTicks, true);
                 }
             }
         });
-        drawBuffers.finish();
     }
 
     private void renderGatewayFocusedEntry(MatrixStack renderStack, Vector3 renderOffset, float pTicks) {
@@ -158,8 +159,7 @@ public class GatewayUIRenderHandler implements ITickHandler {
         GatewayUI.GatewayEntry entry = findMatchingEntry(MathHelper.wrapDegrees(player.rotationYaw), MathHelper.wrapDegrees(player.rotationPitch));
         if (entry != null) {
             ITextComponent display = entry.getNode().getDisplayName();
-            if (display != null && !display.getFormattedText().isEmpty()) {
-                String text = display.getFormattedText();
+            if (display != null && !display.getString().isEmpty()) {
                 Vector3 at = entry.getRelativePos().clone()
                         .add(renderOffset)
                         .addY(0.4F)
@@ -171,7 +171,7 @@ public class GatewayUIRenderHandler implements ITickHandler {
                     c = ColorUtils.flareColorFromDye(nodeColor);
                 }
 
-                RenderingUtils.renderInWorldText(text, c, at, renderStack, pTicks, true);
+                RenderingUtils.renderInWorldText(display, c, at, renderStack, pTicks, true);
             }
         }
     }
@@ -198,14 +198,13 @@ public class GatewayUIRenderHandler implements ITickHandler {
         TexturesAS.TEX_STAR_1.bindTexture();
         RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
             for (int i = 0; i < 300; i++) {
-                Vector3 dir = Vector3.random(rand).normalize().multiply(this.currentUI.getSphereRadius() * 0.9);
-                float a = RenderingConstellationUtils.conCFlicker(ClientScheduler.getClientTick(), pTicks, rand.nextInt(7) + 6);
-                a *= alpha;
-                RenderingDrawUtils.renderFacingFullQuadVB(buf, renderStack,
-                        renderOffset.getX() + dir.getX(),
-                        renderOffset.getY() + dir.getY(),
-                        renderOffset.getZ() + dir.getZ(),
-                        0.07F, 0, 255, 255, 255, (int) (a * 255F));
+                Vector3 at = Vector3.random(rand).normalize().multiply(this.currentUI.getSphereRadius() * 0.9).add(renderOffset);
+                if (at.getY() >= this.currentUI.getPos().getY()) {
+                    float a = RenderingConstellationUtils.conCFlicker(ClientScheduler.getClientTick(), pTicks, rand.nextInt(7) + 6);
+                    a *= alpha;
+                    RenderingDrawUtils.renderFacingFullQuadVB(buf, renderStack, at.getX(), at.getY(), at.getZ(),
+                            0.07F, rand.nextFloat(), 255, 255, 255, (int) (a * 255F));
+                }
             }
             for (GatewayUI.GatewayEntry entry : this.currentUI.getGatewayEntries()) {
                 int r = red;
@@ -213,6 +212,9 @@ public class GatewayUIRenderHandler implements ITickHandler {
                 int b = blue;
                 DyeColor nodeColor = entry.getNode().getColor();
                 if (nodeColor != null) {
+                    if (nodeColor == DyeColor.BLACK) {
+                        nodeColor = DyeColor.GRAY; //Avoid practical invisibility
+                    }
                     Color ovr = ColorUtils.flareColorFromDye(nodeColor);
                     r = ovr.getRed();
                     g = ovr.getGreen();

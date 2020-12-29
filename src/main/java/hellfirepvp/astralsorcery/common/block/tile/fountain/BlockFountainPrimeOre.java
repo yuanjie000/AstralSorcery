@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2020
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
 package hellfirepvp.astralsorcery.common.block.tile.fountain;
 
 import hellfirepvp.astralsorcery.common.crafting.nojson.FountainEffectRegistry;
@@ -16,7 +24,7 @@ public class BlockFountainPrimeOre extends BlockFountainPrime {
 
     @Nonnull
     @Override
-    public FountainEffect provideEffect() {
+    public FountainEffect<?> provideEffect() {
         return FountainEffectRegistry.EFFECT_LIQUID;
     }
 }

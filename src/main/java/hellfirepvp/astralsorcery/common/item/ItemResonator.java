@@ -9,6 +9,7 @@
 package hellfirepvp.astralsorcery.common.item;
 
 import com.google.common.collect.Lists;
+import hellfirepvp.astralsorcery.client.data.config.entry.RenderingConfig;
 import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
 import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
@@ -41,11 +42,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.IntNBT;
 import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.*;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
@@ -78,15 +81,6 @@ public class ItemResonator extends Item implements OverrideInteractItem {
         super(new Properties()
                 .maxStackSize(1)
                 .group(CommonProxy.ITEM_GROUP_AS));
-
-        this.addPropertyOverride(new ResourceLocation("upgrade"),
-                (stack, world, entity) -> {
-                    if (!(entity instanceof PlayerEntity)) {
-                        return ResonatorUpgrade.STARLIGHT.ordinal() / (float) ResonatorUpgrade.values().length;
-                    }
-                    ResonatorUpgrade current = getCurrentUpgrade((PlayerEntity) entity, stack);
-                    return current.ordinal() / (float) ResonatorUpgrade.values().length;
-                });
     }
 
     @Override
@@ -108,7 +102,7 @@ public class ItemResonator extends Item implements OverrideInteractItem {
         ResonatorUpgrade current = getCurrentUpgrade(Minecraft.getInstance().player, stack);
         for (ResonatorUpgrade upgrade : getUpgrades(stack)) {
             TextFormatting color = upgrade.equals(current) ? TextFormatting.GOLD : TextFormatting.BLUE;
-            tooltip.add(new TranslationTextComponent(upgrade.getUnlocalizedTypeName()).setStyle(new Style().setColor(color)));
+            tooltip.add(new TranslationTextComponent(upgrade.getUnlocalizedTypeName()).mergeStyle(color));
         }
     }
 
@@ -166,7 +160,7 @@ public class ItemResonator extends Item implements OverrideInteractItem {
 
         if (selected &&
                 getCurrentUpgrade(player, stack) == ResonatorUpgrade.STARLIGHT &&
-                WorldSeedCache.getSeedIfPresent(world).isPresent()) {
+                WorldSeedCache.getSeedIfPresent(world.getDimensionKey()).isPresent()) {
 
             float distribution = DayTimeHelper.getCurrentDaytimeDistribution(world);
             if (distribution <= 1E-4) {
@@ -175,32 +169,33 @@ public class ItemResonator extends Item implements OverrideInteractItem {
             BlockPos center = player.getPosition();
             int offsetX = center.getX();
             int offsetZ = center.getZ();
-            try (BlockPos.PooledMutable pool = BlockPos.PooledMutable.retain()) {
+            BlockPos.Mutable mPos = new BlockPos.Mutable();
+            int minY = RenderingConfig.CONFIG.minYFosicDisplay.get();
 
-                for (int xx = -30; xx <= 30; xx++) {
-                    for (int zz = -30; zz <= 30; zz++) {
-                        pool.setPos(world.getHeight(Heightmap.Type.WORLD_SURFACE, pool.setPos(offsetX + xx, 0, offsetZ + zz)));
+            for (int xx = -48; xx <= 48; xx++) {
+                for (int zz = -48; zz <= 48; zz++) {
+                    mPos.setPos(world.getHeight(Heightmap.Type.WORLD_SURFACE, mPos.setPos(offsetX + xx, 0, offsetZ + zz)));
+                    mPos.setY(Math.max(mPos.getY(), minY));
 
-                        float perc = SkyCollectionHelper.getSkyNoiseDistributionClient(world, pool).get();
+                    float perc = SkyCollectionHelper.getSkyNoiseDistributionClient(world.getDimensionKey(), mPos).get();
 
-                        float fPerc = (float) Math.pow((perc - 0.4F) * 1.65F, 2);
-                        if (perc >= 0.4F && random.nextFloat() <= fPerc) {
-                            if (random.nextFloat() <= fPerc && random.nextInt(6) == 0) {
+                    float fPerc = (float) Math.pow((perc - 0.4F) * 1.65F, 2);
+                    if (perc >= 0.4F && random.nextFloat() <= fPerc) {
+                        if (random.nextFloat() <= fPerc && random.nextInt(6) == 0) {
+
+                            EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                                    .spawn(new Vector3(mPos).add(random.nextFloat(), 0.15, random.nextFloat()))
+                                    .color(VFXColorFunction.constant(ColorsAS.RESONATOR_STARFIELD))
+                                    .setScaleMultiplier(4F)
+                                    .setAlphaMultiplier(distribution * fPerc);
+                            if (perc >= 0.8F && random.nextInt(3) == 0) {
 
                                 EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
-                                        .spawn(new Vector3(pool).add(random.nextFloat(), 0.15, random.nextFloat()))
-                                        .color(VFXColorFunction.constant(ColorsAS.RESONATOR_STARFIELD))
-                                        .setScaleMultiplier(4F)
-                                        .setAlphaMultiplier(distribution * fPerc);
-                                if (perc >= 0.8F && random.nextInt(3) == 0) {
-
-                                    EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
-                                            .spawn(new Vector3(pool).add(random.nextFloat(), 0.15, random.nextFloat()))
-                                            .setScaleMultiplier(0.3F)
-                                            .color(VFXColorFunction.WHITE)
-                                            .setGravityStrength(-0.001F)
-                                            .setAlphaMultiplier(distribution);
-                                }
+                                        .spawn(new Vector3(mPos).add(random.nextFloat(), 0.15, random.nextFloat()))
+                                        .setScaleMultiplier(0.3F)
+                                        .color(VFXColorFunction.WHITE)
+                                        .setGravityStrength(-0.001F)
+                                        .setAlphaMultiplier(distribution);
                             }
                         }
                     }

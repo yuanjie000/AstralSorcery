@@ -10,7 +10,7 @@ package hellfirepvp.astralsorcery.client.util;
 
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ILightReader;
+import net.minecraft.world.IBlockDisplayReader;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -33,7 +33,7 @@ public class LightmapUtil {
         return skyLight << 20 | blockLight << 4;
     }
 
-    public static int getPackedLightCoords(ILightReader world, BlockPos at) {
+    public static int getPackedLightCoords(IBlockDisplayReader world, BlockPos at) {
         return WorldRenderer.getCombinedLight(world, at);
     }
 }

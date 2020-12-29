@@ -8,6 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.effect;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.resource.SpriteSheetResource;
 import hellfirepvp.astralsorcery.client.resource.query.SpriteQuery;
@@ -51,7 +52,7 @@ public abstract class EffectCustomTexture extends Effect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void renderInventoryEffect(EffectInstance effect, DisplayEffectsScreen<?> gui, int x, int y, float z) {
+    public void renderInventoryEffect(EffectInstance effect, DisplayEffectsScreen<?> gui, MatrixStack renderStack, int x, int y, float z) {
         float wh = 18;
         float offsetX = x + 6;
         float offsetY = y + 7;
@@ -64,7 +65,7 @@ public abstract class EffectCustomTexture extends Effect {
 
         Tuple<Float, Float> uvTpl = ssr.getUVOffset(ClientScheduler.getClientTick());
         RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, offsetX, offsetY, z, wh, wh)
+            RenderingGuiUtils.rect(buf, renderStack, offsetX, offsetY, z, wh, wh)
                     .color(red, green, blue, 1F)
                     .tex(uvTpl.getA(), uvTpl.getB(), ssr.getUWidth(), ssr.getVWidth())
                     .draw();
@@ -73,7 +74,7 @@ public abstract class EffectCustomTexture extends Effect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void renderHUDEffect(EffectInstance effect, AbstractGui gui, int x, int y, float z, float alpha) {
+    public void renderHUDEffect(EffectInstance effect, AbstractGui gui, MatrixStack renderStack, int x, int y, float z, float alpha) {
         float wh = 18;
         float offsetX = x + 3;
         float offsetY = y + 3;
@@ -86,7 +87,7 @@ public abstract class EffectCustomTexture extends Effect {
 
         Tuple<Float, Float> uvTpl = ssr.getUVOffset(ClientScheduler.getClientTick());
         RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, offsetX, offsetY, z, wh, wh)
+            RenderingGuiUtils.rect(buf, renderStack, offsetX, offsetY, z, wh, wh)
                     .color(red, green, blue, 1F)
                     .tex(uvTpl.getA(), uvTpl.getB(), ssr.getUWidth(), ssr.getVWidth())
                     .draw();

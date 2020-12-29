@@ -13,6 +13,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 
 import javax.annotation.Nonnull;
+import java.util.Locale;
 import java.util.function.Predicate;
 
 /**
@@ -24,11 +25,11 @@ import java.util.function.Predicate;
  */
 public class TileAccelerationBlacklistEntry implements ConfigDataSet, Predicate<TileEntity> {
 
-    private String filterString;
+    private final String filterString;
     private Class<?> filteredSuperClass;
 
     public TileAccelerationBlacklistEntry(String filterString) {
-        this.filterString = filterString.toLowerCase();
+        this.filterString = filterString;
         try {
             this.filteredSuperClass = Class.forName(filterString);
         } catch (ClassNotFoundException | NoClassDefFoundError e) {
@@ -38,7 +39,8 @@ public class TileAccelerationBlacklistEntry implements ConfigDataSet, Predicate<
 
     @Override
     public boolean test(TileEntity tile) {
-        if (this.filterString.isEmpty()) {
+        String testStr = this.filterString.toLowerCase(Locale.ROOT);
+        if (testStr.isEmpty()) {
             return false;
         }
 
@@ -47,16 +49,12 @@ public class TileAccelerationBlacklistEntry implements ConfigDataSet, Predicate<
         }
 
         ResourceLocation key = tile.getType().getRegistryName();
-        if (key != null && key.toString().toLowerCase().startsWith(this.filterString)) {
+        if (key != null && key.toString().toLowerCase(Locale.ROOT).startsWith(testStr)) {
             return true;
         }
 
-        String className = tile.getClass().getName().toLowerCase();
-        if (className.startsWith(this.filterString)) {
-            return true;
-        }
-
-        return false;
+        String className = tile.getClass().getName().toLowerCase(Locale.ROOT);
+        return className.startsWith(testStr);
     }
 
     @Nonnull

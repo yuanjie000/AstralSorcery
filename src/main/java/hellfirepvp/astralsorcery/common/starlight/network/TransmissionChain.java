@@ -9,6 +9,7 @@
 package hellfirepvp.astralsorcery.common.starlight.network;
 
 import hellfirepvp.astralsorcery.common.block.base.BlockStarlightRecipient;
+import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.crystal.CrystalCalculations;
 import hellfirepvp.astralsorcery.common.data.sync.SyncDataHolder;
 import hellfirepvp.astralsorcery.common.data.sync.server.DataLightBlockEndpoints;
@@ -36,14 +37,14 @@ import java.util.*;
  */
 public class TransmissionChain {
 
-    private List<ChunkPos> involvedChunks = new LinkedList<>();
-    private List<LightConnection> foundConnections = new LinkedList<>();
-    private Map<BlockPos, Float> remainMultiplierMap = new HashMap<>();
+    private final Set<ChunkPos> involvedChunks = new HashSet<>();
+    private final List<LightConnection> foundConnections = new LinkedList<>();
+    private final Map<BlockPos, Float> remainMultiplierMap = new HashMap<>();
 
-    private Set<BlockPos> uncheckedEndpointsBlock = new HashSet<>(); //Might be IBlockSLRecipient or just a normal block.
-    private Set<BlockPos> resolvedNormalBlockPositions = new HashSet<>();
-    private Set<ITransmissionReceiver> endpointsNodes = new HashSet<>(); //Safe to assume those are endpoints
-    private Set<IPrismTransmissionNode> transmissionUpdateList = new HashSet<>();
+    private final Set<BlockPos> uncheckedEndpointsBlock = new HashSet<>(); //Might be IBlockSLRecipient or just a normal block.
+    private final Set<BlockPos> resolvedNormalBlockPositions = new HashSet<>();
+    private final Set<ITransmissionReceiver> endpointsNodes = new HashSet<>(); //Safe to assume those are endpoints
+    private final Map<IPrismTransmissionNode, Float> transmissionUpdateMap = new HashMap();
 
     private final WorldNetworkHandler handler;
     private final IPrismTransmissionNode sourceNode;
@@ -53,19 +54,15 @@ public class TransmissionChain {
         this.sourceNode = sourceNode;
     }
 
-    public static void threadedBuildTransmissionChain(World world, TransmissionWorldHandler handle, IIndependentStarlightSource source, WorldNetworkHandler netHandler, BlockPos sourcePos) {
-        Thread tr = new Thread(() -> {
-            TransmissionChain chain = buildFromSource(netHandler, sourcePos);
-            handle.threadTransmissionChainCallback(world, chain, source, netHandler, sourcePos);
-            SyncDataHolder.executeServer(SyncDataHolder.DATA_LIGHT_CONNECTIONS, DataLightConnections.class, data -> {
-                data.updateNewConnectionsThreaded(netHandler.getWorld().getDimension().getType(), chain.getFoundConnections());
-            });
-            SyncDataHolder.executeServer(SyncDataHolder.DATA_LIGHT_BLOCK_ENDPOINTS, DataLightBlockEndpoints.class, data -> {
-                data.updateNewEndpoints(netHandler.getWorld().getDimension().getType(), chain.getResolvedNormalBlockPositions());
-            });
+    public static void buildNetworkChain(World world, TransmissionWorldHandler handle, IIndependentStarlightSource source, WorldNetworkHandler netHandler, BlockPos sourcePos) {
+        TransmissionChain chain = buildFromSource(netHandler, sourcePos);
+        handle.updateNetworkChainData(world, chain, source, netHandler, sourcePos);
+        SyncDataHolder.executeServer(SyncDataHolder.DATA_LIGHT_CONNECTIONS, DataLightConnections.class, data -> {
+            data.updateNewConnectionsThreaded(netHandler.getWorld().getDimensionKey(), chain.getFoundConnections());
         });
-        tr.setName("TrChainCalculationThread");
-        tr.start();
+        SyncDataHolder.executeServer(SyncDataHolder.DATA_LIGHT_BLOCK_ENDPOINTS, DataLightBlockEndpoints.class, data -> {
+            data.updateNewEndpoints(netHandler.getWorld().getDimensionKey(), chain.getResolvedNormalBlockPositions());
+        });
     }
 
     private static TransmissionChain buildFromSource(WorldNetworkHandler netHandler, BlockPos at) {
@@ -99,7 +96,7 @@ public class TransmissionChain {
         if (uncheckedEndpointsBlock.contains(pos) && !resolvedNormalBlockPositions.contains(pos)) {
             resolvedNormalBlockPositions.add(pos);
             SyncDataHolder.executeServer(SyncDataHolder.DATA_LIGHT_BLOCK_ENDPOINTS, DataLightBlockEndpoints.class, data -> {
-                data.updateNewEndpoint(world.getDimension().getType(), pos);
+                data.updateNewEndpoint(world.getDimensionKey(), pos);
             });
         }
     }
@@ -107,14 +104,17 @@ public class TransmissionChain {
     private void recBuildChain(IPrismTransmissionNode node, float lossMultiplier, LinkedList<BlockPos> prevPath) {
         if (lossMultiplier <= 0.001F) return; //No. we don't transfer a part less than 0.1% of the starlight.
 
-        float lossPerc = CrystalCalculations.getThroughputMultiplier(node.getTransmissionProperties());
-        lossPerc *= node.getAdditionalTransmissionLossMultiplier();
+        CrystalAttributes lensProperties = node.getTransmissionProperties();
+        float lossPerc = lossMultiplier * CrystalCalculations.getThroughputMultiplier(lensProperties);
+        float nextHopLossPerc = lossPerc * node.getTransmissionThroughputMultiplier();
+        float transmissionPerc = lossPerc * node.getTransmissionConsumptionMultiplier() * CrystalCalculations.getThroughputEffectMultiplier(lensProperties);
+
         List<NodeConnection<IPrismTransmissionNode>> next = node.queryNext(handler);
-        float nextLoss = (lossMultiplier * lossPerc) / ((float) next.size());
+        float nextLoss = nextHopLossPerc / ((float) next.size());
         prevPath.push(node.getLocationPos());
 
         if (node.needsTransmissionUpdate()) {
-            transmissionUpdateList.add(node);
+            transmissionUpdateMap.put(node, transmissionPerc);
         }
 
         for (NodeConnection<IPrismTransmissionNode> nextNode : next) {
@@ -125,7 +125,7 @@ public class TransmissionChain {
                 if (!prevPath.contains(nextPos)) { //Saves us from cycles. cyclic starlight transmission to a cyclic node means 100% loss.
 
                     //This never exceeds 1F
-                    remainMultiplierMap.merge(nextPos, nextLoss, (current, newNext) -> current + newNext);
+                    remainMultiplierMap.merge(nextPos, nextLoss, Float::sum);
 
                     if (trNode != null) {
                         if (trNode instanceof ITransmissionReceiver) { //Tile endpoint
@@ -148,8 +148,7 @@ public class TransmissionChain {
     //After calculating everything...
     private void calculateInvolvedChunks() {
         for (BlockPos nodePos : remainMultiplierMap.keySet()) {
-            ChunkPos ch = new ChunkPos(nodePos);
-            if (!involvedChunks.contains(ch)) involvedChunks.add(ch);
+            involvedChunks.add(new ChunkPos(nodePos));
         }
     }
 
@@ -167,11 +166,11 @@ public class TransmissionChain {
         if (!foundConnections.contains(newCon)) foundConnections.add(newCon);
     }
 
-    public Set<IPrismTransmissionNode> getTransmissionUpdateList() {
-        return transmissionUpdateList;
+    public Map<IPrismTransmissionNode, Float> getTransmissionUpdates() {
+        return this.transmissionUpdateMap;
     }
 
-    public List<ChunkPos> getInvolvedChunks() {
+    public Collection<ChunkPos> getInvolvedChunks() {
         return involvedChunks;
     }
 

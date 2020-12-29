@@ -22,12 +22,13 @@ import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.block.WorldBlockPos;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
 import hellfirepvp.astralsorcery.common.util.tick.TickTokenMap;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.IProjectile;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.potion.EffectInstance;
@@ -75,27 +76,28 @@ public class CEffectArmara extends ConstellationEffectEntityCollect<LivingEntity
         ItemStack socket = pedestal.getCurrentCrystal();
         if (!socket.isEmpty() && socket.getItem() instanceof ItemAttunedCrystalBase) {
             IMinorConstellation trait = ((ItemAttunedCrystalBase) socket.getItem()).getTraitConstellation(socket);
-            prop.modify(trait);
-            if (prop.isCorrupted()) {
-                return;
+            if (trait != null) {
+                trait.affectConstellationEffect(prop);
+                if (prop.isCorrupted()) {
+                    return;
+                }
             }
         }
 
-        PlayerEntity owner = pedestal.getOwner();
         List<Entity> projectiles = world.getEntitiesWithinAABB(Entity.class, BOX.offset(pos).grow(prop.getSize()));
         if (!projectiles.isEmpty()) {
             for (Entity e : projectiles) {
                 if (e.isAlive() && TechnicalEntityRegistry.INSTANCE.canAffect(e)) {
-                    if (e instanceof IProjectile) {
+                    if (e instanceof ProjectileEntity) {
                         double xRatio = (pos.getX() + 0.5) - e.getPosX();
                         double zRatio = (pos.getZ() + 0.5) - e.getPosZ();
                         float f = MathHelper.sqrt(xRatio * xRatio + zRatio * zRatio);
                         Vector3 motion = new Vector3(e.getMotion());
                         motion.multiply(new Vector3(0.5, 1, 0.5));
                         motion.subtract(xRatio / f * 0.4, 0, zRatio / f * 0.4);
-                        ((IProjectile) e).shoot(motion.getX(), motion.getY(), motion.getZ(), 1.5F, 0F);
+                        ((ProjectileEntity) e).shoot(motion.getX(), motion.getY(), motion.getZ(), 1.5F, 0F);
                     } else if (e instanceof MobEntity) {
-                        ((LivingEntity) e).knockBack(owner == null ? e : owner, 0.4F, (pos.getX() + 0.5) - e.getPosX(), (pos.getZ() + 0.5) - e.getPosZ());
+                        ((LivingEntity) e).applyKnockback(0.4F, (pos.getX() + 0.5) - e.getPosX(), (pos.getZ() + 0.5) - e.getPosZ());
                     }
                 }
             }
@@ -117,23 +119,21 @@ public class CEffectArmara extends ConstellationEffectEntityCollect<LivingEntity
             EventHelperSpawnDeny.spawnDenyRegions.put(at, new TickTokenMap.SimpleTickToken<>(properties.getSize(), rememberedTimeout));
         }
 
-        PlayerEntity owner = this.getOwningPlayerInWorld(world, pos);
-
         if (!properties.isCorrupted()) {
             List<Entity> projectiles = world.getEntitiesWithinAABB(Entity.class, BOX.offset(pos).grow(properties.getSize()));
             if (!projectiles.isEmpty()) {
                 for (Entity e : projectiles) {
                     if (e.isAlive() && TechnicalEntityRegistry.INSTANCE.canAffect(e)) {
-                        if (e instanceof IProjectile) {
+                        if (e instanceof ProjectileEntity) {
                             double xRatio = (pos.getX() + 0.5) - e.getPosX();
                             double zRatio = (pos.getZ() + 0.5) - e.getPosZ();
                             float f = MathHelper.sqrt(xRatio * xRatio + zRatio * zRatio);
                             Vector3 motion = new Vector3(e.getMotion());
                             motion.multiply(new Vector3(0.5, 1, 0.5));
                             motion.subtract(xRatio / f * 0.4, 0, zRatio / f * 0.4);
-                            ((IProjectile) e).shoot(motion.getX(), motion.getY(), motion.getZ(), 1.5F, 0F);
+                            ((ProjectileEntity) e).shoot(motion.getX(), motion.getY(), motion.getZ(), 1.5F, 0F);
                         } else if (e instanceof MobEntity) {
-                            ((LivingEntity) e).knockBack(owner == null ? e : owner, 0.4F, (pos.getX() + 0.5) - e.getPosX(), (pos.getZ() + 0.5) - e.getPosZ());
+                            ((LivingEntity) e).applyKnockback(0.4F, (pos.getX() + 0.5) - e.getPosX(), (pos.getZ() + 0.5) - e.getPosZ());
                         }
                     }
                 }
@@ -149,17 +149,17 @@ public class CEffectArmara extends ConstellationEffectEntityCollect<LivingEntity
                         continue;
                     }
 
-                    entity.addPotionEffect(new EffectInstance(Effects.SPEED, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new EffectInstance(Effects.REGENERATION, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new EffectInstance(Effects.RESISTANCE, 100, potionAmplifier + 2));
-                    entity.addPotionEffect(new EffectInstance(Effects.STRENGTH, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new EffectInstance(Effects.WATER_BREATHING, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new EffectInstance(Effects.HASTE, 100, potionAmplifier + 4));
-                    entity.addPotionEffect(new EffectInstance(EffectsAS.EFFECT_DROP_MODIFIER, 100, 5));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.SPEED, 100, potionAmplifier + 4));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.REGENERATION, 100, potionAmplifier + 4));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.RESISTANCE, 100, potionAmplifier + 2));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.STRENGTH, 100, potionAmplifier + 4));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.WATER_BREATHING, 100, potionAmplifier + 4));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.HASTE, 100, potionAmplifier + 4));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(EffectsAS.EFFECT_DROP_MODIFIER, 100, 5));
                 } else {
-                    entity.addPotionEffect(new EffectInstance(Effects.RESISTANCE, 30, Math.min(potionAmplifier, 3), true, true));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.RESISTANCE, 30, Math.min(potionAmplifier, 3), true, true));
                     if (entity instanceof PlayerEntity) {
-                        entity.addPotionEffect(new EffectInstance(Effects.ABSORPTION, 30, potionAmplifier, true, false));
+                        EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.ABSORPTION, 30, potionAmplifier, true, false));
                     }
                 }
             }

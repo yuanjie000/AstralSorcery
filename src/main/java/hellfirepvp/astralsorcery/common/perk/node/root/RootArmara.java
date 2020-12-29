@@ -50,7 +50,7 @@ public class RootArmara extends RootPerk {
     }
 
     @Override
-    public void attachListeners(LogicalSide side, IEventBus bus) {
+    protected void attachListeners(LogicalSide side, IEventBus bus) {
         super.attachListeners(side, bus);
 
         bus.addListener(EventPriority.HIGHEST, this::onHurt);
@@ -68,7 +68,7 @@ public class RootArmara extends RootPerk {
         }
 
         PlayerProgress prog = ResearchHelper.getProgress(player, side);
-        if (!prog.hasPerkEffect(this)) {
+        if (!prog.getPerkData().hasPerkEffect(this)) {
             return;
         }
 

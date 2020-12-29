@@ -58,6 +58,7 @@ import hellfirepvp.astralsorcery.common.tile.TileTreeBeacon;
 import hellfirepvp.astralsorcery.common.util.BlockDropCaptureAssist;
 import hellfirepvp.astralsorcery.common.util.DamageSourceUtil;
 import hellfirepvp.astralsorcery.common.util.ServerLifecycleListener;
+import hellfirepvp.astralsorcery.common.util.collision.CollisionManager;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopController;
 import hellfirepvp.observerlib.common.event.BlockChangeNotifier;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
@@ -69,21 +70,26 @@ import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Rarity;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.resources.IReloadableResourceManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.storage.FolderName;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraftforge.event.AddReloadListenerEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.LogicalSidedProvider;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
-import net.minecraftforge.fml.event.server.*;
+import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
+import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
+import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
+import net.minecraftforge.fml.event.server.FMLServerStoppingEvent;
 
 import java.io.File;
 import java.util.List;
@@ -138,7 +144,7 @@ public class CommonProxy {
     private PrimerEventHandler registryEventHandler;
     private CommonScheduler commonScheduler;
     private TickManager tickManager;
-    private List<ServerLifecycleListener> serverLifecycleListeners = Lists.newArrayList();
+    private final List<ServerLifecycleListener> serverLifecycleListeners = Lists.newArrayList();
 
     private CommonConfig commonConfig;
     private ServerConfig serverConfig;
@@ -156,16 +162,13 @@ public class CommonProxy {
         RegistryGameRules.init();
         RegistryStructureTypes.init();
         PacketChannel.registerPackets();
-        RegistryPerkAttributeTypes.init();
-        RegistryPerkConverters.init();
-        RegistryPerkCustomModifiers.init();
-        RegistryPerkAttributeReaders.init();
         RegistryIngredientTypes.init();
         RegistryAdvancements.init();
         AltarRecipeTypeHandler.init();
         PerkTypeHandler.init();
         ModifierManager.init();
         RegistryConstellations.init();
+        RegistryArgumentTypes.init();
 
         this.initializeConfigurations();
         ConfigRegistries.getRegistries().buildDataRegistries(this.serverConfig);
@@ -195,11 +198,12 @@ public class CommonProxy {
     }
 
     public void attachEventHandlers(IEventBus eventBus) {
+        eventBus.addListener(this::onRegisterCommands);
         eventBus.addListener(this::onServerStop);
         eventBus.addListener(this::onServerStopping);
         eventBus.addListener(this::onServerStarting);
         eventBus.addListener(this::onServerStarted);
-        eventBus.addListener(this::onServerAboutToStart);
+        eventBus.addListener(this::onRegisterReloadListeners);
 
         EventHandlerInteract.attachListeners(eventBus);
         EventHandlerCache.attachListeners(eventBus);
@@ -209,6 +213,8 @@ public class CommonProxy {
         EventHelperInvulnerability.attachListeners(eventBus);
         EventHelperEntityFreeze.attachListeners(eventBus);
         PerkAttributeLimiter.attachListeners(eventBus);
+
+        eventBus.addListener(RegistryWorldGeneration::loadBiomeFeatures);
 
         eventBus.addListener(PlayerAmuletHandler::onEnchantmentAdd);
         eventBus.addListener(BlockDropCaptureAssist.INSTANCE::onDrop);
@@ -270,10 +276,12 @@ public class CommonProxy {
         RegistryPerks.initConfig(PerkConfig.CONFIG::newSubSection);
 
         this.commonConfig.addConfigEntry(CommonGeneralConfig.CONFIG);
+        this.commonConfig.addConfigEntry(WorldGenConfig.CONFIG);
+
+        RegistryWorldGeneration.addConfigEntries(WorldGenConfig.CONFIG::newSubSection);
 
         ConstellationEffectRegistry.addConfigEntries(this.serverConfig);
         MantleEffectRegistry.addConfigEntries(this.serverConfig);
-        RegistryWorldGeneration.registerFeatureConfigurations(this.serverConfig);
     }
 
     public InternalRegistryPrimer getRegistryPrimer() {
@@ -295,7 +303,8 @@ public class CommonProxy {
         if (server == null) {
             return null;
         }
-        File asDataDir = server.getActiveAnvilConverter().getFile(server.getFolderName(), AstralSorcery.MODID);
+
+        File asDataDir = server.func_240776_a_(new FolderName(AstralSorcery.MODID)).toFile();
         if (!asDataDir.exists()) {
             asDataDir.mkdirs();
         }
@@ -336,10 +345,15 @@ public class CommonProxy {
 
         RegistryCapabilities.init(MinecraftForge.EVENT_BUS);
         StarlightNetworkRegistry.setupRegistry();
-
-        RegistryWorldGeneration.addFeaturesToBiomes();
+        CollisionManager.init();
 
         PatreonDataManager.loadPatreonEffects();
+
+        event.enqueueWork(RegistryWorldGeneration::registerStructureGeneration);
+    }
+
+    private void onRegisterCommands(RegisterCommandsEvent event) {
+        CommandAstralSorcery.register(event.getDispatcher());
     }
 
     private void onEnqueueIMC(InterModEnqueueEvent event) {
@@ -348,10 +362,8 @@ public class CommonProxy {
 
     // Generic events
 
-    private void onServerAboutToStart(FMLServerAboutToStartEvent event) {
-        IReloadableResourceManager mgr = event.getServer().getResourceManager();
-
-        mgr.addReloadListener(PerkTreeLoader.INSTANCE);
+    private void onRegisterReloadListeners(AddReloadListenerEvent event) {
+        event.addListener(PerkTreeLoader.INSTANCE);
     }
 
     private void onServerStarted(FMLServerStartedEvent event) {
@@ -359,7 +371,7 @@ public class CommonProxy {
     }
 
     private void onServerStarting(FMLServerStartingEvent event) {
-        CommandAstralSorcery.register(event.getCommandDispatcher());
+
     }
 
     private void onServerStopping(FMLServerStoppingEvent event) {

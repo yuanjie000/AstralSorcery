@@ -89,10 +89,9 @@ public class PatreonDataManager {
 
             UUID hellfire = UUID.fromString("7f6971c5-fb58-4519-a975-b1b5766e92d1");
             try {
-                /*PatreonEffect effect = PatreonEffectType.CRYSTAL_FOOTPRINTS.getProvider().buildEffect(hellfire,
+                /*PatreonEffect effect = PatreonEffectType.STAR_HALO.getProvider().buildEffect(hellfire,
                         Arrays.asList("777971c5-fb58-4519-a975-b1b5766e44d1",
-                                "DARK_GREEN",
-                                "7865553"));
+                                "null"));
                 effect.initialize();
                 effect.attachEventListeners(MinecraftForge.EVENT_BUS);
                 effect.attachTickListeners(AstralSorcery.getProxy().getTickManager()::register);

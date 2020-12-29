@@ -8,12 +8,14 @@
 
 package hellfirepvp.astralsorcery.client.event;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.BlockAtlasTexture;
 import hellfirepvp.astralsorcery.client.util.RenderingDrawUtils;
 import hellfirepvp.astralsorcery.client.util.RenderingGuiUtils;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
+import hellfirepvp.astralsorcery.common.data.research.PlayerPerkData;
 import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.item.base.PerkExperienceRevealer;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
@@ -22,6 +24,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -61,10 +64,11 @@ public class PerkExperienceRenderer implements ITickHandler {
         if (this.visibilityReveal <= 0) {
             return;
         }
-        if (ResearchHelper.getClientProgress().getAttunedConstellation() == null) {
+        if (!ResearchHelper.getClientProgress().isAttuned()) {
             return;
         }
 
+        MatrixStack renderStack = event.getMatrixStack();
         PlayerEntity player = Minecraft.getInstance().player;
         float frameHeight  = 128F;
         float frameWidth   =  32F;
@@ -76,12 +80,13 @@ public class PerkExperienceRenderer implements ITickHandler {
 
         TexturesAS.TEX_OVERLAY_EXP_FRAME.bindTexture();
         RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, frameOffsetX, frameOffsetY, 10, frameWidth, frameHeight)
+            RenderingGuiUtils.rect(buf, renderStack, frameOffsetX, frameOffsetY, 10, frameWidth, frameHeight)
                     .color(1F, 1F, 1F, visibilityReveal * 0.9F)
                     .draw();
         });
 
-        float perc = ResearchHelper.getClientProgress().getPercentToNextLevel(player, LogicalSide.CLIENT);
+        PlayerPerkData perkData = ResearchHelper.getClientProgress().getPerkData();
+        float perc = perkData.getPercentToNextLevel(player, LogicalSide.CLIENT);
         float expHeight  =  78F * perc;
         float expWidth   =  32F;
         float expOffsetX =   0F;
@@ -89,24 +94,25 @@ public class PerkExperienceRenderer implements ITickHandler {
 
         TexturesAS.TEX_OVERLAY_EXP_BAR.bindTexture();
         RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, expOffsetX, expOffsetY, 10, expWidth, expHeight)
+            RenderingGuiUtils.rect(buf, renderStack, expOffsetX, expOffsetY, 10, expWidth, expHeight)
                     .color(1F, 0.9F, 0F, visibilityReveal * 0.9F)
                     .tex(0, 0, 1, 1 - perc)
                     .draw();
         });
 
-        String strLevel = String.valueOf(ResearchHelper.getClientProgress().getPerkLevel(player, LogicalSide.CLIENT));
-        int strLength = Minecraft.getInstance().fontRenderer.getStringWidth(strLevel);
+        String strLevel = String.valueOf(perkData.getPerkLevel(player, LogicalSide.CLIENT));
+        StringTextComponent txtLevel = new StringTextComponent(strLevel);
+        int strLength = Minecraft.getInstance().fontRenderer.getStringPropertyWidth(txtLevel);
 
-        RenderSystem.pushMatrix();
-        RenderSystem.translated(15 - (strLength / 2), 94, 20);
-        RenderSystem.scaled(1.2, 1.2, 1.2);
+        renderStack.push();
+        renderStack.translate(15 - (strLength / 2F), 94, 20);
+        renderStack.scale(1.2F, 1.2F, 1F);
         int c = 0x00DDDDDD;
         c |= ((int) (255F * visibilityReveal)) << 24;
         if (visibilityReveal > 0.1E-4) {
-            RenderingDrawUtils.renderStringAtPos(0, 0, 0, Minecraft.getInstance().fontRenderer, strLevel, c, true);
+            RenderingDrawUtils.renderStringAt(txtLevel, renderStack, null, c, true);
         }
-        RenderSystem.popMatrix();
+        renderStack.pop();
 
         BlockAtlasTexture.getInstance().bindTexture();
     }

@@ -9,6 +9,7 @@
 package hellfirepvp.astralsorcery.common.constellation.engraving;
 
 import hellfirepvp.astralsorcery.common.constellation.IConstellation;
+import hellfirepvp.astralsorcery.common.item.base.TypeEnchantableItem;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.EffectsAS;
 import hellfirepvp.astralsorcery.common.perk.DynamicModifierHelper;
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
  */
 public class EngravingEffect extends ForgeRegistryEntry<EngravingEffect> {
 
-    private List<ApplicableEffect> effects = new ArrayList<>();
+    private final List<ApplicableEffect> effects = new ArrayList<>();
 
     public EngravingEffect(IConstellation cst) {
         this.setRegistryName(cst.getRegistryName());
@@ -100,11 +101,22 @@ public class EngravingEffect extends ForgeRegistryEntry<EngravingEffect> {
             if (!DynamicModifierHelper.getStaticModifiers(stack).isEmpty()) {
                 return false;
             }
+            Item item = stack.getItem();
             if (this.applicableTypes.isEmpty()) {
-                return EnchantmentType.ALL.canEnchantItem(stack.getItem());
+                for (EnchantmentType type : EnchantmentType.values()) {
+                    if (type.canEnchantItem(item)) {
+                        return true;
+                    }
+                    if (item instanceof TypeEnchantableItem && ((TypeEnchantableItem) item).canEnchantItem(stack, type)) {
+                        return true;
+                    }
+                }
             }
             for (EnchantmentType type : this.applicableTypes) {
-                if (type.canEnchantItem(stack.getItem())) {
+                if (type.canEnchantItem(item)) {
+                    return true;
+                }
+                if (item instanceof TypeEnchantableItem && ((TypeEnchantableItem) item).canEnchantItem(stack, type)) {
                     return true;
                 }
             }
@@ -215,7 +227,7 @@ public class EngravingEffect extends ForgeRegistryEntry<EngravingEffect> {
             PotionUtils.appendEffects(stack, existing);
             stack.getTag().putInt("CustomPotionColor", ColorsAS.DYE_ORANGE.getRGB());
             //TODO meh.. they changed displayname stuff :V RIP
-            stack.setDisplayName(new TranslationTextComponent("potion.astralsorcery.crafted.name").applyTextStyle(TextFormatting.GOLD));
+            stack.setDisplayName(new TranslationTextComponent("potion.astralsorcery.crafted.name").mergeStyle(TextFormatting.GOLD));
             return stack;
         }
     }

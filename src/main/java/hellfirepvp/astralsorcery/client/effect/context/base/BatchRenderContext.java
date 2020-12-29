@@ -24,7 +24,7 @@ import hellfirepvp.astralsorcery.common.util.order.OrderSortable;
 import hellfirepvp.observerlib.client.util.RenderTypeDecorator;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import org.lwjgl.opengl.GL11;
 
 import java.util.List;
@@ -110,7 +110,7 @@ public class BatchRenderContext<T extends EntityVisualFX> extends OrderSortable 
 
     private void drawBatched(IVertexBuilder buf, IDrawRenderTypeBuffer renderTypeBuffer) {
         if (buf instanceof BufferBuilder && this.getRenderType().getDrawMode() == GL11.GL_QUADS) {
-            Vec3d view = RenderInfo.getInstance().getARI().getProjectedView();
+            Vector3d view = RenderInfo.getInstance().getARI().getProjectedView();
             ((BufferBuilder) buf).sortVertexData((float) view.x, (float) view.y, (float) view.z);
         }
         renderTypeBuffer.draw();

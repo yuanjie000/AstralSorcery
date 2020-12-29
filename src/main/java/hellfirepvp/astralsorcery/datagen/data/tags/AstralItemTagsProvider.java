@@ -8,12 +8,16 @@
 
 package hellfirepvp.astralsorcery.datagen.data.tags;
 
+import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
+import net.minecraft.data.BlockTagsProvider;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.ItemTagsProvider;
+import net.minecraft.data.TagsProvider;
 import net.minecraft.item.Item;
+import net.minecraft.tags.ITag;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.Tag;
+import net.minecraftforge.common.Tags;
 
 import static hellfirepvp.astralsorcery.common.lib.TagsAS.Items.*;
 
@@ -26,8 +30,8 @@ import static hellfirepvp.astralsorcery.common.lib.TagsAS.Items.*;
  */
 public class AstralItemTagsProvider extends ItemTagsProvider {
 
-    public AstralItemTagsProvider(DataGenerator generatorIn) {
-        super(generatorIn);
+    public AstralItemTagsProvider(DataGenerator dataGenerator, BlockTagsProvider blockTagsProvider) {
+        super(dataGenerator, blockTagsProvider);
     }
 
     @Override
@@ -53,9 +57,14 @@ public class AstralItemTagsProvider extends ItemTagsProvider {
                 .add(ItemsAS.STARDUST);
         this.tag(INGOTS_STARMETAL)
                 .add(ItemsAS.STARMETAL_INGOT);
+
+        this.tag(Tags.Items.ORES)
+                .add(BlocksAS.STARMETAL_ORE.asItem())
+                .add(BlocksAS.AQUAMARINE_SAND_ORE.asItem())
+                .add(BlocksAS.ROCK_CRYSTAL_ORE.asItem());
     }
 
-    private Tag.Builder<Item> tag(Tag<Item> tag) {
-        return this.getBuilder(tag);
+    private TagsProvider.Builder<Item> tag(ITag.INamedTag<Item> tag) {
+        return this.getOrCreateBuilder(tag);
     }
 }

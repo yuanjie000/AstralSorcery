@@ -72,22 +72,24 @@ public class ItemWand extends Item implements OverrideInteractItem {
                     RockCrystalBuffer buf = DataAS.DOMAIN_AS.getData(world, DataAS.KEY_ROCK_CRYSTAL_BUFFER);
 
                     ChunkPos pos = new ChunkPos(entity.getPosition());
-                    for (BlockPos rPos : buf.collectPositions(pos, 4)) {
-                        BlockState state = world.getBlockState(rPos);
-                        if (!(state.getBlock() instanceof BlockRockCrystalOre)) {
-                            buf.removeOre(rPos);
-                            continue;
-                        }
-                        if (!DayTimeHelper.isDay(world) && random.nextInt(600) == 0) {
-                            PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.ROCK_CRYSTAL_COLUMN)
-                                    .addData(b -> ByteBufUtils.writeVector(b, new Vector3(rPos.up())));
-                            PacketChannel.CHANNEL.sendToPlayer((PlayerEntity) entity, pkt);
-                        }
-                        if (random.nextInt(800) == 0) {
-                            PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.ROCK_CRYSTAL_SPARKS)
-                                    .addData(b -> ByteBufUtils.writeVector(b, new Vector3(rPos.up())));
-                            PacketChannel.CHANNEL.sendToPlayer((PlayerEntity) entity, pkt);
-                        }
+                    for (BlockPos rPos : buf.collectPositions(pos, 6)) {
+                        MiscUtils.executeWithChunk(world, rPos, () -> {
+                            BlockState state = world.getBlockState(rPos);
+                            if (!(state.getBlock() instanceof BlockRockCrystalOre)) {
+                                buf.removeOre(rPos);
+                                return;
+                            }
+                            if (!DayTimeHelper.isDay(world) && random.nextInt(600) == 0) {
+                                PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.ROCK_CRYSTAL_COLUMN)
+                                        .addData(b -> ByteBufUtils.writeVector(b, new Vector3(rPos.up())));
+                                PacketChannel.CHANNEL.sendToPlayer((PlayerEntity) entity, pkt);
+                            }
+                            if (random.nextInt(800) == 0) {
+                                PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.ROCK_CRYSTAL_SPARKS)
+                                        .addData(b -> ByteBufUtils.writeVector(b, new Vector3(rPos.up())));
+                                PacketChannel.CHANNEL.sendToPlayer((PlayerEntity) entity, pkt);
+                            }
+                        });
                     }
                 }
             }
@@ -136,7 +138,7 @@ public class ItemWand extends Item implements OverrideInteractItem {
 
     @OnlyIn(Dist.CLIENT)
     private void displayClientStructurePreview(World world, BlockPos pos, StructureType type) {
-        StructurePreview.newBuilder(world.getDimension().getType(), pos, (MatchableStructure) type.getStructure())
+        StructurePreview.newBuilder(world.getDimensionKey(), pos, (MatchableStructure) type.getStructure())
                 .removeIfOutInDifferentWorld()
                 .andPersistOnlyIf((inWorld, at) -> {
                     return MiscUtils.executeWithChunk(world, pos, () -> {

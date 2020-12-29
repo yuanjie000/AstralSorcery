@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2020
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
 package hellfirepvp.astralsorcery.common.util.dispenser;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
@@ -77,10 +85,7 @@ public class FluidContainerDispenseBehavior extends DefaultDispenseItemBehavior 
 
     @Nonnull
     private ItemStack dumpContainer(IBlockSource source, @Nonnull ItemStack stack) {
-        World world = source.getWorld();
-        if (!(world instanceof ServerWorld)) {
-            return super.dispenseStack(source, stack);
-        }
+        ServerWorld world = source.getWorld();
         ItemStack singleStack = stack.copy();
         singleStack.setCount(1);
         LazyOptional<IFluidHandlerItem> itemFluidHandler = FluidUtil.getFluidHandler(singleStack);

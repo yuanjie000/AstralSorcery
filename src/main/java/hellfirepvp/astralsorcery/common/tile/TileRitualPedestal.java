@@ -51,8 +51,9 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.Direction;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.capabilities.Capability;
@@ -212,7 +213,7 @@ public class TileRitualPedestal extends TileReceiverBase<StarlightReceiverRitual
         ConstellationEffectProperties properties = effect.createProperties(this.getMirrorCount());
         if (properties != null) {
             if (this.getRitualTrait() != null) {
-                properties.modify(this.getRitualTrait());
+                this.getRitualTrait().affectConstellationEffect(properties);
             }
             if (!this.getCurrentCrystal().isEmpty()) {
                 CrystalAttributes attributes = CrystalAttributes.getCrystalAttributes(this.getCurrentCrystal());
@@ -239,8 +240,8 @@ public class TileRitualPedestal extends TileReceiverBase<StarlightReceiverRitual
 
     @Nonnull
     @Override
-    public DimensionType getDimensionType() {
-        return this.getWorld().getDimension().getType();
+    public RegistryKey<World> getDimension() {
+        return this.getWorld().getDimensionKey();
     }
 
     @Override
@@ -574,11 +575,7 @@ public class TileRitualPedestal extends TileReceiverBase<StarlightReceiverRitual
         super.readCustomNBT(compound);
 
         this.inventory = this.inventory.deserialize(compound.getCompound("inventory"));
-        if (compound.hasUniqueId("ownerUUID")) {
-            this.ownerUUID = compound.getUniqueId("ownerUUID");
-        } else {
-            this.ownerUUID = null;
-        }
+        this.ownerUUID = NBTHelper.getUUID(compound, "ownerUUID", null);
         this.ritualLinkTo = NBTHelper.readFromSubTag(compound, "ritualLinkTo", NBTHelper::readBlockPosFromNBT);
         this.working = compound.getBoolean("working");
 

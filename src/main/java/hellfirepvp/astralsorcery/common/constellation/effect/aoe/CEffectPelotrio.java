@@ -28,6 +28,7 @@ import net.minecraft.potion.EffectInstance;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.gen.Heightmap;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -46,13 +47,18 @@ import java.util.List;
  */
 public class CEffectPelotrio extends CEffectAbstractList<ListEntries.EntitySpawnEntry> {
 
-    private static AxisAlignedBB PROXIMITY_BOX = new AxisAlignedBB(0, 0, 0, 0, 0, 0);
+    private static final AxisAlignedBB PROXIMITY_BOX = new AxisAlignedBB(0, 0, 0, 0, 0, 0);
 
     public static PelotrioConfig CONFIG = new PelotrioConfig();
 
     public CEffectPelotrio(@Nonnull ILocatable origin) {
-        super(origin, ConstellationsAS.pelotrio, CONFIG.maxAmount.get(),
-                (world, pos, state) -> ListEntries.EntitySpawnEntry.createEntry(world, pos, SpawnReason.SPAWNER) != null);
+        super(origin, ConstellationsAS.pelotrio, CONFIG.maxAmount.get(), (world, pos, state) -> {
+            if (!(world instanceof ServerWorld)) {
+                return false;
+            }
+            pos = world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pos).up();
+            return ListEntries.EntitySpawnEntry.createEntry((ServerWorld) world, pos, SpawnReason.SPAWNER) != null;
+        });
     }
 
     @Nullable
@@ -64,7 +70,11 @@ public class CEffectPelotrio extends CEffectAbstractList<ListEntries.EntitySpawn
     @Nullable
     @Override
     public ListEntries.EntitySpawnEntry createElement(World world, BlockPos pos) {
-        return ListEntries.EntitySpawnEntry.createEntry(world, pos, SpawnReason.SPAWNER);
+        if (!(world instanceof ServerWorld)) {
+            return null;
+        }
+        pos = world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pos).up();
+        return ListEntries.EntitySpawnEntry.createEntry((ServerWorld) world, pos, SpawnReason.SPAWNER);
     }
 
     @Override
@@ -111,8 +121,9 @@ public class CEffectPelotrio extends CEffectAbstractList<ListEntries.EntitySpawn
             int count = entry.getCounter();
             count++;
             entry.setCounter(count);
-            if (count >= 40) {
-                entry.spawn(world, SpawnReason.SPAWNER);
+            sendConstellationPing(world, new Vector3(entry.getPos()).add(0.5, 0.5, 0.5));
+            if (count >= 10) {
+                entry.spawn((ServerWorld) world, SpawnReason.SPAWNER);
                 removeElement(entry);
             }
 

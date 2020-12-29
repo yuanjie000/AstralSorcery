@@ -17,11 +17,11 @@ import hellfirepvp.astralsorcery.common.util.loot.LootUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.loot.LootContext;
+import net.minecraft.loot.LootParameterSets;
+import net.minecraft.loot.LootParameters;
+import net.minecraft.loot.conditions.ILootCondition;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.storage.loot.LootContext;
-import net.minecraft.world.storage.loot.LootParameterSets;
-import net.minecraft.world.storage.loot.LootParameters;
-import net.minecraft.world.storage.loot.conditions.ILootCondition;
 import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
 import net.minecraftforge.common.loot.LootModifier;
 import net.minecraftforge.fml.LogicalSide;
@@ -55,7 +55,7 @@ public class LootModifierMagnetDrops extends LootModifier {
         }
         PlayerEntity player = (PlayerEntity) e;
         PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
-        if (!prog.isValid() || !prog.hasPerkEffect(perk -> perk instanceof KeyMagnetDrops)) {
+        if (!prog.isValid() || !prog.getPerkData().hasPerkEffect(perk -> perk instanceof KeyMagnetDrops)) {
             return generatedLoot;
         }
 
@@ -71,6 +71,11 @@ public class LootModifierMagnetDrops extends LootModifier {
         @Override
         public LootModifierMagnetDrops read(ResourceLocation location, JsonObject object, ILootCondition[] lootConditions) {
             return new LootModifierMagnetDrops(lootConditions);
+        }
+
+        @Override
+        public JsonObject write(LootModifierMagnetDrops instance) {
+            return this.makeConditions(instance.conditions);
         }
     }
 }

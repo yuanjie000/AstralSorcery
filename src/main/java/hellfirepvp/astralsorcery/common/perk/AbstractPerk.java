@@ -11,21 +11,23 @@ package hellfirepvp.astralsorcery.common.perk;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
 import hellfirepvp.astralsorcery.client.screen.journal.ScreenJournalPerkTree;
+import hellfirepvp.astralsorcery.common.data.research.PerkAllocationType;
+import hellfirepvp.astralsorcery.common.data.research.PlayerPerkData;
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
-import hellfirepvp.astralsorcery.common.event.ASRegistryEvents;
 import hellfirepvp.astralsorcery.common.perk.source.ModifierManager;
 import hellfirepvp.astralsorcery.common.perk.source.ModifierSource;
 import hellfirepvp.astralsorcery.common.perk.tree.PerkTreePoint;
 import hellfirepvp.astralsorcery.common.util.CacheEventBus;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.*;
+import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
@@ -63,13 +65,13 @@ public class AbstractPerk implements ModifierSource {
     protected final Point.Float offset;
     private String unlocalizedKey;
     private PerkCategory category = CATEGORY_BASE;
+    private boolean hiddenUnlessAllocated = false;
     private PerkTreePoint<? extends AbstractPerk> treePoint = null;
 
     private ResourceLocation customPerkType = null;
 
-    private List<ITextComponent> tooltipCache = null;
+    private List<IFormattableTextComponent> tooltipCache = null;
     private boolean cacheTooltip = true;
-    private float cacheEffectMultiplier = 1.0F;
 
     public AbstractPerk(ResourceLocation name, float x, float y) {
         this.registryName = name;
@@ -114,52 +116,23 @@ public class AbstractPerk implements ModifierSource {
         return (T) this;
     }
 
-    //TODO crafttweaker?
-    //@Optional.Method(modid = "crafttweaker")
-    //public final void adjustMultipliers() {
-    //    double multiplier = hellfirepvp.astralsorcery.common.integration.mods.crafttweaker.tweaks.PerkTree.getMultiplier(this);
-    //    applyEffectMultiplier(multiplier);
-    //}
-
-    protected void applyEffectMultiplier(float multiplier) {
-        this.cacheEffectMultiplier = multiplier;
-    }
-
-    protected int applyMultiplierI(double val) {
-        return MathHelper.floor(val * this.cacheEffectMultiplier);
-    }
-
-    protected double applyMultiplierD(double val) {
-        return val * this.cacheEffectMultiplier;
-    }
-
-    //Return true to display that the perk's modifiers got disabled by pack's configurations
-    public boolean modifiersDisabled(PlayerEntity player, LogicalSide dist) {
-        ASRegistryEvents.PerkDisable event = new ASRegistryEvents.PerkDisable(this, player, dist);
-        MinecraftForge.EVENT_BUS.post(event);
-        return event.isPerkDisabled();
+    public <T> T setHiddenUnlessAllocated(boolean hiddenUnlessAllocated) {
+        this.hiddenUnlessAllocated = hiddenUnlessAllocated;
+        return (T) this;
     }
 
     @Override
     public boolean canApplySource(PlayerEntity player, LogicalSide dist) {
-        return !ResearchHelper.getProgress(player, dist).isPerkSealed(this);
+        return !ResearchHelper.getProgress(player, dist).getPerkData().isPerkSealed(this);
     }
 
     @Override
     public final void onApply(PlayerEntity player, LogicalSide dist) {
-        if (modifiersDisabled(player, dist)) {
-            return;
-        }
-
         this.applyPerkLogic(player, dist);
     }
 
     @Override
     public final void onRemove(PlayerEntity player, LogicalSide dist) {
-        if (modifiersDisabled(player, dist)) {
-            return;
-        }
-
         this.removePerkLogic(player, dist);
     }
 
@@ -173,28 +146,22 @@ public class AbstractPerk implements ModifierSource {
 
     @Nullable
     public CompoundNBT getPerkData(PlayerEntity player, LogicalSide dist) {
-        return ResearchHelper.getProgress(player, dist).getPerkData(this);
+        return ResearchHelper.getProgress(player, dist).getPerkData().getData(this);
     }
-
-    /**
-     * Called when the perk is in any way modified in regards to its 'contents' for a specific player e.g. gems
-     * Called AFTER the perk has been re-applied with the new data.
-     */
-    public void modifyPerkServer(PlayerEntity player, PlayerProgress progress, CompoundNBT dataStorage) {}
 
     /**
      * Called ONCE when the perk is unlocked
      * You may use the CompoundNBT to save data to remove it again later
      * The player might be null for root perks on occasion.
      */
-    public void onUnlockPerkServer(@Nullable PlayerEntity player, PlayerProgress progress, CompoundNBT dataStorage) {}
+    public void onUnlockPerkServer(@Nullable PlayerEntity player, PerkAllocationType allocationType, PlayerProgress progress, CompoundNBT dataStorage) {}
 
     /**
      * Clean up and remove the perk from that single player.
      * Data in the dataStorage is filled with the data set in onUnlockPerkServer
-     * Called after the perk is already removed from the player
+     * Called after the perk is already removed from the player, but still in the player's perkData
      */
-    public void onRemovePerkServer(PlayerEntity player, PlayerProgress progress, CompoundNBT dataStorage) {}
+    public void onRemovePerkServer(PlayerEntity player, PerkAllocationType allocationType, PlayerProgress progress, CompoundNBT dataStorage) {}
 
     public <T extends AbstractPerk> T setName(String name) {
         this.unlocalizedKey = name;
@@ -214,33 +181,43 @@ public class AbstractPerk implements ModifierSource {
         if (!progress.isValid()) {
             return AllocationStatus.UNALLOCATED;
         }
-        if (progress.hasPerkUnlocked(this)) {
+        PlayerPerkData perkData = progress.getPerkData();
+        if (perkData.hasPerkAllocation(this, PerkAllocationType.UNLOCKED)) {
             return AllocationStatus.ALLOCATED;
+        }
+        if (perkData.hasPerkAllocation(this)) {
+            return AllocationStatus.GRANTED;
         }
 
         return mayUnlockPerk(progress, player) ? AllocationStatus.UNLOCKABLE : AllocationStatus.UNALLOCATED;
     }
 
     public boolean mayUnlockPerk(PlayerProgress progress, PlayerEntity player) {
-        if (!progress.hasFreeAllocationPoint(player, getSide(player))) return false;
+        PlayerPerkData perkData = progress.getPerkData();
+        if (!perkData.hasFreeAllocationPoint(player, getSide(player))) return false;
 
         for (AbstractPerk otherPerks : PerkTree.PERK_TREE.getConnectedPerks(getSide(player), this)) {
-            if (progress.hasPerkUnlocked(otherPerks)) {
+            if (perkData.hasPerkAllocation(otherPerks, PerkAllocationType.UNLOCKED)) {
                 return true;
             }
         }
         return false;
     }
 
-    public ITextComponent getName() {
+    @OnlyIn(Dist.CLIENT)
+    public boolean isVisible(PlayerProgress progress, PlayerEntity player) {
+        return !this.hiddenUnlessAllocated || progress.getPerkData().hasPerkAllocation(this);
+    }
+
+    public IFormattableTextComponent getName() {
         return new TranslationTextComponent(this.unlocalizedKey + ".name")
-                .applyTextStyle(this.getCategory().getTextFormatting());
+                .mergeStyle(this.getCategory().getTextFormatting());
     }
 
     @Nonnull
     @OnlyIn(Dist.CLIENT)
-    public Collection<ITextComponent> getDescription() {
-        List<ITextComponent> toolTip = new ArrayList<>();
+    public Collection<IFormattableTextComponent> getDescription() {
+        List<IFormattableTextComponent> toolTip = new ArrayList<>();
         if (I18n.hasKey(this.unlocalizedKey + ".desc.1")) { // Might have a indexed list there
             int count = 1;
             while (I18n.hasKey(this.unlocalizedKey + ".desc." + count)) {
@@ -261,16 +238,13 @@ public class AbstractPerk implements ModifierSource {
     }
 
     @OnlyIn(Dist.CLIENT)
-    public final Collection<ITextComponent> getLocalizedTooltip() {
+    public final Collection<IFormattableTextComponent> getLocalizedTooltip() {
         if (cacheTooltip && tooltipCache != null) {
             return tooltipCache;
         }
-
         tooltipCache = Lists.newArrayList();
-        if (modifiersDisabled(Minecraft.getInstance().player, LogicalSide.CLIENT)) {
-            tooltipCache.add(new TranslationTextComponent("perk.info.astralsorcery.disabled")
-                    .setStyle(new Style().setColor(TextFormatting.GRAY)));
-        } else if (!(this instanceof ProgressGatedPerk) || ((ProgressGatedPerk) this).canSeeClient()) {
+
+        if (!(this instanceof ProgressGatedPerk) || ((ProgressGatedPerk) this).canSeeClient()) {
             tooltipCache.add(this.getName());
 
             int prevLength = tooltipCache.size();
@@ -281,13 +255,13 @@ public class AbstractPerk implements ModifierSource {
             tooltipCache.addAll(this.getDescription());
         } else {
             tooltipCache.add(new TranslationTextComponent("perk.info.astralsorcery.missing_progress")
-                    .setStyle(new Style().setColor(TextFormatting.RED)));
+                    .mergeStyle(TextFormatting.RED));
         }
         return tooltipCache;
     }
 
     @OnlyIn(Dist.CLIENT)
-    public boolean addLocalizedTooltip(Collection<ITextComponent> tooltip) {
+    public boolean addLocalizedTooltip(Collection<IFormattableTextComponent> tooltip) {
         return false;
     }
 
@@ -295,7 +269,7 @@ public class AbstractPerk implements ModifierSource {
     //Default: modname of added mod
     @Nullable
     @OnlyIn(Dist.CLIENT)
-    public Collection<ITextComponent> getSource() {
+    public Collection<IFormattableTextComponent> getSource() {
         String modid = getRegistryName().getNamespace();
         ModContainer mod = ModList.get().getModContainerById(modid).orElse(null);
         if (mod != null) {
@@ -369,6 +343,7 @@ public class AbstractPerk implements ModifierSource {
         data.addProperty("x", this.getOffset().x);
         data.addProperty("y", this.getOffset().y);
         data.addProperty("name", this.unlocalizedKey);
+        data.addProperty("hiddenUnlessAllocated", this.hiddenUnlessAllocated);
 
         JsonObject perkData = new JsonObject();
         this.serializeData(perkData);
@@ -378,11 +353,11 @@ public class AbstractPerk implements ModifierSource {
 
     public static class PerkCategory {
 
-        private final String unlocName;
+        private final IFormattableTextComponent name;
         private final TextFormatting color;
 
         public PerkCategory(@Nonnull String unlocName, @Nonnull TextFormatting color) {
-            this.unlocName = unlocName;
+            this.name = new TranslationTextComponent("perk.category.astralsorcery." + unlocName + ".name");
             this.color = color;
         }
 
@@ -390,13 +365,8 @@ public class AbstractPerk implements ModifierSource {
             return color;
         }
 
-        public String getUnlocalizedName() {
-            return "perk.category.astralsorcery." + unlocName + ".name";
-        }
-
-        @OnlyIn(Dist.CLIENT)
-        public String getLocalizedName() {
-            return I18n.format(getUnlocalizedName());
+        public IFormattableTextComponent getName() {
+            return this.name;
         }
 
         @Override
@@ -404,12 +374,12 @@ public class AbstractPerk implements ModifierSource {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             PerkCategory that = (PerkCategory) o;
-            return Objects.equals(unlocName, that.unlocName);
+            return Objects.equals(name, that.name);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(unlocName);
+            return Objects.hash(name);
         }
     }
 }

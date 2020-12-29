@@ -21,6 +21,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
+import net.minecraft.loot.LootContext;
 import net.minecraft.state.EnumProperty;
 import net.minecraft.state.StateContainer;
 import net.minecraft.util.ActionResultType;
@@ -34,13 +35,13 @@ import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.*;
-import net.minecraft.world.storage.loot.LootContext;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ToolType;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -149,13 +150,22 @@ public class BlockStructural extends Block {
         return drops;
     }
 
-    @Override
-    public float getBlockHardness(BlockState state, IBlockReader world, BlockPos pos) {
+    /*
+    TODO custom states via state container
+    private static float getBlockHardness(BlockState state, IBlockReader world, BlockPos pos) {
         switch (state.get(BLOCK_TYPE)) {
             case TELESCOPE:
                 return BlockType.TELESCOPE.getSupportedState().getBlockHardness(world, pos.down());
         }
         return super.getBlockHardness(state, world, pos);
+    }
+
+    private static boolean isOpaque(BlockState state, IBlockReader world, BlockPos pos) {
+        switch (state.get(BLOCK_TYPE)) {
+            case TELESCOPE:
+                return BlockType.TELESCOPE.getSupportedState().isNormalCube(world, pos.down());
+        }
+        return state.getMaterial().isOpaque() && state.hasOpaqueCollisionShape(world, pos);
     }
 
     @Override
@@ -165,7 +175,7 @@ public class BlockStructural extends Block {
                 return BlockType.TELESCOPE.getSupportedState().getExplosionResistance(world, pos.down(), exploder, explosion);
         }
         return super.getExplosionResistance(state, world, pos, exploder, explosion);
-    }
+    }*/
 
     @Override
     public ItemStack getPickBlock(BlockState state, RayTraceResult target, IBlockReader world, BlockPos pos, PlayerEntity player) {
@@ -202,15 +212,6 @@ public class BlockStructural extends Block {
     }
 
     @Override
-    public boolean isNormalCube(BlockState state, IBlockReader world, BlockPos pos) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                return BlockType.TELESCOPE.getSupportedState().isNormalCube(world, pos.down());
-        }
-        return super.isNormalCube(state, world, pos);
-    }
-
-    @Override
     public BlockRenderType getRenderType(BlockState p_149645_1_) {
         return BlockRenderType.INVISIBLE;
     }
@@ -231,13 +232,13 @@ public class BlockStructural extends Block {
         }
 
         @Override
-        public String getName() {
-            return name().toLowerCase();
+        public String getString() {
+            return name().toLowerCase(Locale.ROOT);
         }
 
         @Override
         public String toString() {
-            return this.getName();
+            return this.getString();
         }
     }
 }

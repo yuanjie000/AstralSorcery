@@ -21,11 +21,12 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.ITransmissionRece
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.server.ServerWorld;
 
 import java.util.*;
 
@@ -42,26 +43,26 @@ public class TransmissionWorldHandler {
 
     //If a source looses all chunks/all chunks in its network get unloaded it doesn't need to broadcast starlight anymore
     //This map exists to associate a certain chunkPosition to the involved networks in it.
-    private Map<ChunkPos, List<IIndependentStarlightSource>> involvedSourceMap = new HashMap<>();
+    private final Map<ChunkPos, List<IIndependentStarlightSource>> involvedSourceMap = new HashMap<>();
 
     //The counterpart to check faster
     //Removing a source here will also stop production!
-    private Map<IIndependentStarlightSource, List<ChunkPos>> activeChunkMap = new HashMap<>();
+    private final Map<IIndependentStarlightSource, List<ChunkPos>> activeChunkMap = new HashMap<>();
 
-    private Map<IIndependentStarlightSource, TransmissionChain> cachedSourceChain = new HashMap<>(); //The distribution source chain.
+    private final Map<IIndependentStarlightSource, TransmissionChain> cachedSourceChain = new HashMap<>(); //The distribution source chain.
 
-    private Map<BlockPos, List<IIndependentStarlightSource>> posToSourceMap = new HashMap<>();
+    private final Map<BlockPos, List<IIndependentStarlightSource>> posToSourceMap = new HashMap<>();
 
     //Contains a list of source positions whose sources currently calculate their network.
-    private Set<BlockPos> sourcePosBuilding = new HashSet<>();
+    private final Set<BlockPos> sourcePosBuilding = new HashSet<>();
 
-    private final DimensionType dimType;
+    private final RegistryKey<World> dim;
 
-    public TransmissionWorldHandler(DimensionType dimType) {
-        this.dimType = dimType;
+    public TransmissionWorldHandler(RegistryKey<World> dimKey) {
+        this.dim = dimKey;
     }
 
-    public void tick(World world) {
+    public void tick(ServerWorld world) {
         WorldNetworkHandler handler = WorldNetworkHandler.getNetworkHandler(world);
 
         for (Tuple<BlockPos, IIndependentStarlightSource> sourceTuple : handler.getAllSources()) {
@@ -71,18 +72,17 @@ public class TransmissionWorldHandler {
             if (!cachedSourceChain.containsKey(source)) {
                 if (!sourcePosBuilding.contains(at)) {
                     sourcePosBuilding.add(at);
-                    buildSourceNetworkThreaded(world, source, handler, at);
+                    buildNetworkChain(world, source, handler, at);
                 }
-                continue; //No chain for that source (yet)
             }
 
             List<ChunkPos> activeChunks = activeChunkMap.get(source);
             if (activeChunks == null || activeChunks.isEmpty()) {
-                continue; //Not producing anything.
+                continue; //Not producing anything as no part of this chain is loaded.
             }
 
             TransmissionChain chain = cachedSourceChain.get(source);
-            double starlight = source.produceStarlightTick(world, at);
+            float starlight = source.produceStarlightTick(world, at);
             IWeakConstellation type = source.getStarlightType();
             if (type == null) {
                 continue;
@@ -97,10 +97,12 @@ public class TransmissionWorldHandler {
                 }
             }
 
-            if (starlight > 0.1D) {
-                for (IPrismTransmissionNode node : chain.getTransmissionUpdateList()) {
-                    node.onTransmissionTick(world);
-                }
+            if (starlight > 0.01F) {
+                chain.getTransmissionUpdates().forEach((node, multiplier) -> {
+                    if (multiplier >= 0.01F) {
+                        node.onTransmissionTick(world, starlight * multiplier, type);
+                    }
+                });
             }
 
             for (BlockPos endPointPos : chain.getUncheckedEndpointsBlock()) {
@@ -128,11 +130,11 @@ public class TransmissionWorldHandler {
         }
     }
 
-    private void buildSourceNetworkThreaded(World world, IIndependentStarlightSource source, WorldNetworkHandler handler, BlockPos sourcePos) {
-        TransmissionChain.threadedBuildTransmissionChain(world, this, source, handler, sourcePos);
+    private void buildNetworkChain(World world, IIndependentStarlightSource source, WorldNetworkHandler handler, BlockPos sourcePos) {
+        TransmissionChain.buildNetworkChain(world, this, source, handler, sourcePos);
     }
 
-    void threadTransmissionChainCallback(World world, TransmissionChain chain, IIndependentStarlightSource source, WorldNetworkHandler handle, BlockPos sourcePos) {
+    void updateNetworkChainData(World world, TransmissionChain chain, IIndependentStarlightSource source, WorldNetworkHandler handle, BlockPos sourcePos) {
         sourcePosBuilding.remove(sourcePos);
 
         cachedSourceChain.put(source, chain);
@@ -194,10 +196,10 @@ public class TransmissionWorldHandler {
                 }
             }
             SyncDataHolder.executeServer(SyncDataHolder.DATA_LIGHT_CONNECTIONS, DataLightConnections.class, data -> {
-                data.removeOldConnectionsThreaded(dimType, knownChain.getFoundConnections());
+                data.removeOldConnectionsThreaded(dim, knownChain.getFoundConnections());
             });
             SyncDataHolder.executeServer(SyncDataHolder.DATA_LIGHT_BLOCK_ENDPOINTS, DataLightBlockEndpoints.class, data -> {
-                data.removeEndpoints(dimType, knownChain.getResolvedNormalBlockPositions());
+                data.removeEndpoints(dim, knownChain.getResolvedNormalBlockPositions());
             });
         }
         activeChunkMap.remove(source);

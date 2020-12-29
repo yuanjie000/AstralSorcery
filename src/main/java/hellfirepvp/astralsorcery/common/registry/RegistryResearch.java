@@ -21,9 +21,9 @@ import hellfirepvp.astralsorcery.common.lib.StructureTypesAS;
 import hellfirepvp.astralsorcery.common.structure.types.StructureType;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.util.IItemProvider;
 
+import java.util.Locale;
 import java.util.function.Predicate;
 
 /**
@@ -274,6 +274,7 @@ public class RegistryResearch {
                 .addTomeLookup(BlocksAS.ROCK_COLLECTOR_CRYSTAL, 1, ResearchProgression.CONSTELLATION)
                 .addTomeLookup(BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL, 1, ResearchProgression.CONSTELLATION)
                 .addPage(text("COLL_CRYSTAL.3"))
+                .addPage(text("COLL_CRYSTAL.4"))
                 .register(ResearchProgression.CONSTELLATION);
 
         ItemStack celestialCrystalCluster = new ItemStack(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER);
@@ -282,7 +283,6 @@ public class RegistryResearch {
                 .addPage(text("CEL_CRYSTAL_GROW.1"))
                 .addPage(text("CEL_CRYSTAL_GROW.2"))
                 .addPage(text("CEL_CRYSTAL_GROW.3"))
-                .addPage(text("CEL_CRYSTAL_GROW.4"))
                 .addTomeLookup(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER, 0, ResearchProgression.CONSTELLATION)
                 .register(ResearchProgression.CONSTELLATION);
 
@@ -833,6 +833,6 @@ public class RegistryResearch {
     }
 
     private static JournalPage text(String identifier) {
-        return new JournalPageText(AstralSorcery.MODID.toLowerCase() + ".journal." + identifier + ".text");
+        return new JournalPageText(AstralSorcery.MODID.toLowerCase(Locale.ROOT) + ".journal." + identifier + ".text");
     }
 }

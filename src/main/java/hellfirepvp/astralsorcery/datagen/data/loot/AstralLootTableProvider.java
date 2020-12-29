@@ -12,8 +12,8 @@ import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.LootTableProvider;
+import net.minecraft.loot.*;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.storage.loot.*;
 
 import java.util.List;
 import java.util.Map;
@@ -39,12 +39,13 @@ public final class AstralLootTableProvider extends LootTableProvider {
         return Lists.newArrayList(
                 Pair.of(BlockLootTableProvider::new, LootParameterSets.BLOCK),
                 Pair.of(EntityLootTableProvider::new, LootParameterSets.ENTITY),
-                Pair.of(ChestLootTableProvider::new, LootParameterSets.CHEST)
+                Pair.of(ChestLootTableProvider::new, LootParameterSets.CHEST),
+                Pair.of(GameplayLootTableProvider::new, LootParameterSets.GIFT)
         );
     }
 
     @Override
-    protected void validate(Map<ResourceLocation, LootTable> map, ValidationTracker validationtracker) {
-        map.forEach((key, lootTable) -> LootTableManager.func_227508_a_(validationtracker, key, lootTable));
+    protected void validate(Map<ResourceLocation, LootTable> tables, ValidationTracker tracker) {
+        tables.forEach((key, table) -> LootTableManager.validateLootTable(tracker, key, table));
     }
 }

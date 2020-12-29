@@ -6,14 +6,11 @@ pipeline {
   stages {
     stage('Prepare Build') {
       steps {
-        sh '''cp -a /var/lib/jenkins/buildMetadata/AstralSorcery-1.15/. .
-rm -rf AS-Example.zs perkMapDraft.pdn README.html README.md AstralSorcery'''
+        sh '''cp -a /var/lib/jenkins/buildMetadata/AstralSorcery-1.16/. .
+rm -rf perkMapDraft.pdn README.md AstralSorcery'''
       }
     }
-    stage('Build') {
-      when {
-        branch 'master'
-      }
+    stage('Build and Publish') {
       steps {
         sh '''./gradlew build publish'''
       }
@@ -31,9 +28,6 @@ find . ! -name \'*.jar\' -delete'''
       }
     }
     stage('Notify') {
-      when{
-        branch 'master'
-      }
       steps {
         discordSendHellFire link: env.BUILD_URL, result: currentBuild.currentResult, webhookURL: "${WEBHOOKURL}"
       }

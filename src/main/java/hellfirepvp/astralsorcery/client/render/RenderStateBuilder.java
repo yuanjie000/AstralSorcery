@@ -13,6 +13,7 @@ import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
 import hellfirepvp.astralsorcery.client.resource.BlockAtlasTexture;
 import hellfirepvp.astralsorcery.client.util.Blending;
 import hellfirepvp.astralsorcery.client.util.RenderStateUtil;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderState;
 import net.minecraft.client.renderer.RenderType;
 import org.lwjgl.opengl.GL11;
@@ -67,7 +68,7 @@ public class RenderStateBuilder {
     }
 
     public RenderStateBuilder disableDepth() {
-        this.builder.depthTest(new RenderState.DepthTestState(GL11.GL_ALWAYS) {
+        this.builder.depthTest(new RenderState.DepthTestState("always", GL11.GL_ALWAYS) {
             @Override
             public void setupRenderState() {
                 //For some ungodly reason this might not be reset to disable depth testing by default...
@@ -110,7 +111,11 @@ public class RenderStateBuilder {
     }
 
     public RenderStateBuilder defaultAlpha() {
-        this.builder.alpha(new RenderState.AlphaState(1F / 255F));
+        return alpha(1F / 255F);
+    }
+
+    public RenderStateBuilder particleShaderTarget() {
+        this.builder.target(ParticleTarget.INSTANCE);
         return this;
     }
 
@@ -124,5 +129,22 @@ public class RenderStateBuilder {
 
     public RenderType.State build() {
         return this.builder.build(false);
+    }
+
+    private static class ParticleTarget extends RenderState.TargetState {
+
+        private static final ParticleTarget INSTANCE = new ParticleTarget();
+
+        private ParticleTarget() {
+            super("as_particle_target", () -> {
+                if (Minecraft.isFabulousGraphicsEnabled()) {
+                    Minecraft.getInstance().worldRenderer.func_239230_s_().bindFramebuffer(false);
+                }
+            }, () -> {
+                if (Minecraft.isFabulousGraphicsEnabled()) {
+                    Minecraft.getInstance().getFramebuffer().bindFramebuffer(false);
+                }
+            });
+        }
     }
 }

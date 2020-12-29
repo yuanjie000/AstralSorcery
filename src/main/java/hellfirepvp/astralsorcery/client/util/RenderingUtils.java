@@ -11,16 +11,19 @@ package hellfirepvp.astralsorcery.client.util;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
+import com.mojang.datafixers.util.Pair;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.data.config.entry.RenderingConfig;
 import hellfirepvp.astralsorcery.client.effect.EntityComplexFX;
-import hellfirepvp.astralsorcery.common.util.ColorUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import hellfirepvp.astralsorcery.common.util.reflection.ReflectionHelper;
 import hellfirepvp.observerlib.client.util.BufferDecoratorBuilder;
 import hellfirepvp.observerlib.client.util.RenderTypeDecorator;
+import hellfirepvp.observerlib.common.util.RegistryUtil;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.particle.DiggingParticle;
 import net.minecraft.client.particle.ParticleManager;
@@ -32,31 +35,39 @@ import net.minecraft.client.renderer.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.texture.*;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.renderer.vertex.VertexFormat;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.DyeColor;
+import net.minecraft.item.CompassItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
+import net.minecraft.util.IReorderingProcessor;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.ILightReader;
+import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.text.ITextProperties;
+import net.minecraft.util.text.LanguageMap;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.world.IBlockDisplayReader;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biomes;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.model.data.EmptyModelData;
 import net.minecraftforge.client.model.data.IModelData;
 import net.minecraftforge.fluids.FluidStack;
+import org.apache.commons.lang3.ObjectUtils;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -71,13 +82,13 @@ import java.util.function.Function;
 public class RenderingUtils {
 
     private static final Random rand = new Random();
-    private static ILightReader plainRenderWorld = null;
+    private static IBlockDisplayReader plainRenderWorld = null;
 
     public static long getPositionSeed(BlockPos pos) {
         long seed = 1553015L;
-        seed ^= (long) pos.getX();
-        seed ^= (long) pos.getY();
-        seed ^= (long) pos.getZ();
+        seed ^= pos.getX();
+        seed ^= pos.getY();
+        seed ^= pos.getZ();
         return seed;
     }
 
@@ -125,7 +136,7 @@ public class RenderingUtils {
 
     //Straight up ripped off of MC code.
     public static void playBlockBreakParticles(BlockPos pos, @Nullable BlockState actualState, BlockState particleState) {
-        World world = Minecraft.getInstance().world;
+        ClientWorld world = Minecraft.getInstance().world;
         ParticleManager mgr = Minecraft.getInstance().particles;
 
         VoxelShape voxelshape;
@@ -199,6 +210,13 @@ public class RenderingUtils {
         return fx.getPosition().distanceSquared(view) <= RenderingConfig.CONFIG.getMaxEffectRenderDistanceSq();
     }
 
+    public static void translate(MatrixStack renderStack, float x, float y, float z, Consumer<MatrixStack> fn) {
+        renderStack.push();
+        renderStack.translate(x, y, z);
+        fn.accept(renderStack);
+        renderStack.pop();
+    }
+
     public static void draw(int drawMode, VertexFormat format, Consumer<BufferBuilder> fn) {
         draw(drawMode, format, bufferBuilder -> {
             fn.accept(bufferBuilder);
@@ -236,11 +254,12 @@ public class RenderingUtils {
         }
     }
 
-    public static void renderInWorldText(String text, Color color, Vector3 at, MatrixStack renderStack, float pTicks, boolean facePlayer) {
-        renderInWorldText(text, color, 1 / 80F, at, renderStack, pTicks, facePlayer);
+    public static int renderInWorldText(ITextProperties text, Color color, Vector3 at, MatrixStack renderStack, float pTicks, boolean facePlayer) {
+        float scale = (float) Minecraft.getInstance().getMainWindow().getGuiScaleFactor();
+        return renderInWorldText(text, color, 0.02F * (Minecraft.getInstance().gameSettings.guiScale / scale), at, renderStack, pTicks, facePlayer);
     }
 
-    public static void renderInWorldText(String text, Color color, float scale, Vector3 at, MatrixStack renderStack, float pTicks, boolean facePlayer) {
+    public static int renderInWorldText(ITextProperties text, Color color, float scale, Vector3 at, MatrixStack renderStack, float pTicks, boolean facePlayer) {
         FontRenderer fr = Minecraft.getInstance().fontRenderer;
 
         renderStack.push();
@@ -257,37 +276,35 @@ public class RenderingUtils {
         }
 
         Matrix4f matr = renderStack.getLast().getMatrix();
-        int length = fr.getStringWidth(text);
-        IRenderTypeBuffer.Impl buffers = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
-        fr.renderString(text, -(length / 2F), 0, color.getRGB(), false, matr, buffers, true, 0, LightmapUtil.getPackedFullbrightCoords());
+        int length = fr.getStringPropertyWidth(text);
+        IRenderTypeBuffer.Impl buffers = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
+        IReorderingProcessor processedText = LanguageMap.getInstance().func_241870_a(text);
+        int drawnLength = fr.func_238416_a_(processedText, -(length / 2F), 0, color.getRGB(), false, matr, buffers, true, 0, LightmapUtil.getPackedFullbrightCoords());
         buffers.finish();
 
         renderStack.pop();
+        return drawnLength;
     }
 
     public static void renderItemAsEntity(ItemStack stack, MatrixStack renderStack, IRenderTypeBuffer buffers, double x, double y, double z, int combinedLight, float pTicks, int age) {
         ItemEntity ei = new ItemEntity(Minecraft.getInstance().world, x, y, z, stack);
         ei.age = age;
         ei.hoverStart = 0;
-        renderStack.push();
-        renderStack.translate(x, y, z);
-        Minecraft.getInstance().getRenderManager().renderEntityStatic(ei, 0, 0, 0, 0F, pTicks, renderStack, buffers, combinedLight);
-        renderStack.pop();
+        ReflectionHelper.setSkipItemPhysicsRender(ei);
+        Minecraft.getInstance().getRenderManager().renderEntityStatic(ei, x, y, z, 0F, pTicks, renderStack, buffers, combinedLight);
     }
 
-    public static void renderItemStack(ItemRenderer itemRenderer, ItemStack stack, int x, int y, @Nullable String alternativeText) {
-        RenderSystem.pushMatrix();
-        RenderSystem.translated(0, 0, 32);
-        itemRenderer.zLevel = 200;
+    public static void renderItemStackGUI(MatrixStack renderStack, ItemStack stack, @Nullable String alternativeText) {
+        renderStack.push();
+        renderStack.translate(0, 0, 100F);
         FontRenderer font = stack.getItem().getFontRenderer(stack);
         if (font == null) {
             font = Minecraft.getInstance().fontRenderer;
         }
-        itemRenderer.renderItemAndEffectIntoGUI(stack, x, y);
-        itemRenderer.renderItemOverlayIntoGUI(font, stack, x, y, alternativeText);
+        renderTranslucentItemStackModelGUI(stack, renderStack, Color.WHITE, Blending.DEFAULT, 255);
+        mcdefault_renderItemOverlayIntoGUI(font, renderStack, stack, Minecraft.getInstance().getRenderPartialTicks(), alternativeText);
 
-        itemRenderer.zLevel = 0;
-        RenderSystem.popMatrix();
+        renderStack.pop();
     }
 
     public static void renderTranslucentItemStack(ItemStack stack, MatrixStack renderStack, float pTicks) {
@@ -303,12 +320,12 @@ public class RenderingUtils {
         float ageRotate = ((ClientScheduler.getClientTick() + pTicks) / 20.0F);
         renderStack.rotate(Vector3f.YP.rotation(ageRotate));
 
-        renderTranslucentItemStackModel(stack, renderStack, overlayColor, Blending.PREALPHA, alpha);
+        renderTranslucentItemStackModelGround(stack, renderStack, overlayColor, Blending.PREALPHA, alpha);
 
         renderStack.pop();
     }
 
-    public static void renderTranslucentItemStackModel(ItemStack stack, MatrixStack renderStack, Color overlayColor, Blending blendMode, int alpha) {
+    public static void renderTranslucentItemStackModelGround(ItemStack stack, MatrixStack renderStack, Color overlayColor, Blending blendMode, int alpha) {
         IBakedModel bakedModel = getItemModel(stack);
         ForgeHooksClient.handleCameraTransforms(renderStack, bakedModel, ItemCameraTransforms.TransformType.GROUND, false);
         TextureManager textureManager = Minecraft.getInstance().getTextureManager();
@@ -316,8 +333,8 @@ public class RenderingUtils {
         textureManager.bindTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE);
         textureManager.getTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE).setBlurMipmap(false, false);
 
-        IRenderTypeBuffer.Impl buffer = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
-        renderItemModelWithColor(stack, bakedModel, renderStack, (renderType) -> {
+        IRenderTypeBuffer.Impl buffer = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
+        renderItemModelWithColor(stack, ItemCameraTransforms.TransformType.GROUND, bakedModel, renderStack, (renderType) -> {
             RenderTypeDecorator decorated = RenderTypeDecorator.wrapSetup(renderType, () -> {
                 RenderSystem.enableBlend();
                 blendMode.apply();
@@ -335,32 +352,103 @@ public class RenderingUtils {
         textureManager.bindTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE);
         textureManager.getTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE).setBlurMipmap(false, false);
 
-        RenderType rType = RenderTypeLookup.getRenderType(stack);
-        rType.setupRenderState();
+        RenderSystem.enableRescaleNormal();
+        RenderSystem.enableAlphaTest();
+        RenderSystem.defaultAlphaFunc();
         RenderSystem.enableBlend();
         blendMode.apply();
+        RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
 
         renderStack.push();
         renderStack.translate(8.0F, 8.0F, 0.0F);
         renderStack.scale(16.0F, -16.0F, 16.0F);
 
         IBakedModel bakedModel = ForgeHooksClient.handleCameraTransforms(renderStack, getItemModel(stack), ItemCameraTransforms.TransformType.GUI, false);
-        if (!bakedModel.func_230044_c_()) {
+        boolean isSideLit = bakedModel.isSideLit();
+        if (!isSideLit) {
             RenderHelper.setupGuiFlatDiffuseLighting();
         }
 
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.ENTITY, buf -> {
-            renderItemModelWithColor(stack, bakedModel, renderStack, (renderType) -> buf,
-                    LightmapUtil.getPackedFullbrightCoords(), OverlayTexture.NO_OVERLAY, overlayColor, MathHelper.clamp(alpha, 0, 255));
-        });
+        IRenderTypeBuffer.Impl buffer = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
+        renderItemModelWithColor(stack, ItemCameraTransforms.TransformType.GUI, bakedModel, renderStack, buffer,
+                LightmapUtil.getPackedFullbrightCoords(), OverlayTexture.NO_OVERLAY, overlayColor, MathHelper.clamp(alpha, 0, 255));
+        buffer.finish();
 
-        if (!bakedModel.func_230044_c_()) {
+        if (!isSideLit) {
             RenderHelper.setupGui3DDiffuseLighting();
         }
 
         Blending.DEFAULT.apply();
         RenderSystem.disableBlend();
-        rType.clearRenderState();
+        RenderSystem.disableAlphaTest();
+        RenderSystem.disableRescaleNormal();
+        RenderSystem.enableDepthTest();
+        renderStack.pop();
+    }
+
+    //TODO wait for mojang to do their work and actually port this method so i don't have to do this myself
+    @Deprecated
+    public static void mcdefault_renderItemOverlayIntoGUI(FontRenderer fr, MatrixStack renderStack, ItemStack stack, float pTicks, @Nullable String text) {
+        if (stack.isEmpty()) {
+            return;
+        }
+        //TODO ugh.
+        RenderSystem.disableLighting();
+
+        renderStack.push();
+        renderStack.translate(0, 0, 100F);
+        if (stack.getCount() > 1 || text != null) {
+            ITextProperties display = new StringTextComponent(ObjectUtils.firstNonNull(text, String.valueOf(stack.getCount())));
+            int length = fr.getStringPropertyWidth(display);
+
+            renderStack.push();
+            renderStack.translate(17 - length, 9, 0);
+            RenderingDrawUtils.renderStringAt(display, renderStack, fr, 0xFFFFFFFF, true);
+            renderStack.pop();
+        }
+
+        if (stack.getItem().showDurabilityBar(stack)) {
+            RenderSystem.disableDepthTest();
+            RenderSystem.disableTexture();
+            RenderSystem.disableAlphaTest();
+            RenderSystem.disableBlend();
+
+            float health = (float) stack.getItem().getDurabilityForDisplay(stack);
+            float durabilityPercent = 13F - health * 13F;
+            int color = stack.getItem().getRGBDurabilityForDisplay(stack);
+
+            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+                RenderingGuiUtils.rect(buf, renderStack, 2, 13, 0, 13, 2)
+                        .color(0, 0, 0, 255)
+                        .draw();
+                RenderingGuiUtils.rect(buf, renderStack, 2, 13, 0, durabilityPercent, 1)
+                        .color(color >> 16 & 255, color >> 8 & 255, color & 255, 255)
+                        .draw();
+            });
+
+            RenderSystem.enableBlend();
+            RenderSystem.enableAlphaTest();
+            RenderSystem.enableTexture();
+            RenderSystem.enableDepthTest();
+        }
+
+        ClientPlayerEntity player = Minecraft.getInstance().player;
+        float cooldownPercent = player == null ? 0F : player.getCooldownTracker().getCooldown(stack.getItem(), pTicks);
+        if (cooldownPercent > 0F) {
+            RenderSystem.disableDepthTest();
+            RenderSystem.disableTexture();
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+
+            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+                RenderingGuiUtils.rect(buf, renderStack, 0, 16F * (1F - cooldownPercent), 0, 16, 16F * cooldownPercent)
+                        .color(255, 255, 255, 127)
+                        .draw();
+            });
+
+            RenderSystem.enableTexture();
+            RenderSystem.enableDepthTest();
+        }
         renderStack.pop();
     }
 
@@ -368,41 +456,71 @@ public class RenderingUtils {
         return Minecraft.getInstance().getItemRenderer().getItemModelWithOverrides(stack, Minecraft.getInstance().world, Minecraft.getInstance().player);
     }
 
-    private static void renderItemModelWithColor(ItemStack stack, IBakedModel model, MatrixStack renderStack, IRenderTypeBuffer buffer, int combinedLight, int combinedOverlay, Color c, int alpha) {
+    private static void renderItemModelWithColor(ItemStack stack, ItemCameraTransforms.TransformType transformType, IBakedModel model, MatrixStack renderStack, IRenderTypeBuffer buffer, int combinedLight, int combinedOverlay, Color c, int alpha) {
         if (!stack.isEmpty()) {
             renderStack.push();
             renderStack.translate(-0.5, -0.5, -0.5);
 
-            if (model.isBuiltInRenderer()) {
+            boolean renderThirdPersonView = transformType == ItemCameraTransforms.TransformType.GUI ||
+                    transformType == ItemCameraTransforms.TransformType.GROUND ||
+                    transformType == ItemCameraTransforms.TransformType.FIXED;
+
+            if (model.isBuiltInRenderer() || (stack.getItem() == Items.TRIDENT && !renderThirdPersonView)) {
                 int[] colors = new int[] { c.getRed(), c.getGreen(), c.getBlue(), alpha };
                 IRenderTypeBuffer decoratedBuffer = type -> BufferDecoratorBuilder.withColor((r, g, b, a) -> colors).decorate(buffer.getBuffer(type));
-                stack.getItem().getItemStackTileEntityRenderer().render(stack, renderStack, decoratedBuffer, combinedLight, combinedOverlay);
+                stack.getItem().getItemStackTileEntityRenderer().func_239207_a_(stack, transformType, renderStack, decoratedBuffer, combinedLight, combinedOverlay);
+            } else if (model.isLayered()) {
+                for (Pair<IBakedModel, RenderType> layerModel : model.getLayerModels(stack, true)) {
+                    IBakedModel layer = layerModel.getFirst();
+                    RenderType rType = layerModel.getSecond();
+                    ForgeHooksClient.setRenderLayer(rType);
+                    try {
+                        IVertexBuilder vertexBuilder = ItemRenderer.getEntityGlintVertexBuilder(buffer, rType, true, stack.hasEffect());
+                        renderColoredItemModel(stack, layer, renderStack, vertexBuilder,combinedLight, combinedOverlay, c, alpha);
+                    } finally {
+                        ForgeHooksClient.setRenderLayer(null);
+                    }
+                }
             } else {
-                renderColoredItemModel(stack, model, renderStack, buffer, combinedLight, combinedOverlay, c, alpha);
+                //Always get translucent renderType
+                RenderType rType = RenderTypeLookup.func_239219_a_(stack, true);
+                IVertexBuilder vertexBuilder;
+
+                //Wth are you doing here mojang. Taken from ItemRenderer#renderItem
+                if (stack.getItem() instanceof CompassItem && stack.hasEffect()) {
+                    renderStack.push();
+                    MatrixStack.Entry topEntry = renderStack.getLast();
+
+                    if (transformType == ItemCameraTransforms.TransformType.GUI) {
+                        topEntry.getMatrix().mul(0.5F);
+                    } else if (transformType.isFirstPerson()) {
+                        topEntry.getMatrix().mul(0.75F);
+                    }
+                    vertexBuilder = ItemRenderer.getDirectGlintVertexBuilder(buffer, rType, topEntry);
+                    renderStack.pop();
+                } else {
+                    vertexBuilder = ItemRenderer.getEntityGlintVertexBuilder(buffer, rType, true, stack.hasEffect());
+                }
+
+                renderColoredItemModel(stack, model, renderStack, vertexBuilder, combinedLight, combinedOverlay, c, alpha);
             }
 
             renderStack.pop();
         }
     }
 
-    private static void renderColoredItemModel(ItemStack stack, IBakedModel model, MatrixStack renderStack, IRenderTypeBuffer buffer, int combinedLight, int combinedOverlay, Color color, int alpha) {
+    private static void renderColoredItemModel(ItemStack stack, IBakedModel model, MatrixStack renderStack, IVertexBuilder buffer, int combinedLight, int combinedOverlay, Color color, int alpha) {
         Color alphaColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha);
-        RenderType rendertype = RenderTypeLookup.getRenderType(stack);
-        if (Objects.equals(rendertype, Atlases.getTranslucentBlockType())) {
-            rendertype = Atlases.getTranslucentCullBlockType();
-        }
-        IVertexBuilder buf = buffer.getBuffer(rendertype);
 
         Random renderRand = new Random();
         IModelData data = EmptyModelData.INSTANCE;
-
         for (Direction dir : Direction.values()) {
             renderRand.setSeed(42);
-            renderColoredQuads(buf, renderStack, model.getQuads(null, dir, renderRand, data), alphaColor, combinedLight, combinedOverlay, stack);
+            renderColoredQuads(buffer, renderStack, model.getQuads(null, dir, renderRand, data), alphaColor, combinedLight, combinedOverlay, stack);
         }
 
         renderRand.setSeed(42);
-        renderColoredQuads(buf, renderStack, model.getQuads(null, null, renderRand, data), alphaColor, combinedLight, combinedOverlay, stack);
+        renderColoredQuads(buffer, renderStack, model.getQuads(null, null, renderRand, data), alphaColor, combinedLight, combinedOverlay, stack);
     }
 
     private static void renderColoredQuads(IVertexBuilder vb, MatrixStack renderStack, List<BakedQuad> quads, Color color, int combinedLight, int combinedOverlay, ItemStack stack) {
@@ -432,7 +550,7 @@ public class RenderingUtils {
 
     public static void renderSimpleBlockModel(BlockState state, MatrixStack renderStack, IVertexBuilder vb, BlockPos pos, @Nullable TileEntity te, boolean checkRenderSide) {
         if (plainRenderWorld == null) {
-            plainRenderWorld = new EmptyRenderWorld(Biomes.PLAINS);
+            plainRenderWorld = new EmptyRenderWorld(() -> RegistryUtil.client().getValue(Registry.BIOME_KEY, Biomes.PLAINS));
         }
 
         BlockRenderType brt = state.getRenderType();

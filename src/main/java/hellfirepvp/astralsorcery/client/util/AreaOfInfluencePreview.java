@@ -18,10 +18,11 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
 import net.minecraftforge.event.TickEvent;
 
 import javax.annotation.Nullable;
@@ -43,14 +44,14 @@ public class AreaOfInfluencePreview implements ITickHandler {
     private static final float alphaTick = 1F / MAX_LIFE;
     private static final float sizeCube1 = 1.25F, sizeCube2 = 1.35F;
 
-    private DimensionType tileDimension = null;
+    private RegistryKey<World> tileDimension = null;
     private BlockPos tilePosition = null;
     private FXCube effect1 = null, effect2 = null;
 
     private AreaOfInfluencePreview() {}
 
     public void showOrRemoveIdentical(TileAreaOfInfluence aoeTile) {
-        if (this.tileDimension == aoeTile.getDimensionType() && aoeTile.getEffectOriginPosition().equals(this.tilePosition)) {
+        if (this.tileDimension == aoeTile.getDimension() && aoeTile.getEffectOriginPosition().equals(this.tilePosition)) {
             this.clearClient();
             return;
         }
@@ -61,7 +62,7 @@ public class AreaOfInfluencePreview implements ITickHandler {
         if (!(aoeTile instanceof TileEntity)) {
             return;
         }
-        this.tileDimension = aoeTile.getDimensionType();
+        this.tileDimension = aoeTile.getDimension();
         this.tilePosition = aoeTile.getEffectOriginPosition();
     }
 
@@ -82,7 +83,7 @@ public class AreaOfInfluencePreview implements ITickHandler {
             this.removeEffects();
             return;
         }
-        DimensionType clientDimType = clientWorld.getDimension().getType();
+        RegistryKey<World> clientDimType = clientWorld.getDimensionKey();
         if (!clientDimType.equals(this.tileDimension)) {
             this.clearClient();
             this.removeEffects();

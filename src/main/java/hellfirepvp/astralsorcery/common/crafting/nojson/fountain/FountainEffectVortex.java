@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2020
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
 package hellfirepvp.astralsorcery.common.crafting.nojson.fountain;
 
 import com.google.common.collect.Lists;
@@ -24,7 +32,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.GameRules;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -101,14 +109,14 @@ public class FountainEffectVortex extends FountainEffect<VortexContext> {
                     rules.get(GameRules.MOB_GRIEFING).set(prev, null);
                 }
             } else {
-                le.setMotion(Vec3d.ZERO);
+                le.setMotion(Vector3d.ZERO);
             }
 
             EventHelperEntityFreeze.freeze(le);
         }
 
         float upkeep = Math.max(0, density / boxCapacity);
-        fountain.consumeLiquidStarlight(MathHelper.ceil(MathHelper.sqrt(upkeep)));
+        fountain.consumeLiquidStarlight(MathHelper.ceil(upkeep / 3F));
 
 
         List<LivingEntity> pulling = fountain.getWorld().getEntitiesWithinAABB(LivingEntity.class, pullBox);
@@ -121,9 +129,13 @@ public class FountainEffectVortex extends FountainEffect<VortexContext> {
 
             EntityUtils.applyVortexMotion(() -> Vector3.atEntityCorner(le), (v) -> {
                 if (le instanceof EnderDragonEntity) {
-                    Vector3 nextPos = new Vector3(le.getPosition()).add(v);
-                    le.setPositionAndRotation(nextPos.getX(), nextPos.getY(), nextPos.getZ(), le.rotationYaw, le.rotationPitch);
-                    le.setMotion(Vec3d.ZERO);
+                    Vector3 nextPos = Vector3.atEntityCorner(le).add(v);
+                    if (le.isServerWorld()) {
+                        le.setPositionAndUpdate(nextPos.getX(), nextPos.getY(), nextPos.getZ());
+                    } else {
+                        le.setPositionAndRotation(nextPos.getX(), nextPos.getY(), nextPos.getZ(), le.rotationYaw, le.rotationPitch);
+                    }
+                    le.setMotion(Vector3d.ZERO);
                 } else {
                     le.setMotion(le.getMotion().add(v.getX(), v.getY() * 2.5, v.getZ()));
                     le.velocityChanged = true;

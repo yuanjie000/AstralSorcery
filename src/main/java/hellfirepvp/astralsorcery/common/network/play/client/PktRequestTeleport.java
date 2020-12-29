@@ -18,10 +18,9 @@ import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.LogicalSidedProvider;
 
@@ -36,20 +35,20 @@ import javax.annotation.Nonnull;
  */
 public class PktRequestTeleport extends ASPacket<PktRequestTeleport> {
 
-    private ResourceLocation type;
+    private RegistryKey<World> dim;
     private BlockPos pos;
 
     public PktRequestTeleport() {}
 
-    public PktRequestTeleport(ResourceLocation type, BlockPos pos) {
-        this.type = type;
+    public PktRequestTeleport(RegistryKey<World> dim, BlockPos pos) {
+        this.dim = dim;
         this.pos = pos;
     }
     @Nonnull
     @Override
     public Encoder<PktRequestTeleport> encoder() {
         return (packet, buffer) -> {
-            ByteBufUtils.writeResourceLocation(buffer, packet.type);
+            ByteBufUtils.writeVanillaRegistryEntry(buffer, packet.dim);
             ByteBufUtils.writePos(buffer, packet.pos);
         };
     }
@@ -60,7 +59,7 @@ public class PktRequestTeleport extends ASPacket<PktRequestTeleport> {
         return buffer -> {
             PktRequestTeleport pkt = new PktRequestTeleport();
 
-            pkt.type = ByteBufUtils.readResourceLocation(buffer);
+            pkt.dim = ByteBufUtils.readVanillaRegistryEntry(buffer);
             pkt.pos = ByteBufUtils.readPos(buffer);
 
             return pkt;
@@ -72,19 +71,17 @@ public class PktRequestTeleport extends ASPacket<PktRequestTeleport> {
     public Handler<PktRequestTeleport> handler() {
         return (packet, context, side) -> {
             context.enqueueWork(() -> {
+                //TODO 1.16.2 re-check once worlds are not all constantly loaded
                 PlayerEntity player = context.getSender();
                 TileCelestialGateway gate = MiscUtils.getTileAt(player.world, Vector3.atEntityCorner(player).toBlockPos(), TileCelestialGateway.class, false);
                 if (gate != null && gate.hasMultiblock() && gate.doesSeeSky()) {
                     MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
                     if (server != null) {
-                        DimensionType type = DimensionType.byName(packet.type);
-                        if (type != null) {
-                            World to = server.getWorld(type);
-                            if (to != null) {
-                                GatewayCache.GatewayNode node = DataAS.DOMAIN_AS.getData(to, DataAS.KEY_GATEWAY_CACHE).getGatewayNode(packet.pos);
-                                if (node != null && node.hasAccess(player)) {
-                                    AstralSorcery.getProxy().scheduleDelayed(() -> MiscUtils.transferEntityTo(player, type, packet.pos));
-                                }
+                        World to = server.getWorld(packet.dim);
+                        if (to != null) {
+                            GatewayCache.GatewayNode node = DataAS.DOMAIN_AS.getData(to, DataAS.KEY_GATEWAY_CACHE).getGatewayNode(packet.pos);
+                            if (node != null && node.hasAccess(player)) {
+                                AstralSorcery.getProxy().scheduleDelayed(() -> MiscUtils.transferEntityTo(player, to.getDimensionKey(), packet.pos));
                             }
                         }
                     }

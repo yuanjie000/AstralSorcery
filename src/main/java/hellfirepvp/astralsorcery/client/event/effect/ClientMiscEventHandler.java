@@ -19,12 +19,12 @@ import hellfirepvp.astralsorcery.client.util.obj.WavefrontObject;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.Vector3f;
 import net.minecraft.client.renderer.vertex.VertexBuffer;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.vector.Vector3f;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -48,8 +48,6 @@ public class ClientMiscEventHandler {
 
     private ClientMiscEventHandler() {}
 
-
-
     //Obligatory, dev gimmick
     @OnlyIn(Dist.CLIENT)
     static void onRender(RenderPlayerEvent.Post event) {
@@ -70,7 +68,7 @@ public class ClientMiscEventHandler {
 
         if (player.isPassenger() || player.isElytraFlying()) return;
 
-        Vec3d motion = player.getMotion();
+        Vector3d motion = player.getMotion();
 
         boolean f = player.abilities.isFlying;
         float ma = f ? 15 : 5;

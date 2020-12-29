@@ -224,6 +224,7 @@ public class RegistryEngravingEffects {
                 .addEffect(new EngravingEffect.EnchantmentEffect(() -> Enchantments.BANE_OF_ARTHROPODS, 4, 7).setIgnoreCompatibility())
                 .addEffect(new EngravingEffect.EnchantmentEffect(() -> Enchantments.SHARPNESS, 3, 4).setIgnoreCompatibility())
                 .addEffect(new EngravingEffect.EnchantmentEffect(() -> Enchantments.POWER, 3, 4).setIgnoreCompatibility())
+                .addEffect(new EngravingEffect.EnchantmentEffect(() -> Enchantments.CHANNELING, 3, 4).setIgnoreCompatibility())
                 .addEffect(new EngravingEffect.EnchantmentEffect(() -> Enchantments.PIERCING, 3, 6).setIgnoreCompatibility())
                 .addEffect(new EngravingEffect.ModifierEffect(() -> PerkAttributeTypesAS.ATTR_TYPE_MOVESPEED, ModifierType.ADDED_MULTIPLY, 0.05F, 0.1F)
                         .addApplicableType(EnchantmentType.WEARABLE));

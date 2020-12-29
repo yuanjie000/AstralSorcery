@@ -12,8 +12,8 @@ import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataSet;
 import hellfirepvp.astralsorcery.common.data.config.entry.GeneralConfig;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import net.minecraft.item.Item;
+import net.minecraft.tags.ITag;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.Tag;
 import net.minecraft.util.ResourceLocation;
 
 import javax.annotation.Nonnull;
@@ -30,10 +30,10 @@ import java.util.stream.Collectors;
  */
 public class OreItemRarityEntry implements ConfigDataSet {
 
-    private final Tag<Item> itemTag;
+    private final ITag.INamedTag<Item> itemTag;
     private final int weight;
 
-    public OreItemRarityEntry(Tag<Item> itemTag, int weight) {
+    public OreItemRarityEntry(ITag.INamedTag<Item> itemTag, int weight) {
         this.itemTag = itemTag;
         this.weight = weight;
     }
@@ -57,7 +57,7 @@ public class OreItemRarityEntry implements ConfigDataSet {
             return null;
         }
         ResourceLocation keyItemTag = new ResourceLocation(split[0]);
-        Tag<Item> itemTag = ItemTags.getCollection().get(keyItemTag);
+        ITag.INamedTag<Item> itemTag = MiscUtils.iterativeSearch(ItemTags.getAllTags(), namedTag -> namedTag.getName().equals(keyItemTag));
         if (itemTag == null) {
             return null;
         }
@@ -74,6 +74,6 @@ public class OreItemRarityEntry implements ConfigDataSet {
     @Nonnull
     @Override
     public String serialize() {
-        return itemTag.getId().toString() + ";" + weight;
+        return String.format("%s;%s", itemTag.getName().toString(), weight);
     }
 }

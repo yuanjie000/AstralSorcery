@@ -12,6 +12,7 @@ import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
 import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
 import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
+import hellfirepvp.astralsorcery.common.data.config.registry.TileAccelerationBlacklistRegistry;
 import hellfirepvp.astralsorcery.common.network.play.server.PktPlayEffect;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
@@ -20,7 +21,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.EntitySize;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.ITickableTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EntityPredicates;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -78,9 +78,9 @@ public class TimeStopEffectHelper {
     @OnlyIn(Dist.CLIENT)
     static void playEntityParticles(LivingEntity e) {
         EntitySize size = e.getSize(e.getPose());
-        double x = e.getPosX() - size.width + rand.nextFloat() * size.width * 2;
+        double x = e.getPosX() - size.width / 2F + rand.nextFloat() * size.width;
         double y = e.getPosY() + rand.nextFloat() * size.height;
-        double z = e.getPosZ() - size.width + rand.nextFloat() * size.width * 2;
+        double z = e.getPosZ() - size.width / 2F + rand.nextFloat() * size.width;
         playParticles(x, y, z);
     }
 
@@ -130,7 +130,7 @@ public class TimeStopEffectHelper {
                     for (Map.Entry<BlockPos, TileEntity> teEntry : map.entrySet()) {
 
                         TileEntity te = teEntry.getValue();
-                        if (te instanceof ITickableTileEntity && te.getPos().withinDistance(position, range)) {
+                        if (TileAccelerationBlacklistRegistry.INSTANCE.canBeInfluenced(te) && te.getPos().withinDistance(position, range)) {
 
                             double x = te.getPos().getX() + rand.nextFloat();
                             double y = te.getPos().getY() + rand.nextFloat();
@@ -152,6 +152,10 @@ public class TimeStopEffectHelper {
         if (rand.nextInt(4) == 0) {
             Vector3 rand1 = Vector3.random().normalize().multiply(rand.nextFloat() * range).add(position);
             Vector3 rand2 = Vector3.random().normalize().multiply(rand.nextFloat() * range).add(position);
+            if (rand1.distance(rand2) > 10) {
+                Vector3 dir = rand1.vectorFromHereTo(rand2);
+                rand2 = rand1.clone().add(dir.normalize().multiply(10));
+            }
             EffectHelper.of(EffectTemplatesAS.LIGHTNING)
                     .spawn(rand1)
                     .makeDefault(rand2)

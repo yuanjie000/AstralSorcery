@@ -8,15 +8,17 @@
 
 package hellfirepvp.astralsorcery.common.world.structure.feature;
 
-import hellfirepvp.astralsorcery.common.lib.WorldGenerationAS;
-import hellfirepvp.astralsorcery.common.world.config.StructurePlacementConfig;
+import hellfirepvp.astralsorcery.common.world.TemplateStructureFeature;
 import hellfirepvp.astralsorcery.common.world.structure.AncientShrineStructure;
-import hellfirepvp.astralsorcery.common.world.structure.ConfiguredStructureStart;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MutableBoundingBox;
+import net.minecraft.util.registry.DynamicRegistries;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.ChunkGenerator;
+import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
 import net.minecraft.world.gen.feature.structure.Structure;
+import net.minecraft.world.gen.feature.structure.StructureStart;
 import net.minecraft.world.gen.feature.template.TemplateManager;
 
 /**
@@ -24,38 +26,29 @@ import net.minecraft.world.gen.feature.template.TemplateManager;
  * The complete source code for this mod can be found on github.
  * Class: FeatureAncientShrineStructure
  * Created by HellFirePvP
- * Date: 07.05.2020 / 07:58
+ * Date: 18.11.2020 / 21:52
  */
-public class FeatureAncientShrineStructure extends ConfiguredStructureFeature {
-
-    public FeatureAncientShrineStructure(StructurePlacementConfig placementConfig) {
-        super(placementConfig);
-    }
+public class FeatureAncientShrineStructure extends TemplateStructureFeature {
 
     @Override
-    public IStartFactory getStartFactory() {
-        return this.configuredStart(Start::new);
+    public IStartFactory<NoFeatureConfig> getStartFactory() {
+        return Start::new;
     }
 
-    @Override
-    public String getStructureName() {
-        return WorldGenerationAS.KEY_ANCIENT_SHRINE.toString();
-    }
+    public static class Start extends StructureStart<NoFeatureConfig> {
 
-    public static class Start extends ConfiguredStructureStart {
-
-        public Start(Structure<?> structure, int chunkX, int chunkZ, MutableBoundingBox structureBox, int referenceIn, long seed) {
-            super(structure, chunkX, chunkZ, structureBox, referenceIn, seed);
+        public Start(Structure<NoFeatureConfig> config, int chunkPosX, int chunkPosZ, MutableBoundingBox bounds, int ref, long seed) {
+            super(config, chunkPosX, chunkPosZ, bounds, ref, seed);
         }
 
         @Override
-        public void init(ChunkGenerator<?> generator, TemplateManager templateManagerIn, int chunkX, int chunkZ, Biome biomeIn) {
-            BlockPos genPos = this.getRandomPlacement(generator, chunkX, chunkZ);
-            if (genPos != null) {
-                AncientShrineStructure shrine = new AncientShrineStructure(templateManagerIn, genPos.down(7));
-                this.getComponents().add(shrine);
-                this.recalculateStructureSize();
-            }
+        public void func_230364_a_(DynamicRegistries registries, ChunkGenerator gen, TemplateManager mgr, int chunkX, int chunkZ, Biome biome, NoFeatureConfig cfg) {
+            int x = chunkX * 16 + rand.nextInt(16);
+            int z = chunkZ * 16 + rand.nextInt(16);
+            int y = gen.getHeight(x, z, Heightmap.Type.MOTION_BLOCKING);
+            AncientShrineStructure structure = new AncientShrineStructure(mgr, new BlockPos(x, y, z));
+            this.components.add(structure);
+            this.recalculateStructureSize();
         }
     }
 }

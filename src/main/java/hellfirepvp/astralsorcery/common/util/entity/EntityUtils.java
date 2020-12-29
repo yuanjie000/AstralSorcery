@@ -11,11 +11,17 @@ package hellfirepvp.astralsorcery.common.util.entity;
 import com.google.common.base.Predicate;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.*;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.loot.LootContext;
+import net.minecraft.loot.LootParameterSets;
+import net.minecraft.loot.LootParameters;
+import net.minecraft.loot.LootTable;
+import net.minecraft.potion.EffectInstance;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.ResourceLocation;
@@ -23,14 +29,11 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.IWorld;
-import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.MobSpawnInfo;
+import net.minecraft.world.gen.feature.structure.StructureManager;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.spawner.WorldEntitySpawner;
-import net.minecraft.world.storage.loot.LootContext;
-import net.minecraft.world.storage.loot.LootParameterSets;
-import net.minecraft.world.storage.loot.LootParameters;
-import net.minecraft.world.storage.loot.LootTable;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.eventbus.api.Event;
@@ -58,6 +61,17 @@ public class EntityUtils {
 
     private static final Random rand = new Random();
 
+    public static void applyPotionEffectAtHalf(LivingEntity entity, EffectInstance effect) {
+        EffectInstance activeEffect = entity.getActivePotionEffect(effect.getPotion());
+        if (activeEffect != null) {
+            if (activeEffect.duration <= effect.duration / 2) {
+                entity.addPotionEffect(effect);
+            }
+        } else {
+            entity.addPotionEffect(effect);
+        }
+    }
+
     public static void applyVortexMotion(Supplier<Vector3> positionSupplier, Consumer<Vector3> addMotion, Vector3 to, double vortexRange, double multiplier) {
         Vector3 pos = positionSupplier.get();
         double diffX = (to.getX() - pos.getX()) / vortexRange;
@@ -75,28 +89,29 @@ public class EntityUtils {
     }
 
     @Nullable
-    public static LivingEntity performWorldSpawningAt(ServerWorld world, BlockPos pos, EntityClassification category, SpawnReason reason, boolean ignoreWeighting) {
-        List<Biome.SpawnListEntry> spawnList = world.getChunkProvider().getChunkGenerator().getPossibleCreatures(EntityClassification.MONSTER, pos);
+    public static LivingEntity performWorldSpawningAt(ServerWorld world, BlockPos pos, EntityClassification category, SpawnReason reason, boolean ignoreWeighting, int ignoreSpawnCheckFlags) {
+        Biome b = world.getBiome(pos);
+        StructureManager mgr = world.func_241112_a_();
+        List<MobSpawnInfo.Spawners> spawnList = world.getChunkProvider().getChunkGenerator().func_230353_a_(b, mgr, EntityClassification.MONSTER, pos);
         spawnList = ForgeEventFactory.getPotentialSpawns(world, category, pos, spawnList);
-        spawnList.removeIf(s -> !s.entityType.isSummonable());
-        Biome.SpawnListEntry entry;
+        spawnList.removeIf(s -> !s.type.isSummonable());
+        MobSpawnInfo.Spawners entry;
         if (ignoreWeighting) {
             entry = MiscUtils.getRandomEntry(spawnList, rand);
         } else {
             entry = MiscUtils.getWeightedRandomEntry(spawnList, rand, ee -> ee.itemWeight);
         }
 
-        if (entry != null && WorldEntitySpawner.isSpawnableSpace(world, pos, world.getBlockState(pos), world.getFluidState(pos))) {
-
+        if (entry != null) {
             float x = pos.getX() + 0.5F;
             float y = pos.getY();
             float z = pos.getZ() + 0.5F;
 
-            if (isSpawnableAt(world, pos)) {
-
+            BlockState state = world.getBlockState(pos);
+            if (!state.isNormalCube(world, pos) && canEntitySpawnHere(world, pos, entry.type, reason, ignoreSpawnCheckFlags, null)) {
                 MobEntity entity;
                 try {
-                    entity = (MobEntity) entry.entityType.create(world);
+                    entity = (MobEntity) entry.type.create(world);
                 } catch (Exception exception) {
                     return null;
                 }
@@ -105,7 +120,7 @@ public class EntityUtils {
                 }
 
                 entity.setLocationAndAngles(x, y, z, rand.nextFloat() * 360F, 0F);
-                int result = ForgeHooks.canEntitySpawn(entity, world, x, y, z, null, reason);
+                int result = ForgeHooks.canEntitySpawn(entity, world, x, y, z, null, reason); //We already did the default test before.
                 if (result == -1) {
                     return null;
                 }
@@ -114,30 +129,30 @@ public class EntityUtils {
                     entity.onInitialSpawn(world, world.getDifficultyForLocation(pos), reason, null, null);
                 }
 
-                if (world.addEntity(entity)) {
-                    return entity;
-                }
+                world.func_242417_l(entity);
+                return entity;
             }
         }
         return null;
     }
 
-    private static boolean isSpawnableAt(World world, BlockPos pos) {
-        BlockPos up = pos.up();
-        return WorldEntitySpawner.isSpawnableSpace(world, pos, world.getBlockState(pos), world.getFluidState(pos)) &&
-                WorldEntitySpawner.isSpawnableSpace(world, up, world.getBlockState(up), world.getFluidState(up));
-    }
-
-    public static boolean canEntitySpawnHere(World world, BlockPos at, EntityType<? extends Entity> type, SpawnReason spawnReason, @Nullable Consumer<Entity> preCheckEntity) {
-        EntitySpawnPlacementRegistry.PlacementType placementType = EntitySpawnPlacementRegistry.getPlacementType(type);
-        if (!world.getWorldBorder().contains(at) || !placementType.canSpawnAt(world, at, type)) {
+    public static boolean canEntitySpawnHere(ServerWorld world, BlockPos at, EntityType<? extends Entity> type, SpawnReason spawnReason, int ignoreCheckFlags, @Nullable Consumer<Entity> preCheckEntity) {
+        if (type.getClassification() == EntityClassification.MISC || !type.isSummonable() || !world.getWorldBorder().contains(at)) {
             return false;
         }
-        if (!EntitySpawnPlacementRegistry.func_223515_a(type, world, spawnReason, at, world.rand)) {
-            return false;
+        if (!SpawnConditionFlags.isSet(ignoreCheckFlags, SpawnConditionFlags.IGNORE_PLACEMENT_RULES)) {
+            EntitySpawnPlacementRegistry.PlacementType placementType = EntitySpawnPlacementRegistry.getPlacementType(type);
+            if (!WorldEntitySpawner.canSpawnAtBody(placementType, world, at, type)) {
+                return false;
+            }
+            if (!EntitySpawnPlacementRegistry.canSpawnEntity(type, world, spawnReason, at, rand)) {
+                return false;
+            }
         }
-        if (world.hasNoCollisions(type.func_220328_a(at.getX() + 0.5, at.getY(), at.getZ() + 0.5))) {
-            return false;
+        if (!SpawnConditionFlags.isSet(ignoreCheckFlags, SpawnConditionFlags.IGNORE_BLOCK_COLLISION)) {
+            if (!world.hasNoCollisions(type.getBoundingBoxWithSizeApplied(at.getX() + 0.5, at.getY(), at.getZ() + 0.5))) {
+                return false;
+            }
         }
 
         Entity entity = type.create(world);
@@ -156,8 +171,15 @@ public class EntityUtils {
                 if (canSpawn == Event.Result.DENY) {
                     return false;
                 } else if (canSpawn == Event.Result.DEFAULT) {
-                    if (!mobEntity.canSpawn(world, spawnReason) || !mobEntity.isNotColliding(world)) {
-                        return false;
+                    if (!SpawnConditionFlags.isSet(ignoreCheckFlags, SpawnConditionFlags.IGNORE_ENTITY_SPAWN_CONDITIONS)) {
+                        if (!mobEntity.canSpawn(world, spawnReason)) {
+                            return false;
+                        }
+                    }
+                    if (!SpawnConditionFlags.isSet(ignoreCheckFlags, SpawnConditionFlags.IGNORE_ENTITY_COLLISION)) {
+                        if (!mobEntity.isNotColliding(world)) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -179,7 +201,7 @@ public class EntityUtils {
         LootContext.Builder builder = new LootContext.Builder(sw)
                 .withRandom(rand)
                 .withParameter(LootParameters.THIS_ENTITY, entity)
-                .withParameter(LootParameters.POSITION, new BlockPos(entity))
+                .withParameter(LootParameters.field_237457_g_, entity.getPositionVec())
                 .withParameter(LootParameters.DAMAGE_SOURCE, srcDeath)
                 .withNullableParameter(LootParameters.KILLER_ENTITY, srcDeath.getTrueSource())
                 .withNullableParameter(LootParameters.DIRECT_KILLER_ENTITY, srcDeath.getImmediateSource());
@@ -210,7 +232,7 @@ public class EntityUtils {
         };
     }
 
-    public static Predicate<? super Entity> selectItemClassInstaceof(Class<?> itemClass) {
+    public static Predicate<? super Entity> selectItemClassInstanceof(Class<?> itemClass) {
         return (Predicate<Entity>) entity -> {
             if (entity == null || !entity.isAlive()) return false;
             if (!(entity instanceof ItemEntity)) return false;
@@ -256,4 +278,20 @@ public class EntityUtils {
         return closestElement;
     }
 
+    public static class SpawnConditionFlags {
+
+        public static final int IGNORE_PLACEMENT_RULES         = 0b0001;
+        public static final int IGNORE_ENTITY_COLLISION        = 0b0010;
+        public static final int IGNORE_BLOCK_COLLISION         = 0b0100;
+        public static final int IGNORE_ENTITY_SPAWN_CONDITIONS = 0b1000;
+
+        public static final int IGNORE_COLLISIONS = IGNORE_BLOCK_COLLISION | IGNORE_ENTITY_COLLISION;
+        public static final int IGNORE_SPAWN_CONDITIONS = IGNORE_PLACEMENT_RULES | IGNORE_ENTITY_SPAWN_CONDITIONS;
+        public static final int IGNORE_ALL = IGNORE_COLLISIONS | IGNORE_SPAWN_CONDITIONS; //Why would you actually use this? Consider not calling the method..
+
+        public static boolean isSet(int flags, int flag) {
+            return (flags & flag) != 0;
+        }
+
+    }
 }

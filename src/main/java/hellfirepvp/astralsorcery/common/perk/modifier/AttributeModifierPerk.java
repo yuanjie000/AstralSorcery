@@ -20,7 +20,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.JSONUtils;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.IFormattableTextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -60,18 +60,8 @@ public class AttributeModifierPerk extends AttributeConverterPerk implements Att
     }
 
     @Override
-    protected void applyEffectMultiplier(float multiplier) {
-        super.applyEffectMultiplier(multiplier);
-
-        this.modifiers.forEach(t -> t.multiplyValue(multiplier));
-    }
-
-    @Override
     public Collection<PerkAttributeModifier> getModifiers(PlayerEntity player, LogicalSide side, boolean ignoreRequirements) {
-        if (modifiersDisabled(player, side)) {
-            return Collections.emptyList();
-        }
-        if (!ignoreRequirements && ResearchHelper.getProgress(player, side).isPerkSealed(this)) {
+        if (!ignoreRequirements && ResearchHelper.getProgress(player, side).getPerkData().isPerkSealed(this)) {
             return Collections.emptyList();
         }
 
@@ -80,7 +70,7 @@ public class AttributeModifierPerk extends AttributeConverterPerk implements Att
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean addLocalizedTooltip(Collection<ITextComponent> tooltip) {
+    public boolean addLocalizedTooltip(Collection<IFormattableTextComponent> tooltip) {
         Collection<PerkAttributeModifier> modifiers = this.getModifiers(Minecraft.getInstance().player, LogicalSide.CLIENT, true);
         boolean addEmptyLine = !modifiers.isEmpty();
 

@@ -12,16 +12,22 @@ import hellfirepvp.observerlib.api.client.StructureRenderLightManager;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.fluid.Fluids;
-import net.minecraft.fluid.IFluidState;
+import net.minecraft.fluid.FluidState;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.Direction;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ILightReader;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.world.IBlockDisplayReader;
 import net.minecraft.world.LightType;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.lighting.WorldLightManager;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -30,12 +36,18 @@ import javax.annotation.Nullable;
  * Created by HellFirePvP
  * Date: 18.07.2019 / 16:35
  */
-public class EmptyRenderWorld implements ILightReader {
+public class EmptyRenderWorld implements IBlockDisplayReader {
 
     private final Biome biome;
 
-    public EmptyRenderWorld(Biome biome) {
-        this.biome = biome;
+    public EmptyRenderWorld(Supplier<Biome> biomeSupplier) {
+        this.biome = biomeSupplier.get();
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public float func_230487_a_(Direction direction, boolean b) {
+        return 1.0F;
     }
 
     @Override
@@ -45,7 +57,7 @@ public class EmptyRenderWorld implements ILightReader {
 
     @Override
     public int getBlockColor(BlockPos blockPosIn, ColorResolver colorResolverIn) {
-        return colorResolverIn.getColor(biome, (double) blockPosIn.getX(), (double) blockPosIn.getZ());
+        return colorResolverIn.getColor(biome, blockPosIn.getX(), blockPosIn.getZ());
     }
 
     @Override
@@ -65,7 +77,7 @@ public class EmptyRenderWorld implements ILightReader {
     }
 
     @Override
-    public IFluidState getFluidState(BlockPos blockPos) {
+    public FluidState getFluidState(BlockPos blockPos) {
         return Fluids.EMPTY.getDefaultState();
     }
 }

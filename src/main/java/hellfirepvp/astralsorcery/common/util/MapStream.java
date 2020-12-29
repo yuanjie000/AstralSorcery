@@ -23,7 +23,7 @@ import java.util.stream.*;
  */
 public class MapStream<K, V> implements Stream<Tuple<K, V>> {
 
-    private Stream<Tuple<K, V>> decorated;
+    private final Stream<Tuple<K, V>> decorated;
 
     private MapStream(Stream<Tuple<K, V>> decorated) {
         this.decorated = decorated;
@@ -89,6 +89,10 @@ public class MapStream<K, V> implements Stream<Tuple<K, V>> {
 
     public MapStream<K, V> filterKey(Predicate<K> predicate) {
         return of(decorated.filter(tpl -> predicate.test(tpl.getA())));
+    }
+
+    public MapStream<K, V> filterValue(Predicate<V> predicate) {
+        return of(decorated.filter(tpl -> predicate.test(tpl.getB())));
     }
 
     public Stream<V> valueStream() {

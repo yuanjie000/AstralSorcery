@@ -12,7 +12,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import hellfirepvp.astralsorcery.client.util.draw.RenderInfo;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -23,13 +23,8 @@ import net.minecraft.util.math.Vec3d;
  */
 public class RenderingVectorUtils {
 
-    public static void removeStandardTranslationFromTESRMatrix(float partialTicks) {
-        Vector3 v = getStandardTranslationRemovalVector(partialTicks);
-        RenderSystem.translated(-v.getX(), -v.getY(), -v.getZ());
-    }
-
     public static Vector3 getStandardTranslationRemovalVector(float partialTicks) {
-        Vec3d view = RenderInfo.getInstance().getARI().getProjectedView();
+        Vector3d view = RenderInfo.getInstance().getARI().getProjectedView();
         return new Vector3(view);
     }
 

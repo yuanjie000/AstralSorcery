@@ -108,11 +108,11 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
     }
 
     @Override
-    public void onLoad(IWorld world) {
+    public void onLoad(World world) {
         super.onLoad(world);
 
         if (LightNetworkConfig.CONFIG.performNetworkIntegrityCheck.get()) {
-            AstralSorcery.log.info("[LightNetworkIntegrityCheck] Performing StarlightNetwork integrity check for world " + world.getDimension().getType().getId());
+            AstralSorcery.log.info("[LightNetworkIntegrityCheck] Performing StarlightNetwork integrity check for world " + world.getDimensionKey().getLocation());
             List<IPrismTransmissionNode> invalidRemoval = new LinkedList<>();
 
             for (ChunkNetworkData data : getSections()) {
@@ -313,9 +313,9 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
     private IIndependentStarlightSource addIndependentSource(BlockPos pos, IStarlightSource<?> source) {
         this.cachedSourceTuples = null;
 
-        IPrismTransmissionNode node = source.getNode();
-        if (node instanceof ITransmissionSource) {
-            IIndependentStarlightSource sourceNode = ((ITransmissionSource) node).provideNewIndependentSource(source);
+        ITransmissionSource node = source.getNode();
+        if (node != null) {
+            IIndependentStarlightSource sourceNode = node.provideNewIndependentSource(source);
             this.starlightSources.put(pos, sourceNode);
             return sourceNode;
         }

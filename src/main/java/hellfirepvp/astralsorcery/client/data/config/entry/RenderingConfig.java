@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.client.data.config.entry;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigEntry;
+import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.util.List;
@@ -30,9 +31,10 @@ public class RenderingConfig extends ConfigEntry {
     public ForgeConfigSpec.DoubleValue maxEffectRenderDistance;
     public ForgeConfigSpec.EnumValue<ParticleAmount> particleAmount;
     public ForgeConfigSpec.BooleanValue patreonEffects;
+    public ForgeConfigSpec.IntValue minYFosicDisplay;
 
-    public ForgeConfigSpec.ConfigValue<List<? extends Integer>> skyRenderDimensions;
-    public ForgeConfigSpec.ConfigValue<List<? extends Integer>> weakSkyRenders;
+    public ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionsWithSkyRendering;
+    public ForgeConfigSpec.ConfigValue<List<? extends String>> dimensionsWithOnlyConstellationRendering;
 
     private RenderingConfig() {
         super("rendering");
@@ -44,26 +46,28 @@ public class RenderingConfig extends ConfigEntry {
                 .comment("Defines how close to the position of a particle/floating texture you have to be in order for it to render.")
                 .translation(translationKey("maxEffectRenderDistance"))
                 .defineInRange("maxEffectRenderDistance", 64.0, 1, 512);
-
         particleAmount = cfgBuilder
-                .comment("Sets the amount of particles/effects: MINIMAL, LOWERED, ALL")
+                .comment("Sets the amount of particles/effects")
                 .translation(translationKey("particleAmount"))
                 .defineEnum("particleAmount", ParticleAmount.ALL);
-
         patreonEffects = cfgBuilder
                 .comment("Enables/Disables all patreon effects.")
                 .translation(translationKey("patreonEffects"))
                 .define("patreonEffects", true);
+        minYFosicDisplay = cfgBuilder
+                .comment("Defines the minimum y-level the fosic resonator will display the fosic field on.")
+                .translation(translationKey("minYFosicDisplay"))
+                .defineInRange("minYFosicDisplay", 0, 0, 256);
 
-        skyRenderDimensions = cfgBuilder
+        dimensionsWithSkyRendering = cfgBuilder
                 .comment("Whitelist of dimension ID's that will have special astral sorcery sky rendering")
-                .translation(translationKey("skyRenderDimensions"))
-                .defineList("skyRenderDimensions", Lists.newArrayList(0), Predicates.alwaysTrue());
+                .translation(translationKey("skyRenderingEnabled"))
+                .defineList("skyRenderingEnabled", Lists.newArrayList(World.OVERWORLD.getLocation().toString()), Predicates.alwaysTrue());
 
-        weakSkyRenders = cfgBuilder
-                .comment("IF a dimensionId is listed in 'skySupportedDimensions' you can add it here to keep its sky render, but AS will try to render only constellations on top of its existing sky render.")
-                .translation(translationKey("weakSkyRenders"))
-                .defineList("weakSkyRenders", Lists.newArrayList(), Predicates.alwaysTrue());
+        dimensionsWithOnlyConstellationRendering = cfgBuilder
+                .comment("If a dimension is listed here, the skyrender will only render constellations on top of the existing skybox.")
+                .translation(translationKey("skyRenderingConstellations"))
+                .defineList("skyRenderingConstellations", Lists.newArrayList(), Predicates.alwaysTrue());
     }
 
     public double getMaxEffectRenderDistanceSq() {
@@ -79,8 +83,8 @@ public class RenderingConfig extends ConfigEntry {
                 return false;
             }
         },
-        MINIMAL(40),
-        LOWERED(8),
+        MINIMAL(10),
+        LOWERED(4),
         ALL(1);
 
         private final int rChance;

@@ -39,7 +39,7 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.DimensionType;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -374,14 +374,13 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
 
     @OnlyIn(Dist.CLIENT)
     private ICameraStopListener createAttunementListener(TileAttunementAltar altar) {
-        DimensionType dimType = altar.getWorld().getDimension().getType();
         BlockPos at = altar.getPos();
         return () -> {
             if (this.cameraHack != null) {
                 ICameraTransformer transformer = (ICameraTransformer) this.cameraHack;
                 ICameraPersistencyFunction persistency = transformer.getPersistencyFunction();
                 if (persistency.isExpired() && !persistency.wasForciblyStopped()) {
-                    PktAttunePlayerConstellation attuneRequest = new PktAttunePlayerConstellation(this.constellation, dimType, at);
+                    PktAttunePlayerConstellation attuneRequest = new PktAttunePlayerConstellation(this.constellation, altar.getWorld().getDimensionKey(), at);
                     PacketChannel.CHANNEL.sendToServer(attuneRequest);
                 }
             }

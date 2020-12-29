@@ -34,6 +34,7 @@ import hellfirepvp.astralsorcery.common.util.world.WorldSeedCache;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.IWorld;
+import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
@@ -102,11 +103,14 @@ public class EventHandlerCache {
     @SubscribeEvent
     public static void onUnload(WorldEvent.Unload event) {
         IWorld w = event.getWorld();
+        if (w instanceof World) {
+            World world = (World) w;
 
-        SkyHandler.getInstance().informWorldUnload(w);
-        SyncDataHolder.clearWorld(w);
-        TimeStopController.onWorldUnload(w);
-        StarlightTransmissionHandler.getInstance().informWorldUnload(w);
+            SyncDataHolder.clearWorld(world);
+            StarlightTransmissionHandler.getInstance().informWorldUnload(world);
+            TimeStopController.onWorldUnload(world);
+            SkyHandler.getInstance().informWorldUnload(world);
+        }
     }
 
     @SubscribeEvent

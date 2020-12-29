@@ -1,3 +1,14 @@
+<<<<<<< HEAD
+=======
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2020
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
+>>>>>>> upstream/1.16-indev
 package hellfirepvp.astralsorcery.common.util;
 
 import net.minecraftforge.eventbus.api.Event;

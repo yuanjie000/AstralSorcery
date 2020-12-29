@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2020
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
 package hellfirepvp.astralsorcery.common.crafting.nojson.fountain;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
@@ -22,7 +30,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.math.vector.Vector3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.server.ServerWorld;
@@ -169,7 +177,7 @@ public class FountainEffectLiquid extends FountainEffect<LiquidContext> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void playDigPreparation(Vec3i pos, float chance) {
+    private void playDigPreparation(Vector3i pos, float chance) {
         Vector3 at = new Vector3(pos).add(0.5, 0.5, 0.5);
         for (int i = 0; i < 12; i++) {
             if (rand.nextFloat() >= chance) {
@@ -198,7 +206,7 @@ public class FountainEffectLiquid extends FountainEffect<LiquidContext> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void playDigParticles(Vec3i pos) {
+    private void playDigParticles(Vector3i pos) {
         for (int i = 0; i < 2; i++) {
             Vector3 at = new Vector3(pos).add(
                     0.3 + rand.nextFloat() * 0.4,
@@ -214,7 +222,7 @@ public class FountainEffectLiquid extends FountainEffect<LiquidContext> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void playDigLightbeam(Vec3i pos) {
+    private void playDigLightbeam(Vector3i pos) {
         Vector3 from = new Vector3(pos).add(0.5, 1.5, 0.5);
         MiscUtils.applyRandomOffset(from, rand, 0.1F);
         Vector3 to = from.clone().setY(0);

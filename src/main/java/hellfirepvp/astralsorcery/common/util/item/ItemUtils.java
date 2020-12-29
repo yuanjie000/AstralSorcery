@@ -8,7 +8,9 @@
 
 package hellfirepvp.astralsorcery.common.util.item;
 
+import hellfirepvp.astralsorcery.common.base.Mods;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
+import hellfirepvp.astralsorcery.common.integration.IntegrationBotania;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -19,11 +21,11 @@ import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tags.ITag;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.Tag;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -57,7 +59,7 @@ public class ItemUtils {
             return null;
         }
         ItemEntity ei = new ItemEntity(world, x, y, z, stack);
-        ei.setMotion(new Vec3d(0, 0, 0));
+        ei.setMotion(new Vector3d(0, 0, 0));
         world.addEntity(ei);
         ei.setPickupDelay(20);
         return ei;
@@ -174,12 +176,12 @@ public class ItemUtils {
 
     @Nonnull
     public static List<ItemStack> getItemsOfTag(ResourceLocation key) {
-        Tag<Item> tag = ItemTags.getCollection().get(key);
+        ITag<Item> tag = ItemTags.getCollection().get(key);
         return tag == null ? Collections.emptyList() : getItemsOfTag(tag);
     }
 
     @Nonnull
-    public static List<ItemStack> getItemsOfTag(Tag<Item> itemTag) {
+    public static List<ItemStack> getItemsOfTag(ITag<Item> itemTag) {
         return itemTag.getAllElements().stream().map(ItemStack::new).collect(Collectors.toList());
     }
 
@@ -198,7 +200,14 @@ public class ItemUtils {
     }
 
     public static Collection<ItemStack> findItemsInPlayerInventory(PlayerEntity player, ItemStack match, boolean strict) {
-        return findItemsInInventory(player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).orElse(EMPTY_INVENTORY), match, strict);
+        IItemHandler handler = player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).orElse(EMPTY_INVENTORY);
+        Collection<ItemStack> results = findItemsInInventory(handler, match, strict);
+
+        if (Mods.BOTANIA.isPresent()) {
+            results.addAll(IntegrationBotania.botaniaFindItemsInPlayerInventory(player, match));
+        }
+
+        return results;
     }
 
     public static Collection<ItemStack> findItemsInInventory(IItemHandler handler, ItemStack match, boolean strict) {
@@ -239,7 +248,23 @@ public class ItemUtils {
     public static boolean consumeFromPlayerInventory(PlayerEntity player, ItemStack requestingItemStack, ItemStack toConsume, boolean simulate) {
         int consumed = 0;
         ItemStack tryConsume = copyStackWithSize(toConsume, toConsume.getCount() - consumed);
-        return tryConsume.isEmpty() || consumeFromInventory((IItemHandlerModifiable) player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null).orElse(EMPTY_INVENTORY), tryConsume, simulate);
+
+        if (tryConsume.isEmpty()) {
+            return true;
+        }
+
+        IItemHandlerModifiable handler = (IItemHandlerModifiable) player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null).orElse(EMPTY_INVENTORY);
+        if (consumeFromInventory(handler, tryConsume, simulate)) {
+            return true;
+        }
+        
+        if (Mods.BOTANIA.isPresent()) {
+            if (IntegrationBotania.consumeFromPlayerInventory(player, requestingItemStack, toConsume, simulate)) {
+                return true;
+            }
+        }
+                
+        return false;
     }
 
     public static boolean tryConsumeFromInventory(IItemHandler handler, ItemStack toConsume, boolean simulate) {

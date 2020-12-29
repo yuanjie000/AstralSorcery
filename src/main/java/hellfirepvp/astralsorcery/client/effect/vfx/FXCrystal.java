@@ -22,7 +22,7 @@ import hellfirepvp.astralsorcery.client.util.RenderingDrawUtils;
 import hellfirepvp.astralsorcery.client.util.RenderingVectorUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.client.util.BufferDecoratorBuilder;
-import net.minecraft.client.renderer.Vector3f;
+import net.minecraft.util.math.vector.Vector3f;
 
 import java.awt.*;
 
@@ -83,8 +83,6 @@ public class FXCrystal extends EntityVisualFX implements EntityDynamicFX {
             drawBuffer.draw();
         }
 
-        RenderSystem.color4f(c.getRed() / 255F, c.getGreen() / 255F, c.getBlue() / 255F, alpha / 255F);
-
         renderStack.push();
         renderStack.translate(vec.getX(), vec.getY() - 0.05F, vec.getZ());
         renderStack.scale(scale, scale, scale);
@@ -97,8 +95,6 @@ public class FXCrystal extends EntityVisualFX implements EntityDynamicFX {
                         decorated -> ObjModelRender.renderCrystal(renderStack, decorated, drawBuffer::draw));
 
         renderStack.pop();
-
-        RenderSystem.color4f(1F, 1F, 1F, 1F);
 
         if (this.alternativeTexture != null) {
             ctx.getSprite().bindTexture();

@@ -9,6 +9,7 @@
 package hellfirepvp.astralsorcery.client.screen.base;
 
 import com.google.common.collect.Iterables;
+import com.mojang.blaze3d.matrix.MatrixStack;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.util.MouseUtil;
@@ -31,6 +32,7 @@ import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.vector.Matrix4f;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.LogicalSide;
@@ -58,7 +60,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
     private List<D> drawAreas = new LinkedList<>();
 
     private D currentDrawArea = null;
-    private List<DrawnLine> drawnLines = new LinkedList<>();
+    private final List<DrawnLine> drawnLines = new LinkedList<>();
     private Point dragStart, dragEnd;
 
     private boolean initialized = false;
@@ -126,7 +128,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
     }
 
     @Override
-    public void render(int mouseX, int mouseY, float pTicks) {
+    public void render(MatrixStack renderStack, int mouseX, int mouseY, float partialTicks) {
         if (this.isMouseRotatingGui()) {
             if (hasShiftDown() && Minecraft.getInstance().mouseHelper.isMouseGrabbed()) {
                 MouseUtil.ungrab();
@@ -136,10 +138,10 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
             }
         }
 
-        super.render(mouseX, mouseY, pTicks);
+        super.render(renderStack, mouseX, mouseY, partialTicks);
     }
 
-    protected void renderDrawnLines(Random rand, float pTicks) {
+    protected void renderDrawnLines(MatrixStack renderStack, Random rand, float pTicks) {
         if (!canDraw()) {
             this.clearDrawing();
             return;
@@ -151,18 +153,18 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
 
         RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
             for (DrawnLine line : drawnLines) {
-                drawLine(buf, pTicks, line.from, line.to, brightnessFn, lineBreadth);
+                drawLine(buf, renderStack, pTicks, line.from, line.to, brightnessFn, lineBreadth);
             }
 
             if (this.dragStart != null && this.dragEnd != null) {
                 Point adjStart = new Point(this.dragStart.x - guiLeft, this.dragStart.y - guiTop);
                 Point adjEnd = new Point(this.dragEnd.x - guiLeft, this.dragEnd.y - guiTop);
-                drawLine(buf, pTicks, adjStart, adjEnd, () -> 0.8F, lineBreadth);
+                drawLine(buf, renderStack, pTicks, adjStart, adjEnd, () -> 0.8F, lineBreadth);
             }
         });
     }
 
-    private void drawLine(BufferBuilder buf, float pTicks, Point from, Point to, Supplier<Float> brightnessFn, float lineBreadth) {
+    private void drawLine(BufferBuilder buf, MatrixStack renderStack, float pTicks, Point from, Point to, Supplier<Float> brightnessFn, float lineBreadth) {
         float brightness = brightnessFn.get();
         float starBr = this.multiplyStarBrightness(pTicks, brightness);
         if (starBr <= 0.0F) {
@@ -171,7 +173,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
         starBr = starBr * 0.75F + 0.25F;
 
         Vector3 fromStar = new Vector3(guiLeft + from.getX(), guiTop + from.getY(), this.getGuiZLevel());
-        Vector3 toStar = new Vector3(guiLeft + to.getX(), guiTop + to.getY(), this.getGuiZLevel());
+        Vector3 toStar   = new Vector3(guiLeft + to.getX(),   guiTop + to.getY(),   this.getGuiZLevel());
 
         Vector3 dir = toStar.clone().subtract(fromStar);
         Vector3 degLot = dir.clone().crossProduct(Vector3.RotAxis.Z_AXIS).normalize().multiply(lineBreadth);//.multiply(j == 0 ? 1 : -1);
@@ -179,12 +181,13 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
         Vector3 vec00 = fromStar.clone().add(degLot);
         Vector3 vecV = degLot.clone().multiply(-2);
 
+        Matrix4f offset = renderStack.getLast().getMatrix();
         for (int i = 0; i < 4; i++) {
             int u = ((i + 1) & 2) >> 1;
             int v = ((i + 2) & 2) >> 1;
 
             Vector3 pos = vec00.clone().add(dir.clone().multiply(u)).add(vecV.clone().multiply(v));
-            pos.drawPos(buf).color(starBr, starBr, starBr, Math.max(0, starBr)).tex(u, v).endVertex();
+            pos.drawPos(offset, buf).color(starBr, starBr, starBr, Math.max(0, starBr)).tex(u, v).endVertex();
         }
     }
 
@@ -293,8 +296,8 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
 
             boolean didMatch = true;
             for (StarConnection cstConnection : cst.getStarConnections()) {
-                Rectangle rctFrom = info.frameDrawInformation.get(cstConnection.from);
-                Rectangle rctTo = info.frameDrawInformation.get(cstConnection.to);
+                Rectangle.Float rctFrom = info.frameDrawInformation.get(cstConnection.from);
+                Rectangle.Float rctTo = info.frameDrawInformation.get(cstConnection.to);
                 if (rctFrom == null || rctTo == null) {
                     didMatch = false;
                     break;
@@ -313,7 +316,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
         }
     }
 
-    private boolean hasMatchingDrawnLine(Rectangle rctFrom, Rectangle rctTo) {
+    private boolean hasMatchingDrawnLine(Rectangle.Float rctFrom, Rectangle.Float rctTo) {
         for (DrawnLine line : this.drawnLines) {
             Point start = line.from;
             Point end = line.to;
@@ -381,7 +384,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
         private final Point renderPosition;
         private final float renderSize;
 
-        private final Map<StarLocation, Rectangle> frameDrawInformation = new HashMap<>();
+        private final Map<StarLocation, Rectangle.Float> frameDrawInformation = new HashMap<>();
 
         protected ConstellationDisplayInformation(Point renderPosition, float renderSize) {
             this.renderPosition = renderPosition;
@@ -396,7 +399,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
             return renderSize;
         }
 
-        public Map<StarLocation, Rectangle> getFrameDrawInformation() {
+        public Map<StarLocation, Rectangle.Float> getFrameDrawInformation() {
             return frameDrawInformation;
         }
     }

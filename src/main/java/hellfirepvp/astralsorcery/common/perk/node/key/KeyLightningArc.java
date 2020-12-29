@@ -84,18 +84,18 @@ public class KeyLightningArc extends KeyPerk {
             PlayerEntity player = (PlayerEntity) source.getTrueSource();
             LogicalSide side = this.getSide(player);
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
-            if (side.isServer() && prog.hasPerkEffect(this) && prog.doPerkAbilities()) {
+            if (side.isServer() && prog.getPerkData().hasPerkEffect(this) && prog.doPerkAbilities()) {
                 float chance = PerkAttributeHelper.getOrCreateMap(player, side)
-                        .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, (float) this.applyMultiplierD(CONFIG.arcChance.get()));
+                        .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, CONFIG.arcChance.get().floatValue());
                 if (rand.nextFloat() < chance && AlignmentChargeHandler.INSTANCE.drainCharge(player, side, CONFIG.chargeCost.get(), false)) {
                     float dmg = event.getAmount();
-                    dmg *= this.applyMultiplierD(CONFIG.arcPercent.get());
+                    dmg *= CONFIG.arcPercent.get();
                     new RepetitiveArcEffect(player.world,
                             player,
-                            this.applyMultiplierI(CONFIG.arcTicks.get()),
+                            CONFIG.arcTicks.get(),
                             event.getEntityLiving().getEntityId(),
                             dmg,
-                            this.applyMultiplierD(CONFIG.arcDistance.get())).fire();
+                            CONFIG.arcDistance.get()).fire();
                 }
             }
         }
@@ -192,7 +192,7 @@ public class KeyLightningArc extends KeyPerk {
                                     buf.writeInt(ColorsAS.EFFECT_LIGHTNING.getRGB());
                                 }), target);
                     }
-                    List<LivingEntity> entities = entity.getEntityWorld().getEntitiesWithinAABB(LivingEntity.class, box.offset(entity.getPositionVector()), EntityUtils.selectEntities(LivingEntity.class));
+                    List<LivingEntity> entities = entity.getEntityWorld().getEntitiesWithinAABB(LivingEntity.class, box.offset(entity.getPositionVec()), EntityUtils.selectEntities(LivingEntity.class));
                     entities.remove(entity);
                     if (last != null) {
                         entities.remove(last);

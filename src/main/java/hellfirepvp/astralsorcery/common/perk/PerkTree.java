@@ -42,12 +42,12 @@ public class PerkTree {
     //The original tree, loaded from JSON on the server
     private PerkTreeData loadedPerkTree = null;
 
-    private final SidedReference<PreparedPerkTreeData> treedata = new SidedReference<>();
+    private final SidedReference<PreparedPerkTreeData> treeData = new SidedReference<>();
 
     private PerkTree() {}
 
     public Optional<PreparedPerkTreeData> getData(LogicalSide side) {
-        return this.treedata.getData(side);
+        return this.treeData.getData(side);
     }
 
     public Optional<AbstractPerk> getPerk(LogicalSide side, ResourceLocation key) {
@@ -113,12 +113,12 @@ public class PerkTree {
     }
 
     private void updateTreeData(LogicalSide side, @Nullable PreparedPerkTreeData newData) {
-        this.treedata.getData(side).ifPresent(data -> {
+        this.treeData.getData(side).ifPresent(data -> {
             data.getPerkPoints().stream()
                     .map(PerkTreePoint::getPerk)
                     .forEach(perk -> perk.invalidate(side));
         });
-        this.treedata.setData(side, newData);
+        this.treeData.setData(side, newData);
         if (newData != null) {
             newData.getPerkPoints().stream()
                     .map(PerkTreePoint::getPerk)

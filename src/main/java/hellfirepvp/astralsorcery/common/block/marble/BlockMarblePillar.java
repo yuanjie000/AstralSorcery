@@ -13,8 +13,8 @@ import hellfirepvp.astralsorcery.common.util.VoxelUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.IWaterLoggable;
+import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
-import net.minecraft.fluid.IFluidState;
 import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.state.BooleanProperty;
 import net.minecraft.state.EnumProperty;
@@ -31,6 +31,7 @@ import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -105,7 +106,7 @@ public class BlockMarblePillar extends BlockMarbleTemplate implements IWaterLogg
     public BlockState getStateForPlacement(BlockItemUseContext ctx) {
         BlockPos blockpos = ctx.getPos();
         World world = ctx.getWorld();
-        IFluidState ifluidstate = world.getFluidState(blockpos);
+        FluidState ifluidstate = world.getFluidState(blockpos);
         return this.getThisState(world, blockpos).with(WATERLOGGED, ifluidstate.getFluid() == Fluids.WATER);
     }
 
@@ -123,7 +124,7 @@ public class BlockMarblePillar extends BlockMarbleTemplate implements IWaterLogg
         return this.getDefaultState().with(PILLAR_TYPE, PillarType.MIDDLE);
     }
 
-    public IFluidState getFluidState(BlockState state) {
+    public FluidState getFluidState(BlockState state) {
         return state.get(WATERLOGGED) ? Fluids.WATER.getStillFluidState(false) : super.getFluidState(state);
     }
 
@@ -134,13 +135,13 @@ public class BlockMarblePillar extends BlockMarbleTemplate implements IWaterLogg
         BOTTOM;
 
         @Override
-        public String getName() {
-            return name().toLowerCase();
+        public String getString() {
+            return name().toLowerCase(Locale.ROOT);
         }
 
         @Override
         public String toString() {
-            return this.getName();
+            return this.getString();
         }
     }
 

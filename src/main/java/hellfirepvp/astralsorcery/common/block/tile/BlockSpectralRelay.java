@@ -48,7 +48,7 @@ public class BlockSpectralRelay extends BlockStarlightNetwork implements CustomI
 
     public BlockSpectralRelay() {
         super(PropertiesGlass.coatedGlass()
-                .lightValue(4));
+                .setLightLevel(state -> 4));
     }
 
     @Override

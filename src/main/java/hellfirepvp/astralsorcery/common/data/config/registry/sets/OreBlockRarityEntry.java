@@ -13,7 +13,7 @@ import hellfirepvp.astralsorcery.common.data.config.entry.GeneralConfig;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import net.minecraft.block.Block;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.Tag;
+import net.minecraft.tags.ITag;
 import net.minecraft.util.ResourceLocation;
 
 import javax.annotation.Nonnull;
@@ -30,10 +30,10 @@ import java.util.stream.Collectors;
  */
 public class OreBlockRarityEntry implements ConfigDataSet {
 
-    private final Tag<Block> blockTag;
+    private final ITag.INamedTag<Block> blockTag;
     private final int weight;
 
-    public OreBlockRarityEntry(Tag<Block> blockTag, int weight) {
+    public OreBlockRarityEntry(ITag.INamedTag<Block> blockTag, int weight) {
         this.blockTag = blockTag;
         this.weight = weight;
     }
@@ -57,7 +57,7 @@ public class OreBlockRarityEntry implements ConfigDataSet {
             return null;
         }
         ResourceLocation keyBlockTag = new ResourceLocation(split[0]);
-        Tag<Block> blockTag = BlockTags.getCollection().get(keyBlockTag);
+        ITag.INamedTag<Block> blockTag = MiscUtils.iterativeSearch(BlockTags.getAllTags(), namedTag -> namedTag.getName().equals(keyBlockTag));
         if (blockTag == null) {
             return null;
         }
@@ -74,6 +74,6 @@ public class OreBlockRarityEntry implements ConfigDataSet {
     @Nonnull
     @Override
     public String serialize() {
-        return blockTag.getId().toString() + ";" + weight;
+        return String.format("%s;%s", blockTag.getName().toString(), weight);
     }
 }

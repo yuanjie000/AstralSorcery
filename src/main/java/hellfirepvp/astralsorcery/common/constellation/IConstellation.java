@@ -19,16 +19,17 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tags.Tag;
+import net.minecraft.tags.ITag;
 import net.minecraft.util.IItemProvider;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.IFormattableTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -64,11 +65,11 @@ public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Com
 
     public String getTranslationKey();
 
-    default public ITextComponent getConstellationName() {
+    default public IFormattableTextComponent getConstellationName() {
         return new TranslationTextComponent(this.getTranslationKey());
     }
 
-    default public ITextComponent getConstellationTypeDescription() {
+    default public IFormattableTextComponent getConstellationTypeDescription() {
         String type = "unknown";
         if (this instanceof IMajorConstellation) {
             type = "major";
@@ -80,15 +81,15 @@ public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Com
         return new TranslationTextComponent(String.format("astralsorcery.journal.constellation.type.%s", type));
     }
 
-    default public ITextComponent getConstellationTag() {
+    default public IFormattableTextComponent getConstellationTag() {
         return new TranslationTextComponent(this.getTranslationKey() + ".tag");
     }
 
-    default public ITextComponent getConstellationDescription() {
+    default public IFormattableTextComponent getConstellationDescription() {
         return new TranslationTextComponent(this.getTranslationKey() + ".description");
     }
 
-    default public ITextComponent getConstellationEnchantmentDescription() {
+    default public IFormattableTextComponent getConstellationEnchantmentDescription() {
         return new TranslationTextComponent(this.getTranslationKey() + ".enchantments");
     }
 
@@ -104,18 +105,18 @@ public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Com
     }
 
     default public IConstellation addSignatureItem(ItemStack item) {
-        return this.addSignatureItem(Ingredient.fromStacks(item));
+        return this.addSignatureItem(() -> Ingredient.fromStacks(item));
     }
 
     default public IConstellation addSignatureItem(IItemProvider item) {
-        return this.addSignatureItem(Ingredient.fromItems(item));
+        return this.addSignatureItem(() -> Ingredient.fromItems(item));
     }
 
-    default public IConstellation addSignatureItem(Tag<Item> tag) {
-        return this.addSignatureItem(Ingredient.fromTag(tag));
+    default public IConstellation addSignatureItem(ITag<Item> tag) {
+        return this.addSignatureItem(() -> Ingredient.fromTag(tag));
     }
 
-    public IConstellation addSignatureItem(Ingredient item);
+    public IConstellation addSignatureItem(Supplier<Ingredient> ingredient);
 
     public Color getConstellationColor();
 

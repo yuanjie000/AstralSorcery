@@ -8,7 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.perk.tree;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.matrix.MatrixStack;
 import hellfirepvp.astralsorcery.client.resource.SpriteSheetResource;
 import hellfirepvp.astralsorcery.client.screen.journal.perk.BatchPerkContext;
 import hellfirepvp.astralsorcery.client.screen.journal.perk.DynamicPerkRender;
@@ -19,7 +19,7 @@ import hellfirepvp.astralsorcery.client.util.RenderingUtils;
 import hellfirepvp.astralsorcery.client.util.draw.BufferContext;
 import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.perk.AllocationStatus;
-import hellfirepvp.astralsorcery.common.perk.node.GemSlotPerk;
+import hellfirepvp.astralsorcery.common.perk.node.socket.GemSocketPerk;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Tuple;
@@ -38,7 +38,7 @@ import java.util.Collection;
  * Created by HellFirePvP
  * Date: 25.08.2019 / 18:33
  */
-public class PerkTreeGem<T extends AbstractPerk & GemSlotPerk> extends PerkTreePoint<T> implements DynamicPerkRender {
+public class PerkTreeGem<T extends AbstractPerk & GemSocketPerk> extends PerkTreePoint<T> implements DynamicPerkRender {
 
     public PerkTreeGem(T perk, Point.Float offset) {
         super(perk, offset);
@@ -54,28 +54,27 @@ public class PerkTreeGem<T extends AbstractPerk & GemSlotPerk> extends PerkTreeP
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void renderAt(AllocationStatus status, long spriteOffsetTick, float pTicks, float x, float y, float zLevel, float scale) {
+    public void renderAt(AllocationStatus status, MatrixStack renderStack, long spriteOffsetTick, float pTicks, float x, float y, float zLevel, float scale) {
         ItemStack stack = this.getPerk().getContainedItem(Minecraft.getInstance().player, LogicalSide.CLIENT);
         if (!stack.isEmpty()) {
             float posX = x - (8 * scale);
             float posY = y - (8 * scale);
 
-            RenderSystem.pushMatrix();
-            RenderSystem.translated(posX, posY, zLevel);
-            RenderSystem.scaled(scale, scale, scale);
-            RenderingUtils.renderItemStack(Minecraft.getInstance().getItemRenderer(), stack, 0, 0, null);
-            RenderSystem.popMatrix();
+            renderStack.push();
+            renderStack.translate(posX, posY, zLevel - 50F);
+            renderStack.scale(scale, scale, 1F);
+            RenderingUtils.renderItemStackGUI(renderStack, stack, null);
+            renderStack.pop();
         }
     }
 
     @Nullable
     @Override
     @OnlyIn(Dist.CLIENT)
-    public Rectangle.Float renderPerkAtBatch(BatchPerkContext drawCtx,
-                                                AllocationStatus status,
-                                                long spriteOffsetTick, float pTicks,
-                                                float x, float y, float zLevel, float scale) {
-        SpriteSheetResource tex = getHaloSprite(status);
+    public Rectangle.Float renderPerkAtBatch(BatchPerkContext drawCtx, MatrixStack renderStack,
+                                             AllocationStatus status, long spriteOffsetTick, float pTicks,
+                                             float x, float y, float zLevel, float scale) {
+        SpriteSheetResource tex = status.getPerkTreeHaloSprite();
         BatchPerkContext.TextureObjectGroup grp = PerkPointHaloRenderGroup.INSTANCE.getGroup(tex);
         if (grp == null) {
             return new Rectangle.Float();
@@ -83,18 +82,18 @@ public class PerkTreeGem<T extends AbstractPerk & GemSlotPerk> extends PerkTreeP
         BufferContext buf = drawCtx.getContext(grp);
 
         float haloSize = getRenderSize() * 0.8F * scale;
-        if (status == AllocationStatus.ALLOCATED) {
+        if (status.isAllocated()) {
             haloSize *= 1.5;
         }
 
         Tuple<Float, Float> frameUV = tex.getUVOffset(spriteOffsetTick);
 
-        RenderingGuiUtils.rect(buf, x - haloSize, y - haloSize, zLevel, haloSize * 2F, haloSize * 2F)
+        RenderingGuiUtils.rect(buf, renderStack, x - haloSize, y - haloSize, zLevel, haloSize * 2F, haloSize * 2F)
                 .color(1F, 1F, 1F, 0.85F)
                 .tex(frameUV.getA(), frameUV.getB(), tex.getULength(), tex.getVLength())
                 .draw();
 
-        super.renderPerkAtBatch(drawCtx, status, spriteOffsetTick, pTicks, x, y, zLevel, scale);
+        super.renderPerkAtBatch(drawCtx, renderStack, status, spriteOffsetTick, pTicks, x, y, zLevel, scale);
 
         float actualSize = getRenderSize() * scale;
         return new Rectangle.Float(-actualSize, -actualSize, actualSize * 2, actualSize * 2);

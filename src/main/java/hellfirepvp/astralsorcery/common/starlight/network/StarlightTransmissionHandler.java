@@ -9,9 +9,9 @@
 package hellfirepvp.astralsorcery.common.starlight.network;
 
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
-import net.minecraft.world.IWorld;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.TickEvent;
 
 import javax.annotation.Nullable;
@@ -29,7 +29,7 @@ import java.util.Map;
 public class StarlightTransmissionHandler implements ITickHandler {
 
     private static final StarlightTransmissionHandler instance = new StarlightTransmissionHandler();
-    private Map<DimensionType, TransmissionWorldHandler> worldHandlers = new HashMap<>();
+    private final Map<RegistryKey<World>, TransmissionWorldHandler> worldHandlers = new HashMap<>();
 
     private StarlightTransmissionHandler() {}
 
@@ -40,12 +40,11 @@ public class StarlightTransmissionHandler implements ITickHandler {
     @Override
     public void tick(TickEvent.Type type, Object... context) {
         World world = (World) context[0];
-        if (world.isRemote()) {
+        if (world.isRemote() || !(world instanceof ServerWorld)) {
             return;
         }
 
-        worldHandlers.computeIfAbsent(world.getDimension().getType(), TransmissionWorldHandler::new)
-                .tick(world);
+        worldHandlers.computeIfAbsent(world.getDimensionKey(), TransmissionWorldHandler::new).tick((ServerWorld) world);
     }
 
     public void clearServer() {
@@ -53,21 +52,21 @@ public class StarlightTransmissionHandler implements ITickHandler {
         worldHandlers.clear();
     }
 
-    public void informWorldUnload(IWorld world) {
-        DimensionType dimType = world.getDimension().getType();
-        TransmissionWorldHandler handle = worldHandlers.get(dimType);
+    public void informWorldUnload(World world) {
+        RegistryKey<World> dimKey = world.getDimensionKey();
+        TransmissionWorldHandler handle = worldHandlers.get(dimKey);
         if (handle != null) {
             handle.clear();
         }
-        this.worldHandlers.remove(dimType);
+        this.worldHandlers.remove(dimKey);
     }
 
     @Nullable
-    public TransmissionWorldHandler getWorldHandler(IWorld world) {
+    public TransmissionWorldHandler getWorldHandler(World world) {
         if (world == null) {
             return null;
         }
-        return worldHandlers.get(world.getDimension().getType());
+        return worldHandlers.get(world.getDimensionKey());
     }
 
     @Override
