@@ -253,7 +253,7 @@ public class TileAttunementAltar extends TileEntityTick {
         if (this.attunementAltarIdleSound == null || ((PositionedLoopSound) this.attunementAltarIdleSound).hasStoppedPlaying()) {
             this.attunementAltarIdleSound = SoundHelper.playSoundLoopFadeInClient(SoundsAS.ATTUNEMENT_ATLAR_IDLE,
                     new Vector3(this).add(0.5, 1, 0.5),
-                    1F,
+                    0.4F,
                     1F,
                     false,
                     (s) -> !this.canPlayConstellationActiveEffects() ||
@@ -503,8 +503,8 @@ public class TileAttunementAltar extends TileEntityTick {
     private Set<Tuple<BlockPos, BlockPos>> getConstellationConnectionPositions(IConstellation cst) {
         Set<Tuple<BlockPos, BlockPos>> offsetPositions = new HashSet<>();
         for (StarConnection conn : cst.getStarConnections()) {
-            StarLocation from = conn.from;
-            StarLocation to = conn.to;
+            StarLocation from = conn.getLeft();
+            StarLocation to = conn.getRight();
             int fX = from.x / 2;
             int fZ = from.y / 2;
             int tX = to.x / 2;
