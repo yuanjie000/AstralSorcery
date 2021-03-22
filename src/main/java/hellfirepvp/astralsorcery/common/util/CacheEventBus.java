@@ -11,10 +11,7 @@
 >>>>>>> upstream/1.16-indev
 package hellfirepvp.astralsorcery.common.util;
 
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.GenericEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -108,6 +105,11 @@ public class CacheEventBus implements IEventBus {
     @Override
     public boolean post(Event event) {
         return wrapped.post(event);
+    }
+
+    @Override
+    public boolean post(Event event, IEventBusInvokeDispatcher wrapper) {
+        return wrapped.post(event, wrapper);
     }
 
     @Override
